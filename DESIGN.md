@@ -124,6 +124,90 @@ the pattern is identical, only the project type differs.
 | PR preview links | Sticky PR comment from `marocchino/sticky-pull-request-comment` | The HTML doesn't need a PR-aware banner — the comment is the right surface. Keeps the HTML simple. |
 | License | MIT | OSI-approved, matches Quarto and manubot, JOSS-friendly. |
 
+## Quarto features we get for free
+
+One of the strongest arguments for building on Quarto is how much
+already-mature publishing infrastructure comes with the box. Many of
+these are things manubot either doesn't have, has only weakly, or has
+re-implemented bespokely. Choosing Quarto means choosing this stack as
+our baseline:
+
+**Output and formats**
+
+- One source → HTML, PDF, DOCX, **JATS XML** (the format journals want
+  for submission), ePub, and reveal.js slides. The Quarto Manuscripts
+  project type is explicitly designed around this fan-out.
+- Format-conditional content via `::: {.content-visible when-format="…"}`
+  so HTML-only or PDF-only blocks (e.g., the version banner) are a
+  one-line change rather than a build-system fight.
+
+**Theming and visual surface**
+
+- Built-in theme support (Bootswatch themes, custom SCSS, light/dark
+  variants). Authors can change the entire look with `theme: cosmo`
+  → `theme: flatly` and re-render. Manubot has one look; Quarto has
+  dozens out of the box and infinite customization.
+- Syntax highlighting themes; copy-to-clipboard on code blocks.
+- Accessible semantic HTML by default, alt-text propagation through
+  formats.
+
+**Layout primitives**
+
+- **Margin notes / sidenotes** via the `.column-margin` class — Tufte
+  style content placement that is awkward to retrofit elsewhere.
+- **Callouts** (`note`, `tip`, `warning`, `important`, `caution`) for
+  asides that aren't blockquotes — the version banner uses one of
+  these.
+- **Tabsets** for HTML-only tabbed content where it helps.
+- Multi-column page layout (`.column-page`, `.column-screen`) for
+  figures or tables that want more horizontal room than the body.
+
+**Citations and references**
+
+- Pandoc citeproc + CSL — every journal style ever written is one
+  config line away. Bibliography accepted as `.bib`, `.json` (CSL
+  JSON), `.yaml`, `.ris`. Multiple files merged at render.
+- Cross-references (`@fig-`, `@tbl-`, `@sec-`, `@eq-`, `@thm-`, …) that
+  number themselves and adapt across formats. This is the substrate
+  the manubot-style citation extension drops into.
+
+**Computation**
+
+- First-class execution of R, Python, and Julia via `knitr` and
+  Jupyter. Cell output (figures, tables, printed values) embeds back
+  into the document with caching (`_freeze/`). Manubot does not natively
+  execute code; Quarto is built around it. For a hackathon-style
+  manuscript with code-driven figures this matters a lot.
+
+**Annotation, comments, search**
+
+- **Hypothes.is** annotations are a single config line:
+  `format.html.comments.hypothesis: true`. (See [#6](https://github.com/seandavi/quartobot/issues/6)
+  for why this dropped the iframe-shell idea.)
+- Full-text search built-in for book and website project types.
+
+**Authoring ergonomics**
+
+- Visual editor in RStudio and VS Code, WYSIWYG over Quarto markdown,
+  for collaborators who don't want to think in markup.
+- DOI / Crossref / PubMed citation insert in the visual editor (already
+  a partial in-IDE version of what `pandoc-manubot-cite` automates at
+  build time).
+- Includes (`{{< include >}}`) and metadata shortcodes (`{{< meta >}}`)
+  that let us split files and pass values from CI cleanly.
+
+**Internationalization, accessibility, semantic markup** — all default,
+not after-the-fact additions.
+
+**What this means for quartobot**
+
+Almost everything quartobot adds is *narrowing* — the manubot-pattern
+opinions about CI, permalinks, citation auto-resolution — sitting on
+top of a much broader publishing stack. Authors who outgrow the
+manuscript template can keep all of the Quarto features above as they
+move to books, websites, or slide decks. That's the part the manubot
+ecosystem can't currently match without rebuilding.
+
 ## Open questions
 
 - **Naming.** `quartobot` is sticky and signals lineage; `quarto-manubot-pattern`
