@@ -1,0 +1,58 @@
+project:
+  type: default
+  # `type: default` matches the Venice working reference. Quarto's first-party
+  # `type: manuscript` is the natural fit here but writes to `_manuscript/`
+  # which would need the staging/deploy step in render.yml rewritten. Tracked
+  # in https://github.com/seandavi/quartobot/issues/3.
+
+# Filter contributed by the quarto-manubot-cite extension. Resolves
+# @doi:, @pmid:, @arxiv:, @isbn:, @url:, @wikidata:, @zotero:, and bare
+# DOIs at render time. See:
+#   _extensions/seandavi/quarto-manubot-cite/README.md
+filters:
+  - quarto-manubot-cite
+
+# Where pandoc-manubot-cite writes the resolved CSL JSON.
+manubot-output-bibliography: references.json
+# Where the bibliography cache lives. Once an entry is resolved here, builds
+# stay offline until you change the cite key.
+manubot-bibliography-cache: _freeze/manubot-cache.json
+# Warn-and-continue on unresolved citations. Set true to fail the render.
+manubot-fail-on-errors: false
+# Lets you write bare `@10.1371/...` instead of `@doi:10.1371/...`.
+manubot-infer-citekey-prefixes: true
+
+# Both files merged at render time. Hand-curated entries live in
+# references.bib; auto-resolved entries land in references.json (written
+# by pandoc-manubot-cite, ignored by git).
+bibliography:
+  - references.bib
+  - references.json
+csl: https://raw.githubusercontent.com/citation-style-language/styles/master/nature.csl
+
+format:
+  html:
+    include-before-body:
+      - _version-banner.html
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    theme: cosmo
+    embed-resources: true
+  pdf:
+    documentclass: article
+    papersize: letter
+    geometry:
+      - margin=1in
+    toc: false
+    number-sections: true
+    colorlinks: true
+    fig-pos: "H"
+    keep-tex: true
+  docx:
+    toc: false
+    number-sections: true
+
+execute:
+  echo: false
+  warning: false
