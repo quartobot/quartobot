@@ -1,0 +1,211 @@
+name: Render manuscript
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Required so GITHUB_TOKEN can push to gh-pages and comment on PRs.
+permissions:
+  contents: write
+  pull-requests: write
+
+# Serialize all gh-pages writes so concurrent runs don't clobber each other.
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python (for manubot)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install manubot
+        # `pandoc-manubot-cite` ships inside the manubot package. The Quarto
+        # extension declares it as a filter; pandoc looks for the binary on
+        # PATH at render time.
+        run: |
+          python -m pip install --upgrade pip
+          pip install 'manubot>=0.6,<0.7'
+          which pandoc-manubot-cite
+          pandoc-manubot-cite --help | head -5
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          tinytex: true
+        env:
+          # Authenticate the TinyTeX release lookup against the GitHub API
+          # so we don't hit unauthenticated rate limits.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install quarto-manubot-cite extension
+        # Required so the `filters: - quarto-manubot-cite` line in
+        # _quarto.yml resolves. `--no-prompt` is essential in CI.
+        run: |
+          quarto add seandavi/quartobot --no-prompt
+          quarto list extensions
+
+      - name: Substitute version banner (push to main only)
+        # PR builds keep the committed placeholder _version-banner.html; the
+        # PR-specific URLs are already posted in the sticky PR comment below.
+        # Only main builds get the immutable per-commit permalink in HTML.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          SHORT="${GITHUB_SHA:0:7}"
+          BASE="https://${OWNER}.github.io/${REPO_NAME}"
+          sed \
+            -e "s|__VERSION_SHA__|${SHORT}|g" \
+            -e "s|__VERSION_URL__|${BASE}/v/${GITHUB_SHA}/|g" \
+            -e "s|__VERSION_PDF__|${BASE}/v/${GITHUB_SHA}/manuscript.pdf|g" \
+            -e "s|__VERSION_LATEST__|${BASE}/|g" \
+            -e "s|__VERSION_GH__|https://github.com/${OWNER}/${REPO_NAME}|g" \
+            _version-banner.html.template > _version-banner.html
+          echo "--- generated _version-banner.html ---"
+          cat _version-banner.html
+
+      - name: Diagnostics before render
+        shell: bash
+        run: |
+          set -euxo pipefail
+          echo "PWD: $(pwd)"
+          echo "Date: $(date -Iseconds)"
+          echo "GitHub SHA: ${GITHUB_SHA}"
+          quarto --version
+          quarto pandoc --version || true
+          xelatex --version || pdflatex --version || true
+          ls -la
+          find . -maxdepth 2 \( -name "*.qmd" -o -name "_quarto.yml" -o -name "*.bib" -o -name "*.csl" \) | sort
+
+      - name: Render HTML
+        shell: bash
+        run: |
+          set -euxo pipefail
+          /usr/bin/time -v quarto render --to html --execute-debug 2>&1 | tee render-html.log
+
+      - name: Render PDF
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            while true; do
+              echo "[heartbeat] PDF render still running at $(date -Iseconds)"
+              sleep 30
+            done
+          ) &
+          heartbeat_pid=$!
+
+          /usr/bin/time -v quarto render --to pdf --execute-debug 2>&1 | tee render-pdf.log
+          status=${PIPESTATUS[0]}
+
+          kill "${heartbeat_pid}" || true
+          wait "${heartbeat_pid}" 2>/dev/null || true
+          exit "${status}"
+
+      - name: Render DOCX
+        shell: bash
+        run: |
+          set -euxo pipefail
+          /usr/bin/time -v quarto render --to docx --execute-debug 2>&1 | tee render-docx.log
+
+      - name: Upload render logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-logs
+          path: |
+            render-html.log
+            render-pdf.log
+            render-docx.log
+
+      # ----------------------------------------------------------------
+      # Stage outputs for deployment.
+      #
+      # Layout on gh-pages (mirrors the manubot pattern):
+      #
+      #   /                              latest main build (HTML + PDF)
+      #   /v/<commit-sha>/               permanent snapshot of every commit
+      #   /pr/<pr-number>/               live preview for an open PR
+      #
+      # `keep_files: true` on the deploy step preserves prior /v/* and /pr/*
+      # directories so old snapshots and other open PRs are never wiped.
+      # Stale PR previews are cleaned up by the separate pr-closed.yml
+      # workflow when a PR is closed.
+      # ----------------------------------------------------------------
+      - name: Stage per-commit snapshot
+        run: |
+          dest="public/v/${GITHUB_SHA}"
+          mkdir -p "$dest"
+          cp index.html "$dest/index.html"
+          cp index.pdf  "$dest/index.pdf"
+          cp index.docx "$dest/index.docx"
+          cp index.pdf  "$dest/manuscript.pdf"
+          cp index.docx "$dest/manuscript.docx"
+
+      - name: Stage latest (push to main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p public
+          cp index.html public/index.html
+          cp index.pdf  public/index.pdf
+          cp index.docx public/index.docx
+          cp index.pdf  public/manuscript.pdf
+          cp index.docx public/manuscript.docx
+
+      - name: Stage PR preview
+        if: github.event_name == 'pull_request'
+        run: |
+          dest="public/pr/${{ github.event.pull_request.number }}"
+          mkdir -p "$dest"
+          cp index.html "$dest/index.html"
+          cp index.pdf  "$dest/index.pdf"
+          cp index.docx "$dest/index.docx"
+          cp index.pdf  "$dest/manuscript.pdf"
+          cp index.docx "$dest/manuscript.docx"
+
+      - name: Deploy to gh-pages
+        # Pulls from forks can't push to gh-pages with GITHUB_TOKEN — skip the
+        # deploy in that case but the render job above still validates the build.
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./public
+          keep_files: true
+          commit_message: |
+            Render ${{ github.event_name }} ${{ github.sha }}
+            ${{ github.event.head_commit.message || github.event.pull_request.title }}
+          user_name: "github-actions[bot]"
+          user_email: "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Comment on PR with preview links
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: manuscript-preview
+          message: |
+            ### Rendered preview
+
+            | Version | HTML | PDF |
+            |---|---|---|
+            | This PR (latest) | [`pr/${{ github.event.pull_request.number }}/`](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr/${{ github.event.pull_request.number }}/) | [PDF](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr/${{ github.event.pull_request.number }}/manuscript.pdf) |
+            | This commit (`${{ github.event.pull_request.head.sha }}`) | [snapshot](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/v/${{ github.event.pull_request.head.sha }}/) | [PDF](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/v/${{ github.event.pull_request.head.sha }}/manuscript.pdf) |
+            | Latest main | [latest](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/) | [PDF](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/manuscript.pdf) |
+
+            Snapshots are immutable. Latest links update on every push to `main`.

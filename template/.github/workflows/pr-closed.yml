@@ -1,0 +1,49 @@
+name: Clean up PR preview
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+# Match the render workflow's group so we don't race deploys with deletions.
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    # Skip forked PRs — they can't write to gh-pages anyway, and the preview
+    # was never deployed.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Check out gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+
+      - name: Remove PR preview directory
+        run: |
+          pr="${{ github.event.pull_request.number }}"
+          if [ -d "pr/${pr}" ]; then
+            rm -rf "pr/${pr}"
+            echo "Removed pr/${pr}"
+          else
+            echo "pr/${pr} not present — nothing to clean up"
+            exit 0
+          fi
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git commit -m "Clean up preview for PR #${{ github.event.pull_request.number }}"
+          git push
