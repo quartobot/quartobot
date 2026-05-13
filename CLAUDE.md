@@ -6,15 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Manubot's manuscript-as-software pattern, implemented natively for the Quarto ecosystem.
 
-**Status:** Design phase. `src/`, `paper/`, `template/`, `examples/` are empty scaffolds. All architecture decisions live in `DESIGN.md`. Do not invent files into those directories without an explicit task — the layout below is the intent, not the current state.
+**Status:** Design phase, Phase-1 scaffold in flight. Architecture decisions live in `DESIGN.md`; the roadmap is the open issues. Do not invent files into the scaffold directories below without an explicit task — the layout is the intent, not necessarily the current state.
 
-## Directory intent (scaffolds, currently empty)
+## Directory layout
 
-- `src/` — eventual home for the `quarto-manubot-cite` Quarto extension (~50–200 lines plus tests). Quarto extensions are pandoc filters declared via an `_extension.yml`; the layout will follow Quarto's extension conventions once code lands.
-- `template/` — eventual home for the `quartobot-manuscript` GitHub template repo (Quarto Manuscripts project + extension wiring + `.github/workflows/render.yml` for permalinks, banners, and PR previews).
+- `_extensions/seandavi/quarto-manubot-cite/` — the Quarto filter extension. `_extensions/` lives at the repo root because `quarto add seandavi/quartobot` expects it there. May eventually split to its own repo (`seandavi/quarto-manubot-cite`); for now ships from this one.
+- `template/` — the `quartobot-manuscript` GitHub template (Quarto Manuscripts project + extension wiring + `.github/workflows/render.yml` for permalinks, banners, and PR previews). Will eventually be promoted to a standalone template repo.
+- `examples/extension-minimal/` — smallest end-to-end demo of the extension on its own, without the template's CI/banner machinery.
 - `paper/` — eventual home for `paper.md`, the JOSS submission (~1000 words). Voice guide for this file lives in the "JOSS paper specifically" section below.
-- `examples/` — eventual home for a minimal worked example separate from the full template.
 - `docs/` — prior art, publication plan, conversation notes. Read these before making non-trivial design changes.
+
+Note: an earlier draft of this file said the extension lived in `src/`. That was wrong — Quarto extensions install from `_extensions/` at the repo root. `src/` was removed; if you see references to it elsewhere, they're stale.
 
 ## Commands
 
