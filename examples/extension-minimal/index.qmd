@@ -1,0 +1,28 @@
+---
+title: "quarto-manubot-cite — minimal example"
+author: Your Name
+date: today
+---
+
+# What this renders
+
+One `@doi:` citation resolved automatically, and one hand-curated entry
+from `references.bib`. That's it — no CI, no banner, no template
+machinery. The minimum to verify the extension is wired up correctly.
+
+The manubot pattern is described in @doi:10.1371/journal.pcbi.1007128.
+The Quarto publishing stack is documented in [@quarto2024].
+
+# What to look for
+
+After `quarto render`:
+
+- `references.json` exists at the project root with one CSL JSON entry
+  for the resolved DOI.
+- `_freeze/manubot-cache.json` exists with the cached resolver response.
+- Both citations appear in the bibliography below, correctly formatted.
+
+# References {.unnumbered}
+
+::: {#refs}
+:::
