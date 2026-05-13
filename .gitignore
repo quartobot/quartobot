@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Python (when src/ becomes a package)
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+
+# Quarto (when example projects accumulate)
+_output/
+_freeze/
+.quarto/
+*_files/
