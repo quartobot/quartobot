@@ -1,0 +1,48 @@
+project:
+  type: website
+  output-dir: _site
+  resources:
+    - CNAME
+
+website:
+  title: "quartobot"
+  description: "The manubot manuscript-as-software pattern, on Quarto."
+  site-url: https://seandavi.github.io/quartobot
+  repo-url: https://github.com/seandavi/quartobot
+  repo-actions: [issue, edit]
+  page-navigation: true
+  back-to-top-navigation: true
+
+  navbar:
+    background: light
+    pinned: true
+    left:
+      - href: index.qmd
+        text: Home
+      - href: getting-started.qmd
+        text: Getting started
+      - href: extension.qmd
+        text: Extension
+      - href: template.qmd
+        text: Template
+      - href: cli.qmd
+        text: CLI
+      - href: design.qmd
+        text: Design
+    right:
+      - icon: github
+        href: https://github.com/seandavi/quartobot
+        aria-label: GitHub
+
+  page-footer:
+    left: "MIT licensed. Built with [Quarto](https://quarto.org)."
+    right: "© Sean Davis"
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    code-copy: true
+    code-overflow: wrap
+    anchor-sections: true
