@@ -1,10 +1,10 @@
 # Preface {.unnumbered}
 
-This is the smallest Quarto **book** that exercises the
-`quarto-manubot-cite` extension. It demonstrates that the manubot
-citation pattern — persistent-identifier cites resolved on render,
-co-existing with hand-curated bibliography entries — works across
-multi-chapter book projects, not only manuscripts.
+This is the smallest Quarto **book** that exercises the quartobot
+pre-render hook. It demonstrates that the manubot citation pattern —
+persistent-identifier cites resolved on render, co-existing with
+hand-curated bibliography entries — works across multi-chapter book
+projects, not only manuscripts.
 
 The book is also what differentiates quartobot from upstream
 manubot: manubot is manuscript-shaped by design [@doi:10.1371/journal.pcbi.1007128];

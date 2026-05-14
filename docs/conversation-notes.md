@@ -4,6 +4,13 @@ The thinking that produced [`DESIGN.md`](../DESIGN.md), distilled from a
 working session between Sean Davis and a Claude assistant on
 2026-05-13.
 
+> **Architecture update.** The citation pipeline decision recorded
+> below — `pandoc-manubot-cite` declared as a Quarto filter — was
+> subsequently revisited and replaced. The settled architecture is
+> the `quartobot resolve` pre-render hook described in
+> [`citation-pipeline.md`](citation-pipeline.md), settled 2026-05-14.
+> The filter-era passages below are kept for the design trail.
+
 ## Origin chain
 
 - Sean and Anthony Gitter discussed Quarto–manubot integration

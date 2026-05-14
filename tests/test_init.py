@@ -56,6 +56,12 @@ def test_init_empty_project_creates_files(tmp_path):
         assert (tmp_path / rel).exists(), f"{rel} not created"
     render = (tmp_path / ".github/workflows/render.yml").read_text()
     assert "project-type: manuscript" in render
+    # The scaffolded _quarto.yml wires the pre-render hook, not a filter.
+    yml = (tmp_path / "_quarto.yml").read_text()
+    assert "quartobot resolve" in yml
+    assert "--id-mode citation-key" in yml
+    assert "filters:" not in yml
+    assert "manubot-" not in yml
 
 
 def test_init_book_project_writes_book_quarto_yml(tmp_path):
@@ -113,7 +119,7 @@ def test_gitignore_created_when_absent(tmp_path):
     assert action.status == "appended"
     content = (tmp_path / ".gitignore").read_text()
     assert "_freeze/" in content
-    assert "_extensions/" in content
+    assert "references.json" in content
 
 
 def test_gitignore_appends_only_missing_lines(tmp_path):
@@ -124,7 +130,7 @@ def test_gitignore_appends_only_missing_lines(tmp_path):
     assert "existing" in content
     assert "other" in content
     assert content.count("_freeze/") == 1
-    assert "_extensions/" in content
+    assert "references.json" in content
 
 
 def test_gitignore_idempotent_when_all_present(tmp_path):
@@ -147,13 +153,13 @@ def test_format_emits_expected_glyphs(tmp_path):
     assert "~ .gitignore" in out
     assert "· references.bib" in out
     assert "manuscript" in out
-    assert "quarto add" in out
+    assert "uv tool install" in out
 
 
 def test_format_includes_manual_merge_snippet(tmp_path):
     outcome = InitOutcome(
         project_type="manuscript",
-        manual_merge_snippet="# merge me\nfilters:\n  - quarto-manubot-cite\n",
+        manual_merge_snippet="# merge me\nproject:\n  pre-render: quartobot resolve\n",
         actions=[
             Action(path=tmp_path / "_quarto.yml", status="manual-merge"),
         ],

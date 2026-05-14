@@ -6,23 +6,27 @@ is wrong, missing, or out of date.
 
 ## Things to build on (we will reuse these directly)
 
-### `pandoc-manubot-cite` ([docs](https://manubot.github.io/manubot/reference/manubot/pandoc/cite_filter/))
+### `manubot.cite` (the library underlying `pandoc-manubot-cite`)
 
-A pandoc filter shipped *inside* the `manubot` Python package
-(`pip install manubot` gives you the `pandoc-manubot-cite` command).
+The resolver inside the `manubot` Python package
+(`pip install manubot`). `citekey_to_csl_item` is the load-bearing
+entry point.
 
 - Resolves `@doi:`, `@pmid:`, `@arxiv:`, `@isbn:`, `@url:`,
   `@wikidata:`, `@zotero:`, plus bare DOIs (`@10.1371/...`).
-- Writes resolved metadata to a CSL JSON bibliography file via the
-  `manubot-output-bibliography` metadata key.
-- Standard pandoc filter — runs anywhere pandoc runs, including inside
-  a Quarto project (Quarto extensions *are* pandoc filters).
+- Output is CSL JSON.
+- Manubot also ships `pandoc-manubot-cite`, a pandoc filter that
+  wraps the same library. Worth knowing because it's what the
+  manubot project itself documents — but we don't invoke it. See
+  [`citation-pipeline.md`](citation-pipeline.md) for why the
+  pre-render call to the library is cleaner than the filter shape.
 - Manubot is actively maintained: v0.6.1 was tagged July 2024.
 
-**Gap it leaves:** no documented Quarto integration. No example showing
-how to wire it into `_quarto.yml`. No Quarto extension that installs it
-ergonomically. This is the gap a thin `quarto-manubot-cite` extension
-fills.
+**Gap it leaves:** no documented Quarto integration. No example
+showing how to wire it into `_quarto.yml`. This is the gap quartobot
+fills — the `quartobot resolve` CLI calls `manubot.cite` from a
+Quarto pre-render hook, and pandoc-citeproc reads the resulting CSL
+JSON natively.
 
 ### Quarto Manuscripts ([docs](https://quarto.org/docs/manuscripts/))
 
@@ -89,7 +93,7 @@ only — not a pre-render auto-resolver, not invoked on every build.
 - [joundso/repub](https://github.com/joundso/repub) — reproducible publishing template using Quarto.
 
 None of these implement the full manubot pattern. Several would be
-candidate adopters of the `quarto-manubot-cite` extension.
+candidate adopters of the quartobot pre-render hook.
 
 ## Manubot itself (the upstream we are extending)
 

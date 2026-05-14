@@ -8,8 +8,10 @@ The book pattern combines:
 - **Quarto books** [@quarto2024] for the project shape — multiple
   chapters, sidebar navigation, full-text search, an HTML site that
   renders on every push.
-- **`quarto-manubot-cite`** for citation resolution by persistent
-  identifier — `@doi:`, `@pmid:`, `@arxiv:`, `@isbn:`, bare DOIs, etc.
+- **The `quartobot resolve` pre-render hook** for citation resolution
+  by persistent identifier — `@doi:`, `@pmid:`, `@arxiv:`, `@isbn:`,
+  bare DOIs, etc. — wired in `_quarto.yml` and run before pandoc on
+  every render.
 - **A CI workflow** that gives every commit an immutable permalink at
   `/v/<sha>/`, posts PR previews via sticky comment, and deploys to
   GitHub Pages.

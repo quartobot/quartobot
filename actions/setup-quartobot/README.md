@@ -1,7 +1,7 @@
 # setup-quartobot
 
 Composite action: installs everything needed to render a Quarto project
-using the manubot citation pattern.
+that uses the `quartobot resolve` pre-render hook.
 
 ```yaml
 - uses: actions/checkout@v4
@@ -9,7 +9,7 @@ using the manubot citation pattern.
   with:
     project: "."          # where _quarto.yml lives (default: .)
     python-version: "3.12"
-    manubot-spec: "manubot>=0.6,<0.7"
+    quartobot-spec: "git+https://github.com/seandavi/quartobot"
     quarto-version: ""    # empty = latest stable
     tinytex: "true"       # set "false" to skip TeX install
 ```
@@ -17,10 +17,12 @@ using the manubot citation pattern.
 ## What it does
 
 1. `actions/setup-python@v5` with pip cache.
-2. `pip install '<manubot-spec>'` — installs `pandoc-manubot-cite` on `PATH`.
-3. `quarto-dev/quarto-actions/setup@v2` with TinyTeX by default.
-4. `quarto add <extension-source>` inside `<project>` — installs the
-   `quarto-manubot-cite` filter extension.
+2. `r-lib/actions/setup-pandoc@v2` — system pandoc on PATH (needed so
+   manubot's bibliography loader can read .bib files).
+3. `pip install '<quartobot-spec>'` — installs the `quartobot` CLI on
+   PATH, including `manubot` as a Python dependency. Quarto's pre-render
+   subprocess finds `quartobot` here.
+4. `quarto-dev/quarto-actions/setup@v2` with TinyTeX by default.
 
 ## When to skip TinyTeX
 
@@ -34,12 +36,12 @@ For reproducible CI, pin everything explicitly:
 ```yaml
 with:
   python-version: "3.12"
-  manubot-spec: "manubot==0.6.1"
+  quartobot-spec: "quartobot==0.1.0"
   quarto-version: "1.5.57"
-  extension-source: "seandavi/quartobot@v0.1"
 ```
 
 ## See also
 
 - [`render-manuscript`](../render-manuscript/) — the matching render step.
-- [Extension documentation](https://github.com/seandavi/quartobot/tree/main/_extensions/seandavi/quarto-manubot-cite).
+- [Citation pipeline rationale](../../docs/citation-pipeline.md) — why
+  the pre-render hook shape.

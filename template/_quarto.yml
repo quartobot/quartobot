@@ -5,26 +5,15 @@ project:
   # which would need the staging/deploy step in render.yml rewritten. Tracked
   # in https://github.com/seandavi/quartobot/issues/3.
 
-# Filter contributed by the quarto-manubot-cite extension. Resolves
-# @doi:, @pmid:, @arxiv:, @isbn:, @url:, @wikidata:, @zotero:, and bare
-# DOIs at render time. See:
-#   _extensions/seandavi/quarto-manubot-cite/README.md
-filters:
-  - quarto-manubot-cite
-
-# Where pandoc-manubot-cite writes the resolved CSL JSON.
-manubot-output-bibliography: references.json
-# Where the bibliography cache lives. Once an entry is resolved here, builds
-# stay offline until you change the cite key.
-manubot-bibliography-cache: _freeze/manubot-cache.json
-# Warn-and-continue on unresolved citations. Set true to fail the render.
-manubot-fail-on-errors: false
-# Lets you write bare `@10.1371/...` instead of `@doi:10.1371/...`.
-manubot-infer-citekey-prefixes: true
+  # Resolves @doi:, @pmid:, @arxiv:, @isbn:, @url:, @wikidata:, @pmcid:,
+  # and bare DOIs before pandoc runs. The resolved CSL JSON lands in
+  # references.json (gitignored — regenerated each render) and pandoc
+  # citeproc reads it alongside hand-curated entries in references.bib.
+  pre-render: quartobot resolve --from-scan . --output references.json --id-mode citation-key
 
 # Both files merged at render time. Hand-curated entries live in
 # references.bib; auto-resolved entries land in references.json (written
-# by pandoc-manubot-cite, ignored by git).
+# by the pre-render hook above, ignored by git).
 bibliography:
   - references.bib
   - references.json

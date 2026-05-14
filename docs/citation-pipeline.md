@@ -1,26 +1,31 @@
-# Citation pipeline: filter vs. pre-render
+# Citation pipeline architecture
 
-**Status:** Proposal, written 2026-05-14 after a live walkthrough turned
-up two UX gotchas that share a single root cause. Not yet a settled
-decision — the contributing convention is that design changes go through
-an issue first, and this one warrants Anthony Gitter and Daniel
-Himmelstein on the thread before any code moves.
+**Status:** Settled 2026-05-14 on the pre-render hook shape described
+below. The earlier filter shape — `pandoc-manubot-cite` declared as a
+pandoc filter in `_quarto.yml` — is dropped. Templates, examples,
+`quartobot init`'s scaffold, and the CI composite actions all wire the
+pre-render hook; the `_extensions/seandavi/quarto-manubot-cite/` tree
+is removed.
 
-## The problem, concretely
+This document is the architecture rationale, kept for the JOSS paper
+trail and for anyone who needs to know *why* the seam landed here. The
+narrative below preserves the walkthrough framing because the two UX
+gotchas it surfaced are the load-bearing motivation.
 
-A user walking through the v0.1 minimal example today has to:
+## The problem the filter shape created
+
+A user walking through the filter-era v0.1 minimal example had to:
 
 1. Apply a `sed` patch to `manubot/pandoc/util.py` to bypass a hardcoded
-   pandoc version check that breaks on the pandoc 3.x bundled with
+   pandoc version check that broke on the pandoc 3.x bundled with
    Quarto ≥ 1.4 ([#32](https://github.com/seandavi/quartobot/issues/32)).
 2. Either install manubot at the system Python, or invoke
    `uv run quarto render` instead of bare `quarto render`, because the
-   Lua filter shells out to `pandoc-manubot-cite` and that binary needs
-   to be on PATH at render time (no issue filed yet, but
-   [[project-local-render-path]] memory captures the live finding).
+   Lua filter shells out to `pandoc-manubot-cite` and that binary
+   needed to be on PATH at render time.
 
-Both of these are predictable consequences of one architectural choice:
-we use `pandoc-manubot-cite` as a pandoc filter, declared in
+Both of these were predictable consequences of one architectural
+choice: using `pandoc-manubot-cite` as a pandoc filter, declared in
 `_quarto.yml`. That binary is an external-process Python filter — the
 shape Quarto's own docs steer away from.
 
@@ -53,8 +58,8 @@ And it notes:
 
 That last sentence is the important one. Citeproc is *already* the
 filter for citation work; we don't have to build one or wrap one. We
-have to populate the bibliography it reads. The current architecture
-inserts a second filter (`pandoc-manubot-cite`) ahead of citeproc to do
+have to populate the bibliography it reads. The filter shape inserted
+a second filter (`pandoc-manubot-cite`) ahead of citeproc to do
 network resolution mid-render. The Quarto-shaped way to do that work
 is before the render starts.
 
@@ -62,7 +67,7 @@ Sources:
 - [Project Scripts](https://quarto.org/docs/projects/scripts.html)
 - [Filters](https://quarto.org/docs/extensions/filters.html)
 
-## Proposed architecture
+## The architecture, in three pieces
 
 1. **Pre-render hook.** `_quarto.yml` declares `pre-render:` calling
    `quartobot resolve --from-scan . --output references.json`. The
@@ -87,21 +92,20 @@ deleting it.
 
 **Verified live, 2026-05-14.** The walkthrough at `~/Documents/quartobot-walkthrough`
 was switched to this architecture and rendered four cite keys (two
-DOIs, one PMID, one arXiv) through `uv run quarto render` with no
+DOIs, one PMID, one arXiv) through bare `quarto render` with no
 filter in the chain and no citeproc warnings. `quartobot resolve`
-gained a `--id-mode citation-key` flag that writes the CSL `id` as
-the user's prose key. Independently, `python -c "import
-manubot.cite.citekey; assert 'manubot.pandoc.util' not in
-sys.modules"` confirms the pandoc 3.x version-check module is not
-even loaded under this architecture — unreachable, not merely
-avoided.
+has a `--id-mode citation-key` flag that writes the CSL `id` as the
+user's prose key — load-bearing, since without it pandoc-citeproc
+silently fails to match prose keys against manubot's canonical short
+hashes. Independently, `python -c "import manubot.cite.citekey;
+assert 'manubot.pandoc.util' not in sys.modules"` confirms the
+pandoc 3.x version-check module is not even loaded under this
+architecture — unreachable, not merely avoided.
 
-The extension itself shrinks to: wire the pre-render hook into
-`_quarto.yml` (so `quarto add seandavi/quartobot` is still the on-ramp),
-declare the bibliography slot, and ship the version-banner include. The
-Lua filter goes away. The `_extensions/seandavi/quarto-manubot-cite/`
-directory may even want a rename, since we're no longer a manubot
-pandoc filter — we're the quartobot pre-render wiring.
+The `_extensions/seandavi/quarto-manubot-cite/` tree is gone. There
+is nothing for `quarto add` to install. The on-ramp is
+`uv tool install git+https://github.com/seandavi/quartobot`, and
+`quartobot init` writes the pre-render line into `_quarto.yml`.
 
 ## Citation plugin architecture
 
@@ -200,89 +204,59 @@ proves durable as a quartobot plugin is a natural upstream PR.
 
 ## Tradeoffs
 
-**In-render resolution as a fallback disappears.** Today, a user can
-clone a repo and run bare `quarto render` and get a working document,
-because `pandoc-manubot-cite` resolves missing entries mid-render
-(slowly, with a network call, sometimes failing). The pre-render
-architecture requires that `quartobot resolve` actually run. Mitigations:
+**In-render resolution as a fallback isn't available.** Under the
+filter shape, a user could clone a repo and run bare `quarto render`
+and get a working document because the filter resolved missing
+entries mid-render (slowly, with a network call, sometimes failing).
+The pre-render architecture requires that `quartobot resolve`
+actually run. Mitigations in place:
 
-- Make the pre-render hook self-installing. `quartobot init` writes
-  the `pre-render:` line into `_quarto.yml`. Anyone who follows the
-  template gets it for free.
-- `quartobot validate` refuses stale state — if `references.json` is
-  older than `paper.qmd`, fail loud.
-- Document the bare-render failure mode explicitly. Today's failure
-  mode is "patch a third-party package or fail mid-render with a
-  KeyError"; the new failure mode would be "run `quartobot resolve`
-  or get a clearly missing bibliography." The second is a better
-  failure.
+- `quartobot init` writes the `pre-render:` line into `_quarto.yml`,
+  so anyone who scaffolds from the template gets it for free.
+- The CI composite action (`setup-quartobot`) installs the CLI on
+  PATH before `quarto render` runs.
+- `quartobot validate` warns when the pre-render line is missing or
+  doesn't include `--id-mode citation-key`. The latter would
+  silently break pandoc-citeproc matching, so the warning is
+  load-bearing.
 
-**Political framing for the JOSS paper and the manubot team.** The
-current language ("reuse `pandoc-manubot-cite` from the manubot
-package — do not rebuild the resolver") is in `CLAUDE.md` and in the
-publication plan for exactly the right reason: this project's pitch
-to JOSS reviewers and to Daniel Himmelstein is adoption and extension,
-not displacement. The pre-render architecture keeps that framing as
-long as we're clear about what we're doing and what we're not:
+The new failure mode is "run `quartobot resolve` or get a clearly
+missing bibliography" rather than "patch a third-party package or
+fail mid-render with a KeyError." The new failure is the better one.
+
+**Framing for the JOSS paper and the manubot team.** The line
+"reuse `manubot.cite` — do not rebuild the resolver" stays. The
+project's pitch to JOSS reviewers and to Daniel Himmelstein is
+adoption and extension, not displacement:
 
 - We are not rebuilding the resolver. Manubot stays a dependency. Its
   Python API is the engine for all built-in prefixes.
 - We are not replacing `pandoc-manubot-cite` with a clone. We're
   declining to use it as a pandoc filter, in favor of using its
-  underlying library as a pre-render call. Different seam, same code
-  doing the network work.
+  underlying library (`manubot.cite`) as a pre-render call. Different
+  seam, same code doing the network work.
 - We are riding *below* manubot's existing dispatch with deep
   resolvers for prefixes manubot has explicitly chosen to handle
   generically via its CURIE fallback. The plugin interface mirrors
   manubot's own `Handler` ABC — something manubot itself could adopt
   upstream by making `_local_handlers` externally extensible.
 
-That's a defensible story. It is worth running past Daniel before any
-code moves.
+## What stays, what changed
 
-## What stays, what changes
-
-| Component | Today | Proposed |
+| Component | Filter era | Now |
 |---|---|---|
 | `pandoc-manubot-cite` as filter | Required at render time | Not used |
 | Manubot Python library | Required | Required (unchanged) |
 | `_quarto.yml` `filters:` entry | `quarto-manubot-cite` Lua bridge | Not present |
 | `_quarto.yml` `pre-render:` entry | Not present | `quartobot resolve …` |
 | `quartobot resolve` | Optional pre-render acceleration | Required, canonical |
-| `quartobot validate` | Project shape checks | Adds staleness check |
+| `quartobot validate` | Filter-era checks | Pre-render hook + json-in-bib |
 | `quartobot init` | Writes filter line | Writes pre-render line |
-| pandoc 3.x patch ([#32]) | Required workaround in CI and locally | Unreachable, can delete |
+| pandoc 3.x patch ([#32]) | Required workaround in CI and locally | Unreachable; deleted |
 | PATH for `pandoc-manubot-cite` | Required at render time | Irrelevant |
-| `_extensions/seandavi/quarto-manubot-cite/` | Lua filter bridge | Pre-render wiring (maybe renamed) |
+| `_extensions/seandavi/quarto-manubot-cite/` | Lua filter bridge | Deleted |
 
 [#32]: https://github.com/seandavi/quartobot/issues/32
-
-## Sequencing — v0.1 vs. v0.2
-
-Two reasonable answers:
-
-**Hold for v0.2.** Ship v0.1 on the current filter architecture (the
-sed patch works, the CLI ships, the JOSS paper can be drafted around
-what exists). Open a v0.2 design issue with this doc as the
-seed. Get Gitter/Himmelstein input before any code moves. The cost
-is leaving the two gotchas in place through v0.1's lifetime —
-unpleasant but survivable, since `quartobot doctor` (the parallel
-proposal) can paper over both for now.
-
-**Pivot now, before v0.1 tags.** v0.1 hasn't tagged yet. Once we tag,
-the filter architecture is what early users adopt and we own the
-migration burden. Pivoting before the tag means v0.1 ships the
-healthier architecture and the JOSS paper describes what we actually
-recommend, not a transitional state.
-
-I lean toward the second, conditional on Daniel's reaction not being
-"please don't." The work isn't large — `quartobot resolve` already
-exists and already does most of what the pre-render hook needs to do.
-The extension's filter wiring is small enough that ripping it out and
-replacing it with a pre-render declaration is a few hours of work, not
-a sprint. The risk isn't engineering effort, it's social: getting the
-framing right with the manubot team before we publish anything that
-reads as a replacement.
 
 ## Open questions
 
@@ -301,19 +275,16 @@ reads as a replacement.
   for v0.1 (idempotency of `quartobot resolve` against a project that
   already has a `.bib`, behavior of `quartobot validate` when both
   exist, etc.).
-- **Migration for existing v0.1 adopters** (the Venice hackathon
-  manuscript runs the current pattern). If we pivot, what does the
-  upgrade path look like — a `quartobot migrate` command, a README
-  walkthrough, or both?
+- **Migration for existing filter-era adopters** (the Venice hackathon
+  manuscript ran the filter-era pattern). Upgrade path: drop the
+  `filters:` / `manubot-*` block from `_quarto.yml`, add the
+  `project.pre-render:` line, install `quartobot` on PATH. Worth a
+  `quartobot migrate` command or a one-paragraph upgrade note when
+  v0.1 tags; deferred until the first migration arrives.
 - **Plugin discovery mechanism.** Python entry points is the obvious
   answer for Python plugins; the harder question is whether a
   plugin could be a separate Quarto extension instead, so non-Python
   users can write them.
-- **What `quarto add seandavi/quartobot` does in the new world.** If
-  the extension shrinks to a pre-render wiring + a bibliography slot
-  declaration, is it still a Quarto extension, or is it really a
-  Python package with a one-line `_quarto.yml` snippet to copy in?
-  Affects the install story.
 - **Where the plugin registry lives.** A `quartobot-plugins`
   monorepo, a curated `awesome-quartobot` list, or the bare PyPI
   prefix-matching convention? Each has different governance

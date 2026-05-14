@@ -5,13 +5,11 @@
 
 The manubot manuscript-as-software pattern, on Quarto.
 
-> **Status:** v0.1 in flight. CLI commands ship; the Quarto extension
-> and the manuscript template ship. An architecture pivot is under
-> discussion in [`docs/citation-pipeline.md`](docs/citation-pipeline.md)
-> that would collapse the extension into a single pre-render hook
-> calling the CLI directly — read the design doc before non-trivial
-> work, and watch the [v0.1 milestone](https://github.com/seandavi/quartobot/milestone/1)
-> for tagging.
+> **Status:** v0.1 in flight. The CLI ships and is on PATH today via
+> `uv tool install`. PyPI publishing follows the v0.1 tag. Watch the
+> [v0.1 milestone](https://github.com/seandavi/quartobot/milestone/1).
+> Architecture: pre-render hook calling the CLI directly, settled
+> 2026-05-14 — see [`docs/citation-pipeline.md`](docs/citation-pipeline.md).
 
 ## What this is
 
@@ -53,13 +51,10 @@ The shipping surface is a Python CLI and (optionally) a GitHub template:
    gh repo create my-paper --template seandavi/quartobot-manuscript
    ```
 
-Under the current (filter-based) architecture, a Quarto extension
-`quarto-manubot-cite` also ships at `quarto add seandavi/quartobot`.
-The pivot proposal in `docs/citation-pipeline.md` collapses that
-extension into a one-line pre-render hook calling the CLI — the
-extension shrinks to optional wiring, the CLI becomes the load-bearing
-surface. PyPI publishing and the standalone template repo are part of
-the v0.1 tag.
+PyPI publishing and the standalone template repo are part of the v0.1
+tag. See [`docs/citation-pipeline.md`](docs/citation-pipeline.md) for
+why the pre-render hook over a pandoc filter, and what the seam opens
+up for citation-resolver plugins.
 
 ## Why this exists
 

@@ -1,5 +1,9 @@
 project:
   type: book
+  # See the manuscript template for what the pre-render hook does.
+  # Same behavior — resolves persistent-identifier cite keys before
+  # pandoc runs, across every chapter in the book.
+  pre-render: quartobot resolve --from-scan . --output references.json --id-mode citation-key
 
 book:
   title: "My quartobot book"
@@ -18,17 +22,8 @@ book:
   # repo-url: https://github.com/<owner>/<repo>
   # repo-actions: [edit, issue]
 
-# Filter contributed by the quarto-manubot-cite extension. Resolves
-# @doi:, @pmid:, @arxiv:, @isbn:, @url:, @wikidata:, @zotero:, and
-# bare DOIs across all chapters.
-filters:
-  - quarto-manubot-cite
-
-manubot-output-bibliography: references.json
-manubot-bibliography-cache: _freeze/manubot-cache.json
-manubot-fail-on-errors: false
-manubot-infer-citekey-prefixes: true
-
+# Dual bibliography: hand-curated entries in references.bib, auto-resolved
+# entries in references.json (written by the pre-render hook, gitignored).
 bibliography:
   - references.bib
   - references.json

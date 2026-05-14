@@ -23,8 +23,9 @@ Composite action: renders a Quarto project to one or more formats.
 
 ## Pair with setup-quartobot
 
-This action assumes Quarto, manubot, and the `quarto-manubot-cite`
-extension are already installed. Use [`setup-quartobot`](../setup-quartobot/)
+This action assumes Quarto and the `quartobot` CLI are already on PATH
+so that the `project.pre-render` hook in `_quarto.yml` resolves
+citations before pandoc starts. Use [`setup-quartobot`](../setup-quartobot/)
 in the step before:
 
 ```yaml

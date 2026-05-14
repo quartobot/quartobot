@@ -7,5 +7,5 @@ search index.
 
 Persistent-identifier citations carry across chapters cleanly. A PubMed
 ID: @pmid:31477126. An arXiv preprint: @arxiv:2104.10729. Both resolve
-on next render via `pandoc-manubot-cite` and cache to
-`_freeze/manubot-cache.json`, so subsequent renders are offline.
+on next render through the `quartobot resolve` pre-render hook, which
+writes the CSL JSON entries to `references.json` before pandoc starts.

@@ -2,10 +2,11 @@
 title: "The manuscript template"
 ---
 
-A GitHub template combining Quarto, the [citation extension](extension.qmd),
-and a CI workflow that gives every commit an immutable permalink, embeds
-that permalink in the rendered HTML, posts PR previews via sticky
-comment, and deploys HTML + PDF + DOCX to GitHub Pages.
+A GitHub template combining Quarto, the
+[`quartobot resolve` pre-render hook](cli.qmd#resolve), and a CI
+workflow that gives every commit an immutable permalink, embeds that
+permalink in the rendered HTML, posts PR previews via sticky comment,
+and deploys HTML + PDF + DOCX to GitHub Pages.
 
 If you're writing a longer work (textbook, review, edited volume, thesis),
 see [the book template](book.qmd) — same pattern, different project shape.
@@ -27,7 +28,7 @@ inside this repo. Promotion to its own template repo
 - **PR previews** at `https://<owner>.github.io/<repo>/pr/<n>/`, with a
   sticky comment on the PR linking to the latest preview and the
   per-commit snapshots.
-- **Auto-resolved citations** through the extension.
+- **Auto-resolved citations** through the pre-render hook.
 - **Multi-format output** — HTML, PDF, DOCX from one source on every push.
 - **Automatic preview teardown** when PRs close.
 

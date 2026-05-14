@@ -8,11 +8,11 @@ its main historical limitation is that it shipped as a single
 opinionated toolchain bound to one project shape.
 
 This book chapter cites the foundational manubot paper above without
-any setup beyond declaring the extension in `_quarto.yml`. No
-`references.bib` entry, no manual lookup — pandoc-manubot-cite resolves
-the DOI against Crossref on render, writes the CSL JSON entry to
-`references.json`, and caches the metadata in `_freeze/manubot-cache.json`
-so subsequent renders stay offline.
+any setup beyond declaring the pre-render hook in `_quarto.yml`. No
+`references.bib` entry, no manual lookup — `quartobot resolve` calls
+`manubot.cite`, fetches the DOI metadata from Crossref before pandoc
+runs, and writes the CSL JSON entry to `references.json` where pandoc
+citeproc reads it.
 
 For a contrast, `@quarto2024` references a hand-curated entry from
 `references.bib`. Both kinds of citation render through the same

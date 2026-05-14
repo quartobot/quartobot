@@ -8,6 +8,3 @@ references.json
 # Quarto state.
 .quarto/
 _freeze/
-
-# Quarto extension cache, written by `quarto add`.
-_extensions/

@@ -88,6 +88,6 @@ jobs:
             echo "::error::Expected scan to exit 1 (duplicates found); got $status"
             exit 1
           fi
-      - name: scan examples/extension-minimal
+      - name: scan examples/minimal
         # Clean exit expected.
-        run: uv run quartobot scan examples/extension-minimal
+        run: uv run quartobot scan examples/minimal
