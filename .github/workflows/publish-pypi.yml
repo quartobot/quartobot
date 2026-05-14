@@ -1,0 +1,88 @@
+name: Publish to PyPI
+
+# Builds an sdist + wheel from a tag and publishes to PyPI using
+# trusted publishing (OIDC, no API token in repo secrets).
+#
+# Setup required on the PyPI side, one time, before the first tag:
+#
+#   1. Create the `quartobot` project on PyPI (either by first upload
+#      from a local `twine upload` of a 0.0.x build, or by reserving
+#      the name through the PyPI UI).
+#   2. In the project's "Publishing" settings on PyPI, add a trusted
+#      publisher:
+#        - Owner:           seandavi
+#        - Repository name: quartobot
+#        - Workflow name:   publish-pypi.yml
+#        - Environment:     pypi
+#   3. In this repo's settings → Environments → New environment →
+#      name it `pypi`. Optionally add a required reviewer so a tag
+#      push doesn't auto-ship without a human in the loop.
+#
+# Until the trusted publisher is registered, this workflow will fail
+# at the publish step. The build step (sdist + wheel + twine check)
+# still runs and catches packaging regressions.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Tag or ref to build and publish"
+        required: true
+        default: "main"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build sdist + wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Build distributions
+        run: uv build
+
+      - name: Validate distributions
+        run: uv run --with twine twine check dist/*
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/quartobot
+    # OIDC token issuance for trusted publishing.
+    permissions:
+      id-token: write
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # No `password:` — trusted publishing uses the OIDC token
+          # exchange handled by the action.
+          packages-dir: dist/
