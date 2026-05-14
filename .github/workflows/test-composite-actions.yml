@@ -1,0 +1,59 @@
+name: Test composite actions
+
+# Sanity-check the composite actions render examples/extension-minimal/
+# end-to-end. Catches regressions in setup-quartobot or
+# render-manuscript before they ship to consumers.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "actions/**"
+      - "_extensions/**"
+      - "examples/extension-minimal/**"
+      - ".github/workflows/test-composite-actions.yml"
+  pull_request:
+    paths:
+      - "actions/**"
+      - "_extensions/**"
+      - "examples/extension-minimal/**"
+      - ".github/workflows/test-composite-actions.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-example-minimal:
+    name: Render examples/extension-minimal via composite actions
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up quartobot toolchain (against in-tree checkout)
+        uses: ./actions/setup-quartobot
+        with:
+          # Install the extension from the local checkout so this test
+          # validates THIS commit, not whatever's published upstream.
+          extension-source: ${{ github.workspace }}
+          project: examples/extension-minimal
+
+      - name: Render manuscript
+        uses: ./actions/render-manuscript
+        with:
+          project: examples/extension-minimal
+          formats: html,pdf,docx
+
+      - name: Confirm outputs landed
+        working-directory: examples/extension-minimal
+        run: |
+          set -euxo pipefail
+          ls -la
+          test -f index.html
+          test -f index.pdf
+          test -f index.docx
+          test -f references.json   # manubot's resolver output
+          # Smoke check: resolved DOI made it into the bibliography.
+          grep -q "10.1371/journal.pcbi.1007128" references.json

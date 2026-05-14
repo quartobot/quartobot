@@ -1,0 +1,99 @@
+name: Render Quarto manuscript
+description: |
+  Render a Quarto project to one or more formats (HTML, PDF, DOCX) with
+  heartbeat output during long PDF renders so the workflow log shows
+  progress. Optionally uploads render logs as a workflow artifact.
+
+inputs:
+  project:
+    description: "Path to the Quarto project directory."
+    required: false
+    default: "."
+  formats:
+    description: |
+      Comma-separated list of formats to render. Common values:
+      "html", "html,pdf", "html,pdf,docx", "html,pdf,docx,jats".
+    required: false
+    default: "html,pdf,docx"
+  upload-logs:
+    description: |
+      Upload render-<fmt>.log files as a workflow artifact named
+      "render-logs". Set "false" to skip.
+    required: false
+    default: "true"
+  log-artifact-name:
+    description: "Artifact name when upload-logs is true."
+    required: false
+    default: "render-logs"
+
+runs:
+  using: composite
+  steps:
+    - name: Diagnostics before render
+      shell: bash
+      working-directory: ${{ inputs.project }}
+      run: |
+        set -euxo pipefail
+        echo "PWD: $(pwd)"
+        echo "Date: $(date -Iseconds)"
+        echo "Runner temp: ${RUNNER_TEMP:-unset}"
+        echo "Quarto version:"
+        quarto --version
+        echo "Pandoc version:"
+        quarto pandoc --version || true
+        echo "TeX engine version:"
+        xelatex --version 2>&1 | head -1 || pdflatex --version 2>&1 | head -1 || true
+        echo "Project files:"
+        ls -la
+        echo "Top-level qmd/yml files:"
+        find . -maxdepth 2 \( -name "*.qmd" -o -name "_quarto.yml" -o -name "*.bib" -o -name "*.csl" -o -name "*.json" \) | sort
+
+    - name: Render formats
+      shell: bash
+      working-directory: ${{ inputs.project }}
+      run: |
+        set -euo pipefail
+
+        IFS=',' read -ra REQUESTED <<< "${{ inputs.formats }}"
+        for raw in "${REQUESTED[@]}"; do
+          fmt=$(echo "$raw" | xargs)  # trim whitespace
+          [ -z "$fmt" ] && continue
+          echo "=== Rendering $fmt at $(date -Iseconds) ==="
+
+          if [ "$fmt" = "pdf" ]; then
+            # PDF can be slow under TinyTeX — emit heartbeats so the
+            # workflow log shows progress.
+            (
+              while true; do
+                echo "[heartbeat] $fmt render still running at $(date -Iseconds)"
+                sleep 30
+              done
+            ) &
+            heartbeat_pid=$!
+
+            set +e
+            /usr/bin/time -v quarto render --to "$fmt" --execute-debug 2>&1 | tee "render-${fmt}.log"
+            status=${PIPESTATUS[0]}
+            set -e
+
+            kill "${heartbeat_pid}" 2>/dev/null || true
+            wait "${heartbeat_pid}" 2>/dev/null || true
+
+            if [ "$status" -ne 0 ]; then
+              echo "::error::Render of $fmt failed (exit $status)"
+              exit "$status"
+            fi
+          else
+            /usr/bin/time -v quarto render --to "$fmt" --execute-debug 2>&1 | tee "render-${fmt}.log"
+          fi
+
+          echo "=== Finished $fmt render at $(date -Iseconds) ==="
+        done
+
+    - name: Upload render logs
+      if: always() && inputs.upload-logs == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.log-artifact-name }}
+        path: ${{ inputs.project }}/render-*.log
+        if-no-files-found: ignore

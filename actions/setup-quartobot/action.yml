@@ -1,0 +1,88 @@
+name: Set up quartobot toolchain
+description: |
+  Install Python, manubot (which provides pandoc-manubot-cite on PATH),
+  Quarto with TinyTeX, and the quarto-manubot-cite extension into a
+  Quarto project. Use this in any workflow that renders a Quarto project
+  using the manubot citation pattern.
+
+inputs:
+  python-version:
+    description: "Python version to install."
+    required: false
+    default: "3.12"
+  manubot-spec:
+    description: |
+      Pip spec for manubot. The default range keeps you on a tested 0.6.x;
+      override with a pinned version if you need reproducibility against a
+      specific Crossref/PubMed schema.
+    required: false
+    default: "manubot>=0.6,<0.7"
+  quarto-version:
+    description: |
+      Quarto version. `release` is the latest stable; `prerelease` and
+      `daily` are also valid. Pass a specific version like "1.5.57" for
+      reproducible CI.
+    required: false
+    default: "release"
+  tinytex:
+    description: |
+      Install TinyTeX. Set to "false" to skip if you only render HTML
+      and want a faster CI job.
+    required: false
+    default: "true"
+  extension-source:
+    description: >
+      Source for `quarto add`. Defaults to the published quartobot repo;
+      for testing against an in-tree copy pass the GitHub workspace path
+      (e.g., the value of `github.workspace`).
+    required: false
+    default: "seandavi/quartobot"
+  project:
+    description: |
+      Directory holding the `_quarto.yml` the extension will be installed
+      into. The `quarto add` step runs from here.
+    required: false
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    # Install pandoc as a standalone binary on PATH. Quarto bundles its
+    # own pandoc and invokes it internally, but manubot's bibliography
+    # loader shells out to `pandoc` via `shutil.which("pandoc")` to
+    # convert biblatex (.bib) to CSL JSON. Without a system pandoc,
+    # manubot silently returns an empty bibliography and any citation
+    # keys defined in `.bib` files are then treated as unresolved
+    # manubot identifiers — causing renders to fail.
+    - name: Set up pandoc
+      uses: r-lib/actions/setup-pandoc@v2
+
+    - name: Install manubot (provides pandoc-manubot-cite)
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install '${{ inputs.manubot-spec }}'
+        which pandoc-manubot-cite
+        pandoc-manubot-cite --help | head -5 || true
+
+    - name: Set up Quarto
+      uses: quarto-dev/quarto-actions/setup@v2
+      with:
+        tinytex: ${{ inputs.tinytex }}
+        version: ${{ inputs.quarto-version }}
+      env:
+        # Authenticate the TinyTeX release lookup against the GitHub API
+        # so we don't hit unauthenticated rate limits on hot CI hours.
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Install quarto-manubot-cite extension
+      shell: bash
+      working-directory: ${{ inputs.project }}
+      run: |
+        quarto add '${{ inputs.extension-source }}' --no-prompt
+        quarto list extensions

@@ -4,4 +4,9 @@ version: 0.0.1
 quarto-required: ">=1.4"
 contributes:
   filters:
-    - pandoc-manubot-cite
+    # Lua bridge that shells out to the `pandoc-manubot-cite` executable
+    # (shipped by `pip install manubot`). Quarto's extension filter
+    # resolution insists on a file inside the extension directory; the
+    # bridge is the simplest way to honor that and still use the
+    # upstream resolver.
+    - pandoc-manubot-cite.lua
