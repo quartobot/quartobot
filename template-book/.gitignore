@@ -1,0 +1,25 @@
+# Quarto book output directory.
+_book/
+
+# Render artifacts.
+.quarto/
+_freeze/
+*_files/
+**/*.quarto_ipynb
+
+# manubot resolver output (regenerated each render).
+references.json
+
+# Quarto extension cache (installed via `quarto add`).
+_extensions/
+
+# macOS / editor cruft.
+.DS_Store
+.vscode/
+.idea/
+
+# Exception: the version banner is checked-in HTML source, not render output.
+!_version-banner.html
+!_version-banner.html.template
+
+/.quarto/

@@ -1,0 +1,14 @@
+# Introduction
+
+Replace this with the first chapter of your book.
+
+Citations work the same as in any quartobot project. Reference the
+foundational manubot paper [@doi:10.1371/journal.pcbi.1007128]; cite
+Quarto [@quarto2024] when the publishing stack is the point. Mix
+persistent-identifier cites with hand-curated entries from
+`references.bib` as the prose needs.
+
+Each chapter renders to its own HTML page in `_book/`. Quarto attaches
+the resolved bibliography to the bottom of each chapter — the references
+appear next to the prose that uses them, which is the typical book
+reading pattern.

@@ -23,8 +23,12 @@ website:
         text: Getting started
       - href: extension.qmd
         text: Extension
-      - href: template.qmd
-        text: Template
+      - text: Templates
+        menu:
+          - href: template.qmd
+            text: Manuscript
+          - href: book.qmd
+            text: Book
       - href: cli.qmd
         text: CLI
       - href: design.qmd

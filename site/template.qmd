@@ -7,6 +7,9 @@ and a CI workflow that gives every commit an immutable permalink, embeds
 that permalink in the rendered HTML, posts PR previews via sticky
 comment, and deploys HTML + PDF + DOCX to GitHub Pages.
 
+If you're writing a longer work (textbook, review, edited volume, thesis),
+see [the book template](book.qmd) — same pattern, different project shape.
+
 ::: {.callout-warning}
 The template is currently scaffolded at
 [`template/`](https://github.com/seandavi/quartobot/tree/main/template)
@@ -30,14 +33,15 @@ inside this repo. Promotion to its own template repo
 
 ## CI architecture
 
-Until v0.1 tags, `template/.github/workflows/render.yml` is the full
-pipeline inlined. After v0.1 ships, it shrinks to ten lines that call a
-[reusable workflow upstream](https://github.com/seandavi/quartobot/issues/24).
+`template/.github/workflows/render.yml` is a ten-line caller of the
+[upstream reusable workflow](https://github.com/seandavi/quartobot/blob/main/.github/workflows/render-reusable.yml).
 Bug fixes to the upstream workflow flow to every consumer pinned at
 `@v0.1` automatically.
 
-Detach to fully copied-out workflows with `quartobot detach` if you
-ever want to fork the pipeline.
+Detach to fully copied-out workflows with `quartobot detach` (tracked at
+[#25](https://github.com/seandavi/quartobot/issues/25)) when that ships,
+or manually copy the reusable workflow into your repo as a starting
+point for a forked pipeline.
 
 ## The version banner
 

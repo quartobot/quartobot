@@ -1,0 +1,36 @@
+# Preface {.unnumbered}
+
+This is the preface of a quartobot book. Replace this text with your
+own.
+
+The book pattern combines:
+
+- **Quarto books** [@quarto2024] for the project shape — multiple
+  chapters, sidebar navigation, full-text search, an HTML site that
+  renders on every push.
+- **`quarto-manubot-cite`** for citation resolution by persistent
+  identifier — `@doi:`, `@pmid:`, `@arxiv:`, `@isbn:`, bare DOIs, etc.
+- **A CI workflow** that gives every commit an immutable permalink at
+  `/v/<sha>/`, posts PR previews via sticky comment, and deploys to
+  GitHub Pages.
+
+You're reading the rendered version. The source lives in `index.qmd`
+and the `chapters/` directory next to it. Edit the prose, push, and
+CI handles the rest.
+
+## How to make this yours
+
+1. Edit author metadata in `_quarto.yml`.
+2. Replace the preface and chapter content with your own.
+3. Add citations as you write — by DOI/PMID where possible, hand-curated
+   in `references.bib` for the rest.
+4. Push to `main`. CI renders the book site and deploys to
+   `https://<owner>.github.io/<repo>/`.
+
+## Why the book pattern
+
+Manubot's pattern was originally manuscript-shaped. Quarto books bring
+the same affordances — versioned source, auto-resolved citations,
+per-commit permalinks, PR-based collaboration — to longer works:
+textbooks, reviews, theses, edited volumes, working notes that grow
+chapter by chapter.

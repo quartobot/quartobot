@@ -1,0 +1,11 @@
+# Methods or middle chapter
+
+This template ships three chapter placeholders. Rename, add, or remove
+chapters as your book needs. Edit `_quarto.yml` to match — Quarto reads
+the `chapters:` list from there and uses it to build the sidebar and
+search index.
+
+Persistent-identifier citations carry across chapters cleanly. A PubMed
+ID: @pmid:31477126. An arXiv preprint: @arxiv:2104.10729. Both resolve
+on next render via `pandoc-manubot-cite` and cache to
+`_freeze/manubot-cache.json`, so subsequent renders are offline.

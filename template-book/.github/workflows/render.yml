@@ -1,0 +1,36 @@
+# Renders the book on every push and PR. Behavior — multi-chapter
+# render to a Quarto book site, immutable per-commit permalink, gh-pages
+# deploy, sticky PR comment with preview links — lives in the upstream
+# reusable workflow. Bug fixes flow here through the version pin.
+#
+# To customize the pipeline, override inputs below. See:
+#   https://github.com/seandavi/quartobot/blob/main/.github/workflows/render-reusable.yml
+# for the full list of inputs.
+#
+# For deeper customization (forking the workflow itself), the
+# `quartobot detach` CLI command — tracked at
+# https://github.com/seandavi/quartobot/issues/25 — will copy the full
+# pipeline out so you can edit it freely.
+
+name: Render book
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  render:
+    uses: seandavi/quartobot/.github/workflows/render-reusable.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
+    with:
+      project-type: book
+      # Books currently stage HTML only — PDF book output is a
+      # separate beast (multi-chapter LaTeX compilation, page layout
+      # opinions), deferred past v0.1.
+      formats: "html"
+      tinytex: "false"
