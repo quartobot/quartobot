@@ -137,14 +137,25 @@ def resolve(
     default=".",
 )
 def validate(project: Path) -> None:
-    """Pre-flight check a Quarto project for citation and config issues.
+    """Pre-flight check a Quarto project for the quartobot pattern.
 
-    Every cite key in the prose either lives in references.bib or
-    resolves cleanly; _quarto.yml declares both bibliographies;
-    manubot-bibliography-cache is set. Exit nonzero on any failure.
+    Runs a battery of static config checks: the extension is installed,
+    `_quarto.yml` declares `bibliography:` and the manubot keys, the
+    output bibliography is also in the bibliography list, no duplicate
+    cite keys across files.
+
+    Citation-resolution checks (does Crossref actually return metadata
+    for this DOI?) are out of scope here — they need network. Run
+    `quartobot resolve --dry-run --from-scan .` if you want that.
+
+    Exits 1 if any check fails, 0 if all pass.
     """
-    click.echo("not yet — see https://github.com/seandavi/quartobot/issues/28")
-    raise SystemExit(2)
+    from quartobot.validate import format_outcome, validate_project
+
+    outcome = validate_project(project)
+    click.echo(format_outcome(outcome))
+    if not outcome.passed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

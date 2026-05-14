@@ -29,6 +29,10 @@ classifiers = [
 dependencies = [
     "click>=8.1",
     "manubot>=0.6,<0.7",
+    # PyYAML reads `_quarto.yml` for validate. Manubot already pulls it
+    # transitively, but we depend on it directly so we don't rely on
+    # manubot's pin staying compatible.
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +41,7 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.5",
     "mypy>=1.10",
+    "types-PyYAML>=6.0",
 ]
 
 [project.urls]
