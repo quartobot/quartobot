@@ -1,0 +1,25 @@
+# Preface {.unnumbered}
+
+This is the smallest Quarto **book** that exercises the
+`quarto-manubot-cite` extension. It demonstrates that the manubot
+citation pattern — persistent-identifier cites resolved on render,
+co-existing with hand-curated bibliography entries — works across
+multi-chapter book projects, not only manuscripts.
+
+The book is also what differentiates quartobot from upstream
+manubot: manubot is manuscript-shaped by design [@doi:10.1371/journal.pcbi.1007128];
+Quarto books, websites, slides, and dashboards [@quarto2024]
+each accept the same pattern with the same configuration.
+
+The chapters that follow demonstrate:
+
+- **Intro** — basic citations in a chapter.
+- **Methods** — mixed identifier types (`@doi:`, `@pmid:`, `@arxiv:`,
+  `@isbn:`) plus a hand-curated `references.bib` entry.
+- **Discussion** — cross-chapter citation reuse, showing that
+  citations resolve consistently across chapters.
+
+Quarto books render each chapter's bibliography inline at the bottom of
+that chapter — that's Quarto's default for HTML book output, separate
+from how the manuscript template renders one bibliography at the end
+of a single document.

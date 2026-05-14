@@ -1,0 +1,43 @@
+project:
+  type: book
+
+# Book-level metadata. Quarto applies this across all chapters and to the
+# generated site navigation, search index, and OpenGraph/Twitter cards.
+book:
+  title: "quarto-manubot-cite — minimal book example"
+  author: "Your Name"
+  date: today
+  chapters:
+    - index.qmd
+    - chapters/intro.qmd
+    - chapters/methods.qmd
+    - chapters/discussion.qmd
+  search: true
+  page-navigation: true
+
+# Filter contributed by the quarto-manubot-cite extension. Resolves
+# @doi:, @pmid:, @arxiv:, @isbn:, @url:, @wikidata:, @zotero:, and bare
+# DOIs at render time. Works across chapters — cite anywhere, the
+# bibliography aggregates at references.qmd.
+filters:
+  - quarto-manubot-cite
+
+# Manubot configuration. Same as the manuscript example — the extension
+# is project-type-agnostic.
+manubot-output-bibliography: references.json
+manubot-bibliography-cache: _freeze/manubot-cache.json
+manubot-fail-on-errors: false
+manubot-infer-citekey-prefixes: true
+
+# Dual bibliography: hand-curated entries in references.bib, auto-resolved
+# entries in references.json (written by pandoc-manubot-cite, gitignored).
+bibliography:
+  - references.bib
+  - references.json
+csl: https://raw.githubusercontent.com/citation-style-language/styles/master/nature.csl
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-copy: true

@@ -1,0 +1,27 @@
+# Methods
+
+This chapter exercises the breadth of identifier types `pandoc-manubot-cite`
+understands.
+
+A Crossref DOI: @doi:10.1093/bioinformatics/btv145 — fastQC-style quality
+control, cited here purely to demonstrate DOI resolution against a
+bioinformatics paper.
+
+A PubMed identifier: @pmid:31477126 — cited via PMID, manubot resolves
+via NCBI's E-utilities and falls back to Crossref for any DOI it
+recovers.
+
+An arXiv preprint: @arxiv:2104.10729 — preprint with no formal Crossref
+entry; manubot resolves the metadata from the arXiv API.
+
+A book by ISBN: @isbn:9780262035613 — manubot routes ISBN lookups
+through a chain of open bibliographic sources.
+
+And `@quarto2024` again, hand-curated. Notice that the same Quarto
+reference can appear in multiple chapters without duplicating in the
+final bibliography — that's standard pandoc citeproc behavior, but
+worth confirming for the book pattern.
+
+All four persistent-identifier citations above resolved without anyone
+typing a bibliography entry. The author wrote four short strings; the
+filter did the rest.

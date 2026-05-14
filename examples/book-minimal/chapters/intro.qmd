@@ -1,0 +1,19 @@
+# Introduction
+
+The manubot pattern — manuscripts as software, citations by persistent
+identifier, immutable per-commit permalinks, collaboration through pull
+requests — has been used for hundreds of preprints since
+[@doi:10.1371/journal.pcbi.1007128]. The pattern's value is well-established;
+its main historical limitation is that it shipped as a single
+opinionated toolchain bound to one project shape.
+
+This book chapter cites the foundational manubot paper above without
+any setup beyond declaring the extension in `_quarto.yml`. No
+`references.bib` entry, no manual lookup — pandoc-manubot-cite resolves
+the DOI against Crossref on render, writes the CSL JSON entry to
+`references.json`, and caches the metadata in `_freeze/manubot-cache.json`
+so subsequent renders stay offline.
+
+For a contrast, `@quarto2024` references a hand-curated entry from
+`references.bib`. Both kinds of citation render through the same
+pandoc citeproc pipeline and appear together in the bibliography.

@@ -1,0 +1,25 @@
+# Discussion
+
+The manubot paper [@doi:10.1371/journal.pcbi.1007128] established the
+pattern; the integration with Quarto [@quarto2024] generalizes it.
+
+Notice that both citations above appeared in earlier chapters too,
+and that they resolve to the same entries here. The manubot cache
+(`_freeze/manubot-cache.json`) ensures we don't re-hit Crossref or
+Wikidata for keys already seen — even though each Quarto book chapter
+runs the filter independently.
+
+Each chapter renders its own bibliography section at the bottom; that's
+Quarto's default for HTML book output. A future quartobot CLI option
+(`quartobot resolve --aggregate`) could optionally produce a single
+references page; the example here uses Quarto's idiomatic per-chapter
+layout.
+
+For a working manuscript-shape demonstration of the same pattern, see
+the [Venice 2026 hackathon manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript) —
+a 25-author preprint running the CI / permalink / banner half of the
+pattern.
+
+For a book in production use, this example is intentionally minimal.
+The pattern scales to longer works: more chapters, more citations, the
+same configuration.

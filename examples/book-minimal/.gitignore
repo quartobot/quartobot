@@ -1,0 +1,16 @@
+# Quarto book output directory.
+_book/
+
+# Render artifacts.
+.quarto/
+_freeze/
+*_files/
+
+# manubot resolver output (regenerated each render).
+references.json
+
+# Quarto extension cache (installed via `quarto add`).
+_extensions/
+
+/.quarto/
+**/*.quarto_ipynb
