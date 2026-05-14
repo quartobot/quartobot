@@ -42,6 +42,24 @@ adopted across project types).
 is the thinking that produced the design — what was decided, what was
 explicitly ruled out, what changed our minds during the working sessions.
 
+## In-flight design proposal: citation pipeline
+
+[`docs/citation-pipeline.md`](https://github.com/seandavi/quartobot/blob/main/docs/citation-pipeline.md)
+proposes collapsing the current filter wiring (a Lua bridge that shells
+out to `pandoc-manubot-cite` at render time) into a single pre-render
+hook calling `quartobot resolve` directly. Two material UX gotchas in
+the filter shape (manubot's pandoc 3.x version check; the resolver's
+PATH requirement at render time) become structurally unreachable. A
+plugin architecture for deepening manubot's shallow CURIE prefixes
+follows from the same seam.
+
+Verified end-to-end on a live walkthrough 2026-05-14. Not yet
+committed publicly — design changes go through an issue first per
+[`CONTRIBUTING.md`](https://github.com/seandavi/quartobot/blob/main/CONTRIBUTING.md),
+and this one warrants Anthony Gitter and Daniel Himmelstein on the
+thread before any code moves. Everything currently shipping (templates,
+examples, `quartobot init`) is the filter architecture.
+
 ## The roadmap
 
 The roadmap lives in [GitHub issues](https://github.com/seandavi/quartobot/issues),

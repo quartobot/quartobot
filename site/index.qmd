@@ -5,8 +5,10 @@ toc: false
 ---
 
 ::: {.callout-note appearance="simple"}
-**Status:** design phase, v0.1 scaffold in flight. Nothing to install
-yet. Track [v0.1 on the milestone board](https://github.com/seandavi/quartobot/milestone/1).
+**Status:** v0.1 scaffold in flight. The CLI installs today from
+git (`uv tool install git+https://github.com/seandavi/quartobot`);
+PyPI publication follows the v0.1 tag. Track
+[v0.1 on the milestone board](https://github.com/seandavi/quartobot/milestone/1).
 :::
 
 Manubot has, for eight years, run scholarly manuscripts as a git

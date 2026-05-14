@@ -7,11 +7,12 @@ A Python CLI for pre-render and out-of-render work that
 `usethis`-style scaffolding into existing Quarto projects.
 
 ```bash
-pip install quartobot
+uv tool install git+https://github.com/seandavi/quartobot
 ```
 
 `quartobot` depends on `manubot`, so this also puts `pandoc-manubot-cite`
-on `PATH`.
+on `PATH`. See [Install](install.qmd) for `uvx`, editable, and
+post-v0.1-tag `pip install` paths.
 
 ## Pre-render commands
 
