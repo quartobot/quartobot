@@ -52,6 +52,16 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
+    # Install pandoc as a standalone binary on PATH. Quarto bundles its
+    # own pandoc and invokes it internally, but manubot's bibliography
+    # loader shells out to `pandoc` via `shutil.which("pandoc")` to
+    # convert biblatex (.bib) to CSL JSON. Without a system pandoc,
+    # manubot silently returns an empty bibliography and any citation
+    # keys defined in `.bib` files are then treated as unresolved
+    # manubot identifiers — causing renders to fail.
+    - name: Set up pandoc
+      uses: r-lib/actions/setup-pandoc@v2
+
     - name: Install manubot (provides pandoc-manubot-cite)
       shell: bash
       run: |
