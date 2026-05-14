@@ -2,13 +2,6 @@
 title: "The CLI: quartobot"
 ---
 
-::: {.callout-warning}
-The CLI doesn't exist yet. This page describes the design as it lands.
-Tracking issues: [#22](https://github.com/seandavi/quartobot/issues/22)
-(package scaffold + `scan`), [#25](https://github.com/seandavi/quartobot/issues/25)
-(`init` and other scaffolding commands).
-:::
-
 A Python CLI for pre-render and out-of-render work that
 `pandoc-manubot-cite` doesn't do (or doesn't do ergonomically). Plus
 `usethis`-style scaffolding into existing Quarto projects.
@@ -20,25 +13,62 @@ pip install quartobot
 `quartobot` depends on `manubot`, so this also puts `pandoc-manubot-cite`
 on `PATH`.
 
+::: {.callout-note}
+The CLI is in early development. `scan` is implemented; the other
+commands described below are scoped but not yet shipped — see the
+issue links on each.
+:::
+
 ## Pre-render commands
 
-### `quartobot scan <path>`
+### `quartobot scan <path>` { #scan }
 
-Walk `.qmd`/`.md` under a path, list every persistent-identifier cite
-key, group by prefix, surface duplicates. Pure read. No network.
+Walks `.qmd`/`.md` files under `<path>`, extracts every cite key, classifies
+each one (manubot prefix, bare DOI, or hand-curated), groups the results,
+and reports duplicates with file:line locations. Pure read. No network.
 
 ```
 $ quartobot scan .
-@doi:
-  10.1371/journal.pcbi.1007128 (3 references)
-@pmid:
-  31479462 (1 reference)
-@quarto2024 (1 reference, hand-curated — see references.bib)
+arxiv:
+  2104.10729 (2x)
+doi:
+  10.1038/s41586-024-12345
+  10.1371/journal.pcbi.1007128 (3x)
+pmid:
+  31479462
+(hand-curated):
+  quarto2024
+
+5 unique key(s), 7 total occurrence(s) across 3 file(s).
+
+Duplicates:
+  @doi:10.1371/journal.pcbi.1007128:
+    intro.qmd:14
+    methods.qmd:42
+    discussion.qmd:9
 ```
 
-Useful in code review and as a pre-commit hook.
+Prefixes are listed alphabetically; hand-curated keys appear last.
 
-### `quartobot resolve [<keys>...]`
+The scan is heuristic — it strips YAML/TOML frontmatter, fenced code
+blocks (```/~~~), and inline code spans before searching, so decoys
+like `@fake:notacite` inside backticks won't surface. The
+authoritative parse happens at render time inside `pandoc-manubot-cite`.
+
+Exit codes:
+
+- `0` — clean scan, no duplicates.
+- `1` — one or more cite keys appear more than once.
+- `2` — bad arguments.
+
+That makes it usable as a pre-commit hook.
+
+### `quartobot resolve [<keys>...]` { #resolve }
+
+::: {.callout-warning}
+Not yet shipped. Tracked at
+[#27](https://github.com/seandavi/quartobot/issues/27).
+:::
 
 Pre-fetch citations via `manubot.cite` and write to `references.json`
 (and optionally append BibTeX to `references.bib`). The point isn't to
@@ -54,7 +84,12 @@ Wrote references.json (2 entries)
 Updated _freeze/manubot-cache.json
 ```
 
-### `quartobot validate <project>`
+### `quartobot validate <project>` { #validate }
+
+::: {.callout-warning}
+Not yet shipped. Tracked at
+[#28](https://github.com/seandavi/quartobot/issues/28).
+:::
 
 Pre-flight / CI-lint surface. Every key in the prose resolves cleanly;
 `_quarto.yml` declares both bibliographies; `manubot-bibliography-cache`
@@ -68,6 +103,11 @@ $ quartobot validate .
 ```
 
 ## Scaffolding commands
+
+::: {.callout-warning}
+Scaffolding commands are not yet shipped. Tracked at
+[#25](https://github.com/seandavi/quartobot/issues/25).
+:::
 
 ### `quartobot init`
 

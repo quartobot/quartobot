@@ -23,7 +23,7 @@ manuscripts, books, websites, slides, dashboards, courseware — but the
 manubot pattern does not yet exist there natively. That's the gap this
 repo closes.
 
-Two artifacts ship together:
+Three artifacts ship together:
 
 1. **`quarto-manubot-cite`** — a thin Quarto extension that wires
    [`pandoc-manubot-cite`](https://manubot.github.io/manubot/reference/manubot/pandoc/cite_filter/)
@@ -45,10 +45,20 @@ Two artifacts ship together:
    gh repo create my-paper --template seandavi/quartobot-manuscript
    ```
 
-Neither command runs today. Both are the target of the in-progress
-scaffold; track [#7](https://github.com/seandavi/quartobot/issues/7),
-[#14](https://github.com/seandavi/quartobot/issues/14), and the
-`extension` / `template` labels.
+3. **`quartobot`** — a Python CLI for pre-render work
+   `pandoc-manubot-cite` doesn't do: `quartobot scan` summarizes cite
+   keys grouped by prefix with duplicate detection; `resolve` (in
+   progress) pre-fetches citations so CI never sees a Crossref hiccup;
+   `validate` (in progress) is the CI-lint surface. `init` and other
+   `usethis`-style commands scaffold the extension into existing
+   Quarto projects.
+
+   ```bash
+   pip install quartobot
+   ```
+
+Adoption commands aren't published yet — they describe what v0.1 will
+look like. Track the [v0.1 milestone](https://github.com/seandavi/quartobot/milestone/1).
 
 ## Why this exists
 
