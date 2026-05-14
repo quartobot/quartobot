@@ -110,3 +110,10 @@ files = ["src/quartobot"]
 python_version = "3.10"
 strict = true
 warn_unreachable = true
+
+# manubot ships without type stubs. We import a handful of its public
+# entry points (CiteKey, citekey_to_csl_item); silence the
+# missing-stubs warning rather than vendor a partial stub package.
+[[tool.mypy.overrides]]
+module = ["manubot.*"]
+ignore_missing_imports = true

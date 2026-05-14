@@ -50,19 +50,84 @@ def scan(path: Path) -> None:
     "--from-scan",
     type=click.Path(exists=True, file_okay=True, dir_okay=True, path_type=Path),
     default=None,
-    help="Resolve every key found by scanning this path.",
+    help="Resolve every persistent-identifier key found by scanning this path.",
 )
-def resolve(keys: tuple[str, ...], from_scan: Path | None) -> None:
-    """Pre-fetch citations and write to references.json (and BibTeX).
+@click.option(
+    "--output",
+    type=click.Path(file_okay=True, dir_okay=False, path_type=Path),
+    default="references.json",
+    show_default=True,
+    help="Path to write the resolved CSL JSON bibliography to.",
+)
+@click.option(
+    "--cache",
+    type=click.Path(file_okay=True, dir_okay=False, path_type=Path),
+    default=None,
+    help=(
+        "Optional path to read cached entries from. Cache hits skip the "
+        "network call. Defaults to the value of --output, so resolve is "
+        "idempotent against its own previous output."
+    ),
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Report what would be resolved without making network calls.",
+)
+def resolve(
+    keys: tuple[str, ...],
+    from_scan: Path | None,
+    output: Path,
+    cache: Path | None,
+    dry_run: bool,
+) -> None:
+    """Pre-fetch citations and write CSL JSON to disk.
 
-    Resolve a list of persistent-identifier keys via manubot.cite and
-    write the resulting CSL JSON to references.json. Optionally append
-    BibTeX to references.bib. The point isn't to replace what manubot
-    does at render — it's to do it ahead of time so CI never sees a
-    Crossref hiccup.
+    Resolves persistent-identifier cite keys via manubot.cite and writes
+    the resulting CSL JSON to --output (default `references.json`). The
+    point isn't to replace what manubot does at render — it's to do the
+    network work on a developer's machine ahead of push, so CI never
+    sees a Crossref or PubMed hiccup.
+
+    Pass keys as arguments (`@doi:10.x/y pmid:12345`) or use --from-scan
+    to resolve every persistent-identifier cite found in a project.
+    Hand-curated keys (no recognized prefix) are skipped — those live
+    in references.bib and pandoc citeproc handles them.
+
+    Exits 1 if any keys fail to resolve, 0 otherwise.
     """
-    click.echo("not yet — see https://github.com/seandavi/quartobot/issues/27")
-    raise SystemExit(2)
+    from quartobot.resolve import collect_resolvable_keys, format_outcome, resolve_keys
+
+    collected: list[str] = []
+    for k in keys:
+        # Allow either `@doi:10.x/y` or `doi:10.x/y` — strip leading @.
+        collected.append(k.lstrip("@"))
+
+    if from_scan is not None:
+        collected.extend(collect_resolvable_keys(from_scan))
+
+    # De-dup while preserving order.
+    seen: set[str] = set()
+    unique: list[str] = []
+    for k in collected:
+        if k not in seen:
+            seen.add(k)
+            unique.append(k)
+
+    if not unique:
+        click.echo("No persistent-identifier cite keys to resolve.")
+        return
+
+    cache_path = cache if cache is not None else output
+    outcome = resolve_keys(
+        unique,
+        cache_path=cache_path,
+        output_path=output,
+        dry_run=dry_run,
+    )
+    click.echo(format_outcome(outcome))
+    if outcome.failures:
+        raise SystemExit(1)
 
 
 @main.command()
