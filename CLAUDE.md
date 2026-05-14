@@ -6,27 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Manubot's manuscript-as-software pattern, implemented natively for the Quarto ecosystem.
 
-**Status:** Design phase, Phase-1 scaffold in flight. Architecture decisions live in `DESIGN.md`; the roadmap is the open issues. Do not invent files into the scaffold directories below without an explicit task — the layout is the intent, not necessarily the current state.
+**Status:** v0.1 work in flight on multiple fronts. The Python CLI (`quartobot scan/validate/resolve/init`) is in place; so is the `quarto-manubot-cite` extension and two template repos (manuscript and book). An architecture proposal at [`docs/citation-pipeline.md`](docs/citation-pipeline.md) would collapse the extension wiring into a single pre-render hook calling `quartobot resolve` directly. Live trial on 2026-05-14 validated it end-to-end. The pivot is not yet committed publicly — the manubot team and Anthony Gitter should weigh in first. Read the design doc before non-trivial changes.
 
 ## Directory layout
 
-- `_extensions/seandavi/quarto-manubot-cite/` — the Quarto filter extension. `_extensions/` lives at the repo root because `quarto add seandavi/quartobot` expects it there. May eventually split to its own repo (`seandavi/quarto-manubot-cite`); for now ships from this one.
-- `template/` — the `quartobot-manuscript` GitHub template (Quarto Manuscripts project + extension wiring + `.github/workflows/render.yml` for permalinks, banners, and PR previews). Will eventually be promoted to a standalone template repo.
+- `src/quartobot/` — the Python CLI. Commands: `scan`, `validate`, `resolve`, `init`. Under the pre-render-hook proposal this becomes the primary shipping artifact; under the current architecture it's pre-render and CI-lint tooling alongside the extension.
+- `_extensions/seandavi/quarto-manubot-cite/` — the Quarto filter extension. Installs `pandoc-manubot-cite` as a pandoc filter via `quarto add seandavi/quartobot`. Under the pre-render-hook proposal in `docs/citation-pipeline.md`, this shrinks to a one-line pre-render wiring or goes away entirely.
+- `template/` — `quartobot-manuscript` GitHub template (Quarto Manuscripts + extension + CI for permalinks, banners, PR previews). Will eventually be promoted to a standalone template repo.
+- `template-book/` — book variant of the same template.
 - `examples/extension-minimal/` — smallest end-to-end demo of the extension on its own, without the template's CI/banner machinery.
-- `paper/` — eventual home for `paper.md`, the JOSS submission (~1000 words). Voice guide for this file lives in the "JOSS paper specifically" section below.
-- `docs/` — prior art, publication plan, conversation notes. Read these before making non-trivial design changes.
-
-Note: an earlier draft of this file said the extension lived in `src/`. That was wrong — Quarto extensions install from `_extensions/` at the repo root. The `src/` directory was removed. (A later branch reintroduces `src/` for the `quartobot` Python CLI; that's a different artifact.)
+- `actions/` — composite GitHub Actions (`setup-quartobot`, `render-manuscript`) used by the reusable workflow.
+- `paper/` — eventual home for `paper.md`, the JOSS submission (~1000 words). Voice guide for this file lives in the "Writing in Sean Davis's voice" section below.
+- `docs/` — design docs (`citation-pipeline.md`, `prior-art.md`, `publication-plan.md`, `conversation-notes.md`). Read before non-trivial design changes.
+- `site/` — the documentation site (`quarto preview site/`).
 
 ## Commands
 
-The repo now contains a Quarto extension, a manuscript template, a docs site, and (on follow-up branches) a Python CLI. What's tracked vs. what's planned:
-
-- **Extension install:** `quarto add seandavi/quartobot` (the extension lives in the parent repo while the scaffold matures; will move to `seandavi/quarto-manubot-cite` once split — tracked at [#13](https://github.com/seandavi/quartobot/issues/13)).
-- **Template adoption:** eventually `gh repo create my-paper --template seandavi/quartobot-manuscript`. The template currently lives at `template/` in this repo; promotion to its own repo is part of v0.1.
+- **CLI install (local dev):** `uv pip install -e .` from the repo root. Once v0.1 tags: `pip install quartobot`.
+- **Extension install (current architecture):** `quarto add seandavi/quartobot`. The extension lives in this repo while the scaffold matures.
+- **Template adoption:** `gh repo create my-paper --template seandavi/quartobot-manuscript` (template currently lives at `template/` in this repo; promotion to its own repo is part of v0.1).
 - **Render the docs site locally:** `quarto preview site/`.
-- **Render the minimal example:** `cd examples/extension-minimal && quarto add ../.. --no-prompt && quarto render`.
-- The Venice hackathon manuscript ([seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)) runs the CI/permalink/banner half on a live 25-author preprint and is the reference implementation for the template's `.github/workflows/render.yml`.
+- **Render the minimal example:** `cd examples/extension-minimal && quarto add ../.. --no-prompt && uv run quarto render`. The `uv run` prefix puts `pandoc-manubot-cite` on PATH; bare `quarto render` won't find it from a project venv.
+- The Venice hackathon manuscript ([seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)) runs the CI/permalink/banner half on a live 25-author preprint and is the reference implementation for the template's render workflow.
 
 ## Contributing conventions
 
@@ -39,15 +40,20 @@ From `CONTRIBUTING.md`:
 
 ## What this is
 
-Two artifacts shipping together:
-1. `quarto-manubot-cite` — a thin Quarto extension wiring `pandoc-manubot-cite` (from the `manubot` Python package) into any Quarto project.
-2. `quartobot-manuscript` — a GitHub template repo combining Quarto Manuscripts + the extension + CI for per-commit permalinks, version banners, and PR previews.
+Under the current architecture, two artifacts ship together:
 
-**Scope:** Not limited to manuscripts. Quarto covers websites, books, posters, slides, dashboards, courseware. The manubot pattern (versioned citations, immutable permalinks, collaborative PRs) applies to all of them. The manuscript template is v1; broader project types are explicit v2+ work.
+1. `quarto-manubot-cite` — a Quarto extension wiring `pandoc-manubot-cite` (from the `manubot` Python package) into any Quarto project as a pandoc filter.
+2. `quartobot-manuscript` — a GitHub template combining Quarto Manuscripts + the extension + CI for per-commit permalinks, version banners, and PR previews.
+
+The `quartobot` Python CLI rides alongside both, providing pre-render and CI-lint tooling (`scan`, `validate`, `resolve`, `init`).
+
+[`docs/citation-pipeline.md`](docs/citation-pipeline.md) proposes collapsing this to one primary artifact: the CLI, invoked as a Quarto pre-render hook. The filter goes away, pandoc-citeproc consumes the resolved bibliography directly, and the extension shrinks to a one-line `_quarto.yml` snippet (or disappears). The proposal is driven by two material UX gotchas in the filter shape (manubot's pandoc 3.x version check, `pandoc-manubot-cite`'s PATH requirement at render time) that the pre-render approach makes structurally unreachable, plus a citation-plugin architecture that the pre-render seam opens. Not yet committed — depends on manubot-team review.
+
+**Scope:** Not limited to manuscripts. Quarto covers websites, books, posters, slides, dashboards, courseware. The manubot pattern (versioned citations, immutable permalinks, collaborative PRs) applies to all of them. Manuscript first; broader project types are explicit v2+ work.
 
 ## Key design decisions (already settled)
 
-- Reuse `pandoc-manubot-cite` from the `manubot` package — do NOT rebuild the resolver.
+- Reuse `manubot.cite` (the Python library — `citekey_to_csl_item`) — do NOT rebuild the resolver. Manubot's seven first-class handlers (`doi`, `pmid`, `arxiv`, `isbn`, `url`, `wikidata`, `pmc`) represent eight years of accumulated bug fixes for source-API quirks. Under the current architecture, this happens via `pandoc-manubot-cite` (the filter, which wraps the library). Under the pre-render proposal, it happens via `quartobot resolve` calling the library directly. The library underneath is the same.
 - Bibliography: CSL JSON for auto-resolved entries + hand-curated `.bib` alongside. Both declared in `_quarto.yml`.
 - Citation key syntax: manubot's exactly (`@doi:`, `@pmid:`, `@arxiv:`, `@isbn:`, `@url:`, `@wikidata:`, bare DOIs). No new syntax.
 - Permalink: `/v/<full-sha>/` per manubot convention.
@@ -73,7 +79,7 @@ Weekend sequencing: CI template → Quarto extension → manuscript template →
 
 ## Open questions
 
-See `DESIGN.md#open-questions`. The biggest unresolved ones: naming (quartobot vs. quarto-manubot-pattern, [#1](https://github.com/seandavi/quartobot/issues/1)), and extend vs. fork the first-party Quarto Manuscripts template ([#3](https://github.com/seandavi/quartobot/issues/3)). The cache-file-location question is settled — `_freeze/manubot-cache.json` ([#8](https://github.com/seandavi/quartobot/issues/8)).
+The biggest live design question is the filter-vs-pre-render-hook pivot tracked in [`docs/citation-pipeline.md`](docs/citation-pipeline.md). Beyond that: extend vs. fork the first-party Quarto Manuscripts template ([#3](https://github.com/seandavi/quartobot/issues/3)), and bibliography merge semantics for `.bib` + CSL JSON ([#10](https://github.com/seandavi/quartobot/issues/10)). Settled: `_freeze/manubot-cache.json` for cache location ([#8](https://github.com/seandavi/quartobot/issues/8)); the naming question closed as settled-by-adoption.
 
 ---
 
