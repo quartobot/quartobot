@@ -66,17 +66,20 @@ class ResolveOutcome:
         return [r for r in self.resolutions if r.succeeded]
 
 
-def collect_resolvable_keys(path: Path) -> list[str]:
+def collect_resolvable_keys(path: Path, *, recursive: bool = True) -> list[str]:
     """Walk `path` and return unique persistent-identifier cite keys.
 
     Hand-curated cite keys (no recognized prefix and not a bare-DOI form)
     are excluded — those belong in `references.bib` and pandoc citeproc
     handles them.
 
+    Pass `recursive=False` to limit a directory scan to files directly
+    under `path` (no descent).
+
     Keys are returned in their `prefix:identifier` (manubot-standard)
     form, without the leading `@`. Duplicates removed.
     """
-    result = scan_path(path)
+    result = scan_path(path, recursive=recursive)
     seen: set[str] = set()
     out: list[str] = []
     for occ in result.occurrences:

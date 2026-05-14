@@ -25,19 +25,35 @@ def main() -> None:
     type=click.Path(exists=True, file_okay=True, dir_okay=True, path_type=Path),
     default=".",
 )
-def scan(path: Path) -> None:
+@click.option(
+    "--recursive/--no-recursive",
+    default=True,
+    show_default=True,
+    help=(
+        "When PATH is a directory, descend into subdirectories. "
+        "`--no-recursive` only scans files directly under PATH."
+    ),
+)
+def scan(path: Path, recursive: bool) -> None:
     """Scan a Quarto project for cite keys and group by prefix.
 
-    Walks .qmd and .md files under PATH, extracts cite keys (both
-    persistent-identifier ones like @doi: and @pmid:, and hand-curated
-    keys), and reports counts and duplicates. Pure read; no network.
+    Walks supported files (.qmd, .md, .Rmd, .ipynb) under PATH,
+    extracts cite keys (both persistent-identifier ones like @doi: and
+    @pmid:, and hand-curated keys), and reports counts and duplicates.
+    Pure read; no network. Markdown cells inside .ipynb notebooks are
+    scanned; cell index appears alongside line number in duplicate
+    reports (e.g. `paper.ipynb:cell3:5`).
+
+    Render outputs and tool caches (`_site/`, `_book/`, `_freeze/`,
+    `.quarto/`, `.git/`, `.ipynb_checkpoints/`, `node_modules/`, etc.)
+    are skipped at any depth.
 
     Exits 1 if any duplicates are found (so it works as a pre-commit
     hook), 0 otherwise.
     """
     from quartobot.scan import format_scan_result, scan_path
 
-    result = scan_path(path)
+    result = scan_path(path, recursive=recursive)
     relative_to = path if path.is_dir() else path.parent
     click.echo(format_scan_result(result, relative_to=relative_to))
     if result.duplicates:
@@ -51,6 +67,15 @@ def scan(path: Path) -> None:
     type=click.Path(exists=True, file_okay=True, dir_okay=True, path_type=Path),
     default=None,
     help="Resolve every persistent-identifier key found by scanning this path.",
+)
+@click.option(
+    "--recursive/--no-recursive",
+    default=True,
+    show_default=True,
+    help=(
+        "When --from-scan is a directory, descend into subdirectories. "
+        "`--no-recursive` only scans files directly under that path."
+    ),
 )
 @click.option(
     "--output",
@@ -94,6 +119,7 @@ def resolve(
     cache: Path | None,
     dry_run: bool,
     id_mode: str,
+    recursive: bool,
 ) -> None:
     """Pre-fetch citations and write CSL JSON to disk.
 
@@ -118,7 +144,7 @@ def resolve(
         collected.append(k.lstrip("@"))
 
     if from_scan is not None:
-        collected.extend(collect_resolvable_keys(from_scan))
+        collected.extend(collect_resolvable_keys(from_scan, recursive=recursive))
 
     # De-dup while preserving order.
     seen: set[str] = set()

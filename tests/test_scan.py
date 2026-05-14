@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -13,6 +14,7 @@ from quartobot.scan import (
     classify,
     collect_files,
     find_cite_keys,
+    find_cite_keys_in_notebook,
     format_scan_result,
     scan_path,
 )
@@ -308,7 +310,11 @@ def test_scan_skips_excluded_dirs(tmp_path):
 
 
 def test_format_empty():
-    assert format_scan_result(ScanResult()) == "No .qmd or .md files found."
+    out = format_scan_result(ScanResult())
+    assert "No matching files found" in out
+    # Lists the supported suffixes so users know what we look for.
+    assert ".ipynb" in out
+    assert ".qmd" in out
 
 
 def test_format_no_citations():
@@ -343,3 +349,220 @@ def test_format_lists_duplicates(tmp_path):
     assert "Duplicates:" in out
     assert "a.qmd:1" in out
     assert "b.qmd:1" in out
+
+
+# ------------------------------------------------------- jupyter notebooks
+
+
+def _notebook(*cells: dict) -> str:
+    """Return JSON text for a minimal nbformat-4 notebook."""
+    return json.dumps(
+        {
+            "cells": list(cells),
+            "metadata": {},
+            "nbformat": 4,
+            "nbformat_minor": 5,
+        }
+    )
+
+
+def _markdown_cell(source):
+    return {"cell_type": "markdown", "metadata": {}, "source": source}
+
+
+def _code_cell(source):
+    return {
+        "cell_type": "code",
+        "metadata": {},
+        "source": source,
+        "execution_count": None,
+        "outputs": [],
+    }
+
+
+def _raw_cell(source):
+    return {"cell_type": "raw", "metadata": {}, "source": source}
+
+
+def test_notebook_markdown_cell_basic():
+    text = _notebook(_markdown_cell(["Cite @doi:10.1/x here.\n"]))
+    hits = list(find_cite_keys_in_notebook(text))
+    assert hits == [("@doi:10.1/x", 1, 1)]
+
+
+def test_notebook_source_as_string_or_list_equivalent():
+    string_form = _notebook(_markdown_cell("Cite @doi:10.1/x.\nNext line.\n"))
+    list_form = _notebook(_markdown_cell(["Cite @doi:10.1/x.\n", "Next line.\n"]))
+    assert list(find_cite_keys_in_notebook(string_form)) == list(
+        find_cite_keys_in_notebook(list_form)
+    )
+
+
+def test_notebook_skips_code_and_raw_cells():
+    text = _notebook(
+        _code_cell("# Code: @doi:10.1/code is in a code cell\n"),
+        _markdown_cell(["See @doi:10.1/md.\n"]),
+        _raw_cell(["Raw: @doi:10.1/raw should also be skipped\n"]),
+    )
+    hits = list(find_cite_keys_in_notebook(text))
+    # Only the markdown cell contributes.
+    assert hits == [("@doi:10.1/md", 2, 1)]
+
+
+def test_notebook_cell_index_is_1_based_across_all_cells():
+    # Cells: [code, markdown, code, markdown]. The two markdown cells
+    # are at notebook positions 2 and 4.
+    text = _notebook(
+        _code_cell("x = 1\n"),
+        _markdown_cell(["First: @doi:10.1/a.\n"]),
+        _code_cell("y = 2\n"),
+        _markdown_cell(["Second: @doi:10.1/b.\n"]),
+    )
+    hits = list(find_cite_keys_in_notebook(text))
+    assert hits == [("@doi:10.1/a", 2, 1), ("@doi:10.1/b", 4, 1)]
+
+
+def test_notebook_line_within_cell_is_1_based():
+    text = _notebook(
+        _markdown_cell(
+            [
+                "# Header\n",
+                "\n",
+                "Body has @doi:10.1/x here.\n",
+                "\n",
+                "Then @pmid:42 down here.\n",
+            ]
+        )
+    )
+    hits = list(find_cite_keys_in_notebook(text))
+    assert hits == [("@doi:10.1/x", 1, 3), ("@pmid:42", 1, 5)]
+
+
+def test_notebook_fenced_code_inside_markdown_cell_skipped():
+    text = _notebook(
+        _markdown_cell(
+            [
+                "Real: @doi:10.1/real.\n",
+                "```\n",
+                "@doi:10.1/inside_fence ignored\n",
+                "```\n",
+                "After: @doi:10.1/after.\n",
+            ]
+        )
+    )
+    hits = list(find_cite_keys_in_notebook(text))
+    keys = [h[0] for h in hits]
+    assert "@doi:10.1/real" in keys
+    assert "@doi:10.1/after" in keys
+    assert "@doi:10.1/inside_fence" not in keys
+
+
+def test_notebook_malformed_json_yields_nothing():
+    # Garbled JSON shouldn't crash the scanner; it just contributes no hits.
+    assert list(find_cite_keys_in_notebook("{not valid json")) == []
+
+
+def test_notebook_missing_cells_key_yields_nothing():
+    text = json.dumps({"metadata": {}, "nbformat": 4})
+    assert list(find_cite_keys_in_notebook(text)) == []
+
+
+def test_notebook_top_level_not_a_dict_yields_nothing():
+    assert list(find_cite_keys_in_notebook(json.dumps(["just", "a", "list"]))) == []
+
+
+def test_notebook_cell_source_missing_yields_nothing():
+    text = _notebook({"cell_type": "markdown", "metadata": {}})
+    assert list(find_cite_keys_in_notebook(text)) == []
+
+
+def test_scan_path_includes_notebook_files(tmp_path):
+    nb = tmp_path / "paper.ipynb"
+    nb.write_text(_notebook(_markdown_cell(["Cite @doi:10.1/x.\n"])))
+    qmd = tmp_path / "intro.qmd"
+    qmd.write_text("Also cite @doi:10.1/x.\n")
+
+    result = scan_path(tmp_path)
+    assert result.files_scanned == 2
+    # The notebook occurrence carries a cell index; the qmd one doesn't.
+    notebook_occ = [o for o in result.occurrences if o.file == nb]
+    qmd_occ = [o for o in result.occurrences if o.file == qmd]
+    assert len(notebook_occ) == 1
+    assert notebook_occ[0].cell == 1
+    assert notebook_occ[0].line == 1
+    assert len(qmd_occ) == 1
+    assert qmd_occ[0].cell is None
+
+
+def test_format_duplicates_renders_notebook_cell(tmp_path):
+    nb = tmp_path / "paper.ipynb"
+    nb.write_text(_notebook(_markdown_cell(["Cite @doi:10.1/x.\n"])))
+    qmd = tmp_path / "other.qmd"
+    qmd.write_text("Also @doi:10.1/x.\n")
+    result = scan_path(tmp_path)
+    out = format_scan_result(result, relative_to=tmp_path)
+    assert "Duplicates:" in out
+    assert "paper.ipynb:cell1:1" in out
+    assert "other.qmd:1" in out
+
+
+# ------------------------------------------------------- Rmd files
+
+
+def test_scan_includes_rmd_files(tmp_path):
+    rmd = tmp_path / "analysis.Rmd"
+    rmd.write_text("R Markdown citing @doi:10.1/rmd.\n")
+    result = scan_path(tmp_path)
+    assert result.files_scanned == 1
+    assert "@doi:10.1/rmd" in result.unique_keys
+
+
+# ------------------------------------------------------- new excluded dirs
+
+
+@pytest.mark.parametrize("excluded_name", ["_book", "_manuscript", ".ipynb_checkpoints"])
+def test_collect_files_skips_added_excluded_dirs(tmp_path, excluded_name):
+    sub = tmp_path / excluded_name
+    sub.mkdir()
+    (sub / "skip.qmd").write_text("Should be skipped: @doi:10.1/skip.\n")
+    (tmp_path / "real.qmd").write_text("Real: @doi:10.1/real.\n")
+
+    result = scan_path(tmp_path)
+    keys = result.unique_keys
+    assert "@doi:10.1/real" in keys
+    assert "@doi:10.1/skip" not in keys
+
+
+# ------------------------------------------------------- recursive flag
+
+
+def test_collect_files_recursive_default_descends(tmp_path):
+    deep = tmp_path / "sub" / "deeper"
+    deep.mkdir(parents=True)
+    (deep / "buried.qmd").write_text("Buried: @doi:10.1/buried.\n")
+    (tmp_path / "top.qmd").write_text("Top: @doi:10.1/top.\n")
+
+    files = sorted(f.name for f in collect_files(tmp_path))
+    assert files == ["buried.qmd", "top.qmd"]
+
+
+def test_collect_files_non_recursive_stays_at_top(tmp_path):
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    (sub / "deeper.qmd").write_text("Deep.\n")
+    (tmp_path / "top.qmd").write_text("Top.\n")
+
+    files = list(collect_files(tmp_path, recursive=False))
+    assert [f.name for f in files] == ["top.qmd"]
+
+
+def test_scan_path_non_recursive_skips_subdirs(tmp_path):
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    (sub / "deeper.qmd").write_text("Deeper: @doi:10.1/deeper.\n")
+    (tmp_path / "top.qmd").write_text("Top: @doi:10.1/top.\n")
+
+    result = scan_path(tmp_path, recursive=False)
+    keys = result.unique_keys
+    assert "@doi:10.1/top" in keys
+    assert "@doi:10.1/deeper" not in keys
