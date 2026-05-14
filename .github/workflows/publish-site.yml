@@ -1,0 +1,64 @@
+name: Publish docs site
+
+# Renders the Quarto site under site/ and deploys it to GitHub Pages.
+#
+# Setup required, one time, before the first deploy can succeed:
+#
+#   In repo Settings → Pages → "Build and deployment":
+#     - Source: GitHub Actions
+#
+#   That switch turns on the `github-pages` environment this workflow
+#   targets. The first run will fail without it.
+#
+# The site publishes to https://seandavi.github.io/quartobot/.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/publish-site.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one in-flight deploy at a time; queue a follow-up if needed,
+# but don't cancel the running one (a half-deployed Pages site is
+# worse than a slightly stale one).
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Render site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Render site
+        run: quarto render site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/_site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
