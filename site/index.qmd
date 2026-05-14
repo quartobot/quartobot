@@ -23,7 +23,7 @@ gap.
 
 ## What ships
 
-Four artifacts, designed to work alone or together:
+Five artifacts, designed to work alone or together:
 
 - **[A Quarto extension](extension.qmd)** that wires `pandoc-manubot-cite`
   into any Quarto project. Authors write `@doi:10.1371/journal.pcbi.1007128`
@@ -32,6 +32,11 @@ Four artifacts, designed to work alone or together:
   extension, and a CI workflow that gives every commit an immutable
   permalink at `/v/<sha>/`, embeds that permalink in rendered HTML,
   posts PR previews, and deploys HTML + PDF + DOCX to GitHub Pages.
+- **[A book template](book.qmd)** for longer works (textbooks, reviews,
+  edited volumes, theses). Same pattern as the manuscript template, but
+  Quarto's book project type — sidebar navigation, full-text search,
+  per-chapter HTML pages. The differentiator from manubot, which is
+  manuscript-shaped by design.
 - **[A Python CLI](cli.qmd)** for scanning, pre-resolving, and validating
   citations before render. Plus `usethis`-style scaffolding into existing
   projects.
