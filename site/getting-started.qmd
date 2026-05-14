@@ -78,6 +78,7 @@ That's the minimum. No CI, no banner, no template machinery.
 
 ## See also
 
+- [Install reference](install.qmd) — every install method, when to use which
 - [Extension reference](extension.qmd)
 - [Template walkthrough](template.qmd)
 - [CLI reference](cli.qmd)

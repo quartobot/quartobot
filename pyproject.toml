@@ -3,7 +3,8 @@ name = "quartobot"
 version = "0.0.1"
 description = "The manubot manuscript-as-software pattern, on Quarto."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Sean Davis", email = "seandavi@gmail.com" }]
 requires-python = ">=3.10"
 keywords = [
@@ -16,7 +17,6 @@ keywords = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
