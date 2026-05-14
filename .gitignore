@@ -5,13 +5,18 @@
 .vscode/
 .idea/
 
-# Python (when src/ becomes a package)
+# Python
 __pycache__/
 *.py[cod]
 .venv/
 *.egg-info/
 build/
 dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
 # Quarto (when example projects accumulate)
 _output/
