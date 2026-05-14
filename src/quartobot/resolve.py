@@ -101,6 +101,17 @@ def _load_existing(path: Path | None) -> list[CSLItem]:
         return []
 
 
+def _standard_id_from_note(note: object) -> str | None:
+    """Extract `standard_id: <value>` from manubot's `note` field."""
+    if not isinstance(note, str):
+        return None
+    for line in note.splitlines():
+        line = line.strip()
+        if line.startswith("standard_id:"):
+            return line.split(":", 1)[1].strip()
+    return None
+
+
 def _build_cache_index(items: Sequence[CSLItem]) -> dict[str, CSLItem]:
     """Index existing CSL items by their `standard_id` note.
 
@@ -110,15 +121,9 @@ def _build_cache_index(items: Sequence[CSLItem]) -> dict[str, CSLItem]:
     """
     out: dict[str, CSLItem] = {}
     for item in items:
-        note = item.get("note", "")
-        if not isinstance(note, str):
-            continue
-        for line in note.splitlines():
-            line = line.strip()
-            if line.startswith("standard_id:"):
-                sid = line.split(":", 1)[1].strip()
-                out[sid] = item
-                break
+        sid = _standard_id_from_note(item.get("note", ""))
+        if sid is not None:
+            out[sid] = item
     return out
 
 
@@ -129,6 +134,7 @@ def resolve_keys(
     output_path: Path | None = None,
     dry_run: bool = False,
     log_level: str = "WARNING",
+    id_mode: str = "short-hash",
 ) -> ResolveOutcome:
     """Resolve a list of persistent-identifier keys.
 
@@ -141,6 +147,12 @@ def resolve_keys(
         dry_run: If True, don't make network calls — report what would
             be resolved.
         log_level: Manubot's logging verbosity for resolver failures.
+        id_mode: How to populate the CSL `id` field in the output.
+            "short-hash" (default) keeps manubot's hash form, which the
+            `pandoc-manubot-cite` filter expects. "citation-key" writes
+            the original `prefix:identifier` (e.g. `doi:10.1371/...`),
+            which lets pandoc-citeproc match the prose keys directly
+            without a filter — the pre-render-hook architecture.
 
     Returns:
         A `ResolveOutcome` describing what happened.
@@ -233,8 +245,26 @@ def resolve_keys(
 
     if output_path is not None and not dry_run:
         output_path.parent.mkdir(parents=True, exist_ok=True)
+        merged = list(new_items.values())
+        if id_mode == "citation-key":
+            # Re-key each item to the citation key as it appears in the
+            # prose, so pandoc-citeproc can match directly without an
+            # AST-rewriting filter in the chain. Prefer the user's
+            # input key (e.g. `pmid:`) over manubot's canonical form
+            # (e.g. `pubmed:`) — they can differ, and the prose is the
+            # source of truth for what citeproc will look for. Cached
+            # entries with no matching resolution this run fall back to
+            # the standard_id from manubot's `note` field.
+            key_by_sid: dict[str, str] = {}
+            for res in outcome.resolutions:
+                if res.succeeded and res.standard_id and res.key:
+                    key_by_sid.setdefault(res.standard_id, res.key)
+            for item in merged:
+                sid = _standard_id_from_note(item.get("note", ""))
+                if sid is not None:
+                    item["id"] = key_by_sid.get(sid, sid)
         # Sort by id for deterministic diffs.
-        merged = sorted(new_items.values(), key=lambda d: d.get("id", ""))
+        merged.sort(key=lambda d: d.get("id", ""))
         output_path.write_text(
             json.dumps(merged, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",

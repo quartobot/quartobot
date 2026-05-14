@@ -74,12 +74,27 @@ def scan(path: Path) -> None:
     is_flag=True,
     help="Report what would be resolved without making network calls.",
 )
+@click.option(
+    "--id-mode",
+    type=click.Choice(["short-hash", "citation-key"]),
+    default="short-hash",
+    show_default=True,
+    help=(
+        "How to populate the CSL `id` field. `short-hash` (default) "
+        "keeps manubot's hash form, which the `pandoc-manubot-cite` "
+        "filter expects. `citation-key` writes the original "
+        "`prefix:identifier`, which lets pandoc-citeproc match prose "
+        "keys directly with no filter in the chain — the pre-render-"
+        "hook architecture."
+    ),
+)
 def resolve(
     keys: tuple[str, ...],
     from_scan: Path | None,
     output: Path,
     cache: Path | None,
     dry_run: bool,
+    id_mode: str,
 ) -> None:
     """Pre-fetch citations and write CSL JSON to disk.
 
@@ -124,6 +139,7 @@ def resolve(
         cache_path=cache_path,
         output_path=output,
         dry_run=dry_run,
+        id_mode=id_mode,
     )
     click.echo(format_outcome(outcome))
     if outcome.failures:
