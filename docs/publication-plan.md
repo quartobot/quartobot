@@ -3,14 +3,14 @@
 ## Framing
 
 The contribution is **the pattern, not the resolver**. Citation
-auto-resolution is mostly a packaging story (`pandoc-manubot-cite`
-already exists inside the `manubot` package); the new claim is that the
+auto-resolution is mostly a packaging story (`manubot.cite` already
+exists inside the `manubot` package); the new claim is that the
 manubot manuscript-as-software pattern can be — and now is — implemented
 ergonomically on top of Quarto's full publishing surface.
 
 Frame as **adoption, not displacement**: explicit credit to manubot,
 explicit citation to Himmelstein et al. 2019, explicit reference to
-`pandoc-manubot-cite` as the reused infrastructure.
+`manubot.cite` as the reused infrastructure.
 
 ## Co-authors (target list)
 
@@ -71,12 +71,12 @@ template start coming in.
 1. **Weekend 1** — Pull the CI / banner / permalink pattern out of the
    Venice repo into a clean GitHub Actions workflow file living in the
    template.
-2. **Weekend 2** — Build the `quarto-manubot-cite` extension. ~50–200
-   lines + tests + a working `_quarto.yml` example. Reuse
-   `pandoc-manubot-cite` directly.
+2. **Weekend 2** — Build the `quartobot resolve` CLI command and its
+   pre-render hook wiring. ~50–200 lines + tests + a working
+   `_quarto.yml` example. Calls `manubot.cite` directly.
 3. **Weekend 3** — Assemble the `quartobot-manuscript` template,
-   wiring extension + workflow + example manuscript with mixed `@doi:`,
-   `@pmid:`, and hand-key citations.
+   wiring the pre-render hook + workflow + example manuscript with
+   mixed `@doi:`, `@pmid:`, and hand-key citations.
 4. **Weekend 4** — Polish: README, contributing guide, example
    walkthrough, tagged release. Tag co-authors on the design doc and
    the planned paper before going further.

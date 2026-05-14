@@ -58,11 +58,11 @@ Six components, in roughly the order an author encounters them:
   `@pmid:`, `@arxiv:`, `@isbn:`, `@url:`, `@wikidata:`, `@zotero:`, and
   infers prefixes for bare identifiers, plus ~1,677 more CURIE prefixes
   through a bundled Bioregistry. Output is CSL JSON. Manubot is
-  actively maintained (v0.6.1, July 2024). The package also ships
-  `pandoc-manubot-cite`, a pandoc filter that wraps the library; v0.1
-  initially used that filter shape, but a pivot to calling the library
-  directly from a pre-render hook is under discussion in
-  [`docs/citation-pipeline.md`](docs/citation-pipeline.md).
+  actively maintained (v0.6.1, July 2024). `quartobot resolve` calls
+  this library directly from a Quarto pre-render hook; see
+  [`docs/citation-pipeline.md`](docs/citation-pipeline.md) for why
+  this shape rather than wrapping `pandoc-manubot-cite` as a pandoc
+  filter.
 - The CI pieces for #4 and #5 — versioned permalinks, embedded version
   banner, sticky PR preview comments — are already running in
   [seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)
@@ -86,32 +86,26 @@ The shipping surface is a Python CLI plus a GitHub template.
 The CLI is the load-bearing artifact. Four commands today:
 
 - `quartobot resolve` — pre-fetches citations via `manubot.cite` and
-  writes CSL JSON to disk. Designed to run as a Quarto pre-render hook
+  writes CSL JSON to disk. Runs as a Quarto pre-render hook
   (`project.pre-render:` in `_quarto.yml`), so the network work
   happens before pandoc starts and CI never sees a Crossref hiccup
   mid-render. `--id-mode citation-key` writes the CSL `id` as the
   user's prose key, which lets pandoc-citeproc match `[@doi:...]`
-  directly without an AST-rewriting filter.
+  directly with no custom filter in the chain.
 - `quartobot scan` — walks a project and summarizes cite keys grouped
   by prefix, with duplicate detection.
 - `quartobot validate` — pre-flight static checks against `_quarto.yml`
-  (extension installed, bibliography declared, manubot keys consistent,
-  no duplicate cite keys).
+  (`_quarto.yml` exists, `bibliography:` declared, `project.pre-render`
+  calls `quartobot resolve --id-mode citation-key`, `references.json`
+  is in the bibliography list, no duplicate cite keys).
 - `quartobot init` — scaffolds the pattern into an existing Quarto
-  project: writes `_quarto.yml` (when absent), seeds `references.bib`,
-  drops in the version-banner template, adds a ten-line workflow.
+  project: writes `_quarto.yml` (when absent) with the pre-render hook
+  wired in, seeds `references.bib`, drops in the version-banner
+  template, adds a ten-line workflow.
 
 Install: `uv tool install git+https://github.com/seandavi/quartobot`
 (or `uv pip install -e .` from a clone for repo dev). ~1k lines of
 Python plus tests.
-
-A `quarto-manubot-cite` Quarto extension currently ships alongside —
-under the original architecture it was the primary surface, declaring
-`pandoc-manubot-cite` as a pandoc filter. The pivot tracked in
-[`docs/citation-pipeline.md`](docs/citation-pipeline.md) collapses that
-extension's role into a one-line pre-render hook calling the CLI; the
-extension shrinks to optional `_quarto.yml` wiring or goes away
-entirely. Held in place pending manubot-team review.
 
 ### `quartobot-manuscript` — Template repository
 
@@ -140,9 +134,9 @@ only the project type differs.
 |----------|--------|-----|
 | Bibliography format for auto-resolved entries | **CSL JSON**, alongside any hand-curated `references.bib` | CSL JSON's `id` field accepts arbitrary strings, so `@doi:10.1038/foo` can be both the citation key and the BibTeX-equivalent entry id. BibTeX keys forbid `/` and `:` and would require key transformation, which defeats the manubot point. |
 | Citation key normalization | Lowercase prefix, identifier preserved as-is (`@doi:10.X/y`, not `@DOI:10.X/y`) | Matches manubot's own convention; lets us reuse `manubot.cite` directly. |
-| Resolver implementation | Reuse `manubot.cite` (already in the `manubot` Python package) | Tested, maintained, covers all the identifier types deeply for seven first-class handlers plus ~1,677 more via Bioregistry CURIE fallback. Good error handling, rate-limit awareness. We get this for free. The current architecture invokes manubot via `pandoc-manubot-cite` (a pandoc filter); the pivot in `docs/citation-pipeline.md` calls the same library directly from `quartobot resolve` as a pre-render hook. |
-| Resolver invocation | Pre-render hook (proposed) over pandoc filter | Quarto's own docs recommend pre-render scripts for "produce inputs the standard pipeline consumes" and Lua filters for AST work; they explicitly steer away from external-process filters like `pandoc-manubot-cite`. The filter shape causes two real UX gotchas (pandoc 3.x version check, PATH requirement) that the pre-render shape makes unreachable. Verified live 2026-05-14. See [`docs/citation-pipeline.md`](docs/citation-pipeline.md). |
-| Caching | Build-time cache at `_freeze/manubot-cache.json` | Quarto users already know `_freeze/` as "cached compute artifacts"; co-locating the bibliography cache there means one cache directory, not two. Manubot's default `output/` is configurable via the `manubot-bibliography-cache` metadata key. Resolved [#8](https://github.com/seandavi/quartobot/issues/8). |
+| Resolver implementation | Reuse `manubot.cite` (already in the `manubot` Python package) | Tested, maintained, covers all the identifier types deeply for seven first-class handlers plus ~1,677 more via Bioregistry CURIE fallback. Good error handling, rate-limit awareness. We get this for free. `quartobot resolve` calls the library directly from a Quarto pre-render hook; manubot's `pandoc-manubot-cite` is not invoked at any point. |
+| Resolver invocation | Pre-render hook | Quarto's own docs recommend pre-render scripts for "produce inputs the standard pipeline consumes" and Lua filters for AST work; they explicitly steer away from external-process filters like `pandoc-manubot-cite`. The filter shape v0.1 originally shipped caused two real UX gotchas (pandoc 3.x version check, PATH requirement) that the pre-render shape makes structurally unreachable. Settled 2026-05-14 after a live end-to-end walkthrough. See [`docs/citation-pipeline.md`](docs/citation-pipeline.md). |
+| Caching | The resolved `references.json` IS the cache | `quartobot resolve` is idempotent against its own output — re-running with an existing `references.json` skips the network for keys already present. One file, gitignored, regenerated on demand. |
 | Permalink format | `/v/<full-sha>/` per the manubot convention | Long-form SHA so the snapshot URL contains a verifiable identifier. Short SHA shown to humans in the banner. |
 | Version banner placement | Title-adjacent callout in HTML only; PDF/DOCX skip via `content-visible when-format="html"` | Quarto's right-side TOC is generated from headings; injecting arbitrary content there requires templates we don't want to maintain. |
 | PR preview links | Sticky PR comment from `marocchino/sticky-pull-request-comment` | The HTML doesn't need a PR-aware banner — the comment is the right surface. Keeps the HTML simple. |
@@ -245,22 +239,6 @@ ecosystem can't currently match without rebuilding.
   `quartobot-manuscript` *extend* the first-party template (so we
   inherit upstream improvements), or *fork* it (so we have control over
   defaults)? Probably extend.
-- **Citation pipeline architecture: filter vs. pre-render.** v0.1
-  ships `pandoc-manubot-cite` as a pandoc filter declared in
-  `_quarto.yml`. A live walkthrough on 2026-05-14 turned up two UX
-  gotchas (the pandoc 3.x version check at [#32], and a separate PATH
-  requirement for `pandoc-manubot-cite` at render time) that share a
-  single architectural root cause. The alternative — `quartobot
-  resolve` as a Quarto pre-render hook, with no custom filter at all
-  and the standard citeproc consuming the resulting `references.json`
-  — is laid out in [`docs/citation-pipeline.md`](docs/citation-pipeline.md),
-  along with a citation-plugin architecture that the pre-render seam
-  makes natural (`rrid:`, `bioc:`, `swhid:`, `geo:`, `clinicaltrials:`,
-  `ror:`, …). Needs Anthony Gitter and Daniel Himmelstein eyes
-  before any code moves; the framing matters as much as the
-  engineering does.
-
-[#32]: https://github.com/seandavi/quartobot/issues/32
 - **What happens when the resolver fails mid-build.** Crossref
   occasionally hiccups; PubMed has stricter rate limits. The build
   should degrade gracefully — warn, skip, mark as `[citation pending]`

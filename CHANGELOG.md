@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+### Architecture
+
+- Settled on the `quartobot resolve` pre-render hook as the citation
+  pipeline. Templates, examples, `quartobot init` scaffolding, and
+  the composite CI actions all wire `project.pre-render: quartobot
+  resolve --from-scan . --output references.json --id-mode citation-key`
+  in `_quarto.yml`; pandoc-citeproc reads the resulting CSL JSON
+  directly. See `docs/citation-pipeline.md` for the rationale.
+- **Breaking:** `_extensions/seandavi/quarto-manubot-cite/` removed.
+  There is no extension to `quarto add`. The on-ramp is
+  `uv tool install git+https://github.com/seandavi/quartobot`.
+- `examples/extension-minimal/` renamed to `examples/minimal/`.
+- `quartobot validate`: dropped `extension installed`,
+  `manubot-bibliography-cache`, `manubot-output-bibliography` checks;
+  added `pre-render hook` and `references.json in bibliography`
+  checks. Happy-path check count is now 5 (was 6).
+- `setup-quartobot` composite action: dropped the `extension-source`
+  input and the "Install quarto-manubot-cite extension" step; renamed
+  the manubot install step to "Install quartobot CLI" with a
+  `quartobot-spec` input.
+
 ## v0.1.0 — 2026-05-14
 
 First useful release. Installs cleanly from git
