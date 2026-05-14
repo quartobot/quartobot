@@ -1,0 +1,170 @@
+name: End-to-end pre-render hook
+
+# Validates the pre-render-hook architecture proposed in
+# docs/citation-pipeline.md end-to-end:
+#
+#   1. Install quartobot from this checkout (mirrors what users get
+#      from `uv tool install git+https://github.com/seandavi/quartobot`).
+#   2. Install manubot at the system Python WITHOUT the pandoc-3.x
+#      sed patch that the filter-based CI applies. Under the pre-render
+#      hook, `manubot.pandoc.util` is unreachable from quartobot's call
+#      path, so the patch should not be needed. If this workflow ever
+#      goes red with `KeyError: 'pandoc version'`, the architectural
+#      claim has regressed and needs investigation.
+#   3. Set up a fresh fixture project with a `_quarto.yml` declaring a
+#      pre-render hook calling `quartobot resolve --id-mode citation-key`
+#      and a `paper.qmd` with one DOI, one PMID, one arXiv cite key.
+#   4. Render with bare `quarto render` — no `uv run` prefix, no filter
+#      in the chain. pandoc-citeproc handles the bibliography natively.
+#   5. Assert the rendered HTML contains author names from each
+#      resolved entry.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/test-prerender-e2e.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/test-prerender-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prerender-e2e:
+    name: pre-render hook → bare quarto render
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/uv.lock
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install quartobot as a tool
+        # Mirrors `uv tool install git+https://github.com/seandavi/quartobot`
+        # for end users, but builds from this checkout so the test runs
+        # against the PR's HEAD. The tool install puts `quartobot` on
+        # PATH for the whole job — Quarto's pre-render subprocess will
+        # find it.
+        run: |
+          uv tool install --python 3.12 .
+          quartobot --version
+          quartobot --help | head -20
+
+      - name: Install Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: release
+
+      - name: Create fixture project
+        run: |
+          mkdir -p e2e-fixture
+          cd e2e-fixture
+          cat > _quarto.yml <<'YAML'
+          project:
+            pre-render: quartobot resolve --from-scan . --output references.json --id-mode citation-key
+
+          bibliography:
+            - references.json
+
+          format:
+            html:
+              embed-resources: true
+          YAML
+          cat > paper.qmd <<'QMD'
+          ---
+          title: "E2E pre-render test"
+          ---
+
+          ## Citations through three resolvers
+
+          The Manubot pattern paper [@doi:10.1371/journal.pcbi.1007128]
+          set the precedent. DESeq2 [@doi:10.1186/s13059-014-0550-8] is
+          a common biology cite. The CRISPR/PITCh paper
+          [@pmid:26678082] tests the PubMed handler. And
+          [@arxiv:1607.00133] tests the arXiv handler.
+
+          ## References
+          QMD
+
+      - name: Render with bare quarto (no filter, no uv run prefix)
+        working-directory: e2e-fixture
+        run: quarto render paper.qmd
+
+      - name: Assert references.json was produced and has 4 entries
+        working-directory: e2e-fixture
+        run: |
+          test -f references.json
+          n=$(python3 -c 'import json,sys; print(len(json.load(open("references.json"))))')
+          if [ "$n" != "4" ]; then
+            echo "::error::Expected 4 entries in references.json, got $n"
+            cat references.json
+            exit 1
+          fi
+
+      - name: Assert ids match user prose form (not manubot canonical)
+        working-directory: e2e-fixture
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          ids = {item["id"] for item in json.load(open("references.json"))}
+          expected = {
+              "doi:10.1371/journal.pcbi.1007128",
+              "doi:10.1186/s13059-014-0550-8",
+              "pmid:26678082",   # NOT "pubmed:26678082" — citation-key mode preserves user form
+              "arxiv:1607.00133",
+          }
+          missing = expected - ids
+          if missing:
+              print(f"::error::Missing ids in references.json: {missing}")
+              print(f"Actual ids: {ids}")
+              sys.exit(1)
+          print(f"OK: {ids}")
+          PY
+
+      - name: Assert rendered HTML contains expected author surnames
+        working-directory: e2e-fixture
+        run: |
+          html=paper.html
+          test -f "$html"
+          missing=()
+          for name in Himmelstein Love Sakuma Abadi; do
+            if ! grep -q "$name" "$html"; then
+              missing+=("$name")
+            fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Authors missing from rendered HTML: ${missing[*]}"
+            exit 1
+          fi
+          echo "OK: all four author surnames present in rendered HTML"
+
+      - name: Assert no citeproc warnings (every cite key resolved)
+        working-directory: e2e-fixture
+        run: |
+          # Re-render with stderr captured and verify no "citation X not found" warning.
+          # citeproc warnings would have surfaced if a prose key didn't match references.json.
+          if quarto render paper.qmd 2>&1 | tee render.log | grep -q "citation .* not found"; then
+            echo "::error::citeproc reported unresolved citations:"
+            grep "citation .* not found" render.log
+            exit 1
+          fi
+          echo "OK: pandoc-citeproc found every cite key"
