@@ -1,0 +1,25 @@
+# Discussion or closing chapter
+
+Closing chapter placeholder. Replace with whatever wraps your book.
+
+Cross-chapter citation reuse works as expected — the manubot paper
+[@doi:10.1371/journal.pcbi.1007128] appeared in the introduction; here
+it resolves to the same cached metadata without a second network
+round-trip.
+
+## What CI does
+
+On every push to `main`:
+
+1. Renders the book to `_book/` using Quarto, with all
+   persistent-identifier citations resolved against Crossref, PubMed,
+   arXiv, etc.
+2. Substitutes the per-commit SHA into the version banner.
+3. Stages the rendered site under `public/v/<full-sha>/` (immutable)
+   and `public/` (latest).
+4. Deploys to GitHub Pages via the `gh-pages` branch.
+5. Posts a sticky comment on every PR linking to the per-PR preview.
+
+The banner at the top of every page links to the immutable snapshot of
+the commit that produced it. A downloaded chapter HTML always tells you
+which version it is.

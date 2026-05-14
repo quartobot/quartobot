@@ -1,0 +1,46 @@
+project:
+  type: book
+
+book:
+  title: "My quartobot book"
+  author: "Your Name"
+  date: today
+  chapters:
+    - index.qmd
+    - chapters/intro.qmd
+    - chapters/methods.qmd
+    - chapters/discussion.qmd
+  search: true
+  page-navigation: true
+  # The `repo-url`/`repo-actions` lines surface "edit this page" and
+  # "report an issue" links on every chapter — useful for collaborative
+  # books where readers can propose fixes via PR.
+  # repo-url: https://github.com/<owner>/<repo>
+  # repo-actions: [edit, issue]
+
+# Filter contributed by the quarto-manubot-cite extension. Resolves
+# @doi:, @pmid:, @arxiv:, @isbn:, @url:, @wikidata:, @zotero:, and
+# bare DOIs across all chapters.
+filters:
+  - quarto-manubot-cite
+
+manubot-output-bibliography: references.json
+manubot-bibliography-cache: _freeze/manubot-cache.json
+manubot-fail-on-errors: false
+manubot-infer-citekey-prefixes: true
+
+bibliography:
+  - references.bib
+  - references.json
+csl: https://raw.githubusercontent.com/citation-style-language/styles/master/nature.csl
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-copy: true
+    # Quarto applies include-before-body to every chapter page in a
+    # book. CI replaces the placeholder banner with one carrying the
+    # per-commit permalink on push to main.
+    include-before-body:
+      - _version-banner.html
