@@ -47,11 +47,11 @@ Three artifacts ship together:
 
 3. **`quartobot`** — a Python CLI for pre-render work
    `pandoc-manubot-cite` doesn't do: `quartobot scan` summarizes cite
-   keys grouped by prefix with duplicate detection; `resolve` (in
-   progress) pre-fetches citations so CI never sees a Crossref hiccup;
-   `validate` (in progress) is the CI-lint surface. `init` and other
-   `usethis`-style commands scaffold the extension into existing
-   Quarto projects.
+   keys grouped by prefix with duplicate detection; `quartobot resolve`
+   pre-fetches citations so CI never sees a Crossref hiccup;
+   `quartobot validate` is the CI-lint surface (six static checks
+   against `_quarto.yml` and the extension setup); `quartobot init`
+   scaffolds the pattern into an existing Quarto project.
 
    ```bash
    pip install quartobot

@@ -38,16 +38,12 @@ def test_scan_exits_one_on_duplicates(tmp_path):
     assert "Duplicates:" in result.output
 
 
-def test_resolve_stub_exits_two():
+def test_resolve_no_args_exits_zero():
+    """`resolve` with no keys and no --from-scan: clean exit, friendly message."""
     runner = CliRunner()
     result = runner.invoke(main, ["resolve"])
-    assert result.exit_code == 2
-
-
-def test_validate_stub_exits_two(tmp_path):
-    runner = CliRunner()
-    result = runner.invoke(main, ["validate", str(tmp_path)])
-    assert result.exit_code == 2
+    assert result.exit_code == 0
+    assert "No persistent-identifier" in result.output
 
 
 def test_subcommands_listed_in_help():

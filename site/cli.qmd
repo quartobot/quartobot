@@ -13,12 +13,6 @@ pip install quartobot
 `quartobot` depends on `manubot`, so this also puts `pandoc-manubot-cite`
 on `PATH`.
 
-::: {.callout-note}
-The CLI is in early development. `scan` is implemented; the other
-commands described below are scoped but not yet shipped — see the
-issue links on each.
-:::
-
 ## Pre-render commands
 
 ### `quartobot scan <path>` { #scan }
@@ -65,83 +59,121 @@ That makes it usable as a pre-commit hook.
 
 ### `quartobot resolve [<keys>...]` { #resolve }
 
-::: {.callout-warning}
-Not yet shipped. Tracked at
-[#27](https://github.com/seandavi/quartobot/issues/27).
-:::
-
-Pre-fetch citations via `manubot.cite` and write to `references.json`
-(and optionally append BibTeX to `references.bib`). The point isn't to
-replace what manubot does at render — it's to do it on a developer's
-machine before push, so CI never sees a Crossref hiccup.
+Pre-fetch persistent-identifier citations via `manubot.cite` and write
+the resulting CSL JSON to disk. The point isn't to replace what manubot
+does at render — it's to do the network work on a developer's machine
+ahead of push, so CI never sees a Crossref or PubMed hiccup.
 
 ```
-$ quartobot resolve --from-scan .
-Resolving 2 keys...
-  doi:10.1371/journal.pcbi.1007128  ✓
-  pmid:31479462                      ✓
-Wrote references.json (2 entries)
-Updated _freeze/manubot-cache.json
+$ quartobot resolve --from-scan . --output references.json
+  ✓ doi:10.1371/journal.pcbi.1007128 → YuJbg3zO
+  ✓ pmid:31479462 → r3UbYxrJ
+  ✓ arxiv:2104.10729 → OCxCvqZo (cached)
+
+3 resolved (1 from cache). Wrote 3 entries to references.json.
 ```
+
+Pass keys as arguments (`quartobot resolve doi:10.x/y pmid:12345`) or
+use `--from-scan PATH` to resolve every persistent-identifier key in a
+project. Hand-curated keys (no recognized prefix) are skipped — those
+live in `references.bib` and pandoc citeproc handles them.
+
+The `--cache` option defaults to `--output`, so re-runs are idempotent:
+the output file IS the cache. `--dry-run` reports what would be
+resolved without making any network calls.
+
+Exit codes:
+
+- `0` — every key resolved (cache hits count as success).
+- `1` — one or more keys failed (network error, Crossref 404, etc.).
+- `2` — bad arguments.
 
 ### `quartobot validate <project>` { #validate }
 
-::: {.callout-warning}
-Not yet shipped. Tracked at
-[#28](https://github.com/seandavi/quartobot/issues/28).
-:::
-
-Pre-flight / CI-lint surface. Every key in the prose resolves cleanly;
-`_quarto.yml` declares both bibliographies; `manubot-bibliography-cache`
-is set. Exit nonzero on any failure.
+Pre-flight / CI-lint surface. Static config checks against a Quarto
+project — no network. Run this in CI to catch the most common foot-guns
+before they reach a render.
 
 ```
 $ quartobot validate .
-✗ @doi:10.1371/nonexistent — unresolved (Crossref 404)
-✗ _quarto.yml missing manubot-bibliography-cache
-2 issues. Exit 1.
+  ✓ extension installed — found _extensions/seandavi/quarto-manubot-cite/_extension.yml
+  ✓ _quarto.yml exists
+  ✓ bibliography declared — 2 file(s): references.bib, references.json
+  ✗ manubot-bibliography-cache — missing — without this, manubot will re-resolve every citation on every render. Recommended: `manubot-bibliography-cache: _freeze/manubot-cache.json`
+  ✓ manubot-output-bibliography — set to `references.json` and listed in `bibliography:`
+  ✓ no duplicate cite keys — 5 unique key(s) in 3 file(s)
+
+1 of 6 check(s) failed. Exit 1.
 ```
+
+Checks run:
+
+- The `quarto-manubot-cite` extension is installed.
+- `_quarto.yml` exists and parses as YAML.
+- `bibliography:` is declared (as a string or list).
+- `manubot-bibliography-cache:` is set.
+- `manubot-output-bibliography:` is set AND also appears in
+  `bibliography:` (the most common silent failure — without that,
+  citeproc never reads what manubot wrote).
+- No duplicate cite keys across files.
+
+Citation-resolution checks ("does this DOI actually resolve at
+Crossref?") are out of scope here — they need network. Run
+`quartobot resolve --dry-run --from-scan .` separately for that.
+
+Exit codes: `0` if every check passes, `1` on any failure.
 
 ## Scaffolding commands
 
-::: {.callout-warning}
-Scaffolding commands are not yet shipped. Tracked at
-[#25](https://github.com/seandavi/quartobot/issues/25).
-:::
-
 ### `quartobot init`
 
-In an existing Quarto project, add the citation extension, merge the
-manubot keys into `_quarto.yml`, seed `references.bib`, drop in the
-version banner template, write the ten-line `render.yml` wrapper.
-Idempotent.
+Scaffold the quartobot pattern into an existing (or empty) Quarto
+project:
 
-### `quartobot use-render-workflow`
+```
+$ quartobot init
+Project type: manuscript
 
-Just the workflow file.
+  + _quarto.yml  [written]
+  + references.bib  [written]
+  + _version-banner.html.template  [written]
+  + _version-banner.html  [written]
+  + .github/workflows/render.yml  [written]
+  + .github/workflows/pr-closed.yml  [written]
+  ~ .gitignore  [appended] — added 7 line(s)
 
-### `quartobot use-banner`
+Next steps:
+  1. quarto add seandavi/quartobot --no-prompt
+  2. pip install 'manubot>=0.6,<0.7'
+  3. Add citations to your prose: @doi:..., @pmid:..., etc.
+  4. quarto render
+```
 
-Just the banner template + the `include-before-body` line in
-`_quarto.yml`.
+Conservative — never overwrites existing files. If `_quarto.yml`
+already exists, prints a YAML snippet to merge in manually instead of
+touching it. `.gitignore` is the one file modified in place
+(idempotent, appends only).
 
-### `quartobot use-quarto-yml`
+`--project-type {auto,manuscript,book}` controls what gets written;
+`auto` detects from `_quarto.yml`, falling back to `manuscript`.
 
-The `_quarto.yml` manubot block (filters, bibliography, `manubot-*`
-keys).
-
-### `quartobot detach`
-
-Convert the ten-line reusable-workflow wrapper into the full pipeline
-copied out. For users who want to fork the pipeline. After `detach`,
-upstream fixes don't flow through.
+::: {.callout-note}
+Scaffolding's piecewise siblings — `quartobot use-render-workflow`,
+`use-banner`, `use-quarto-yml`, and `detach` — are scoped but not yet
+shipped. Tracked at [#25](https://github.com/seandavi/quartobot/issues/25).
+:::
 
 ## Philosophy
 
-Opaque-by-default (reusable workflow): user gets a ten-line `render.yml`
-and benefits from upstream fixes. `detach` is the escape hatch when they
-outgrow that — they own the full workflow forever after.
+The CLI sits on top of pandoc-manubot-cite (the resolver) and pandoc
+citeproc (the renderer); it doesn't replace either. Every command is
+either pre-render (do work ahead of `quarto render` so CI is faster
+and more reliable) or out-of-render (`init`, `scan`, `validate` — work
+that doesn't touch render at all).
 
-The opposite of `r-lib/actions`, which copies 150 lines into every
-consumer repo. quartobot's default is friendlier; the escape hatch
-matches their model for users who want it.
+Opaque-by-default for the CI surface: a consumer's `.github/workflows/render.yml`
+is ten lines pointing at the upstream reusable workflow. `quartobot
+detach` (when it ships) is the escape hatch when consumers want to
+fork the pipeline. The opposite of `r-lib/actions`, which copies 150
+lines into every consumer repo. quartobot's default is friendlier; the
+escape hatch matches their model for users who want it.

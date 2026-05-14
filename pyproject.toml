@@ -29,6 +29,10 @@ classifiers = [
 dependencies = [
     "click>=8.1",
     "manubot>=0.6,<0.7",
+    # PyYAML reads `_quarto.yml` for validate. Manubot already pulls it
+    # transitively, but we depend on it directly so we don't rely on
+    # manubot's pin staying compatible.
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +41,7 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.5",
     "mypy>=1.10",
+    "types-PyYAML>=6.0",
 ]
 
 [project.urls]
@@ -110,3 +115,10 @@ files = ["src/quartobot"]
 python_version = "3.10"
 strict = true
 warn_unreachable = true
+
+# manubot ships without type stubs. We import a handful of its public
+# entry points (CiteKey, citekey_to_csl_item); silence the
+# missing-stubs warning rather than vendor a partial stub package.
+[[tool.mypy.overrides]]
+module = ["manubot.*"]
+ignore_missing_imports = true

@@ -50,19 +50,84 @@ def scan(path: Path) -> None:
     "--from-scan",
     type=click.Path(exists=True, file_okay=True, dir_okay=True, path_type=Path),
     default=None,
-    help="Resolve every key found by scanning this path.",
+    help="Resolve every persistent-identifier key found by scanning this path.",
 )
-def resolve(keys: tuple[str, ...], from_scan: Path | None) -> None:
-    """Pre-fetch citations and write to references.json (and BibTeX).
+@click.option(
+    "--output",
+    type=click.Path(file_okay=True, dir_okay=False, path_type=Path),
+    default="references.json",
+    show_default=True,
+    help="Path to write the resolved CSL JSON bibliography to.",
+)
+@click.option(
+    "--cache",
+    type=click.Path(file_okay=True, dir_okay=False, path_type=Path),
+    default=None,
+    help=(
+        "Optional path to read cached entries from. Cache hits skip the "
+        "network call. Defaults to the value of --output, so resolve is "
+        "idempotent against its own previous output."
+    ),
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Report what would be resolved without making network calls.",
+)
+def resolve(
+    keys: tuple[str, ...],
+    from_scan: Path | None,
+    output: Path,
+    cache: Path | None,
+    dry_run: bool,
+) -> None:
+    """Pre-fetch citations and write CSL JSON to disk.
 
-    Resolve a list of persistent-identifier keys via manubot.cite and
-    write the resulting CSL JSON to references.json. Optionally append
-    BibTeX to references.bib. The point isn't to replace what manubot
-    does at render — it's to do it ahead of time so CI never sees a
-    Crossref hiccup.
+    Resolves persistent-identifier cite keys via manubot.cite and writes
+    the resulting CSL JSON to --output (default `references.json`). The
+    point isn't to replace what manubot does at render — it's to do the
+    network work on a developer's machine ahead of push, so CI never
+    sees a Crossref or PubMed hiccup.
+
+    Pass keys as arguments (`@doi:10.x/y pmid:12345`) or use --from-scan
+    to resolve every persistent-identifier cite found in a project.
+    Hand-curated keys (no recognized prefix) are skipped — those live
+    in references.bib and pandoc citeproc handles them.
+
+    Exits 1 if any keys fail to resolve, 0 otherwise.
     """
-    click.echo("not yet — see https://github.com/seandavi/quartobot/issues/27")
-    raise SystemExit(2)
+    from quartobot.resolve import collect_resolvable_keys, format_outcome, resolve_keys
+
+    collected: list[str] = []
+    for k in keys:
+        # Allow either `@doi:10.x/y` or `doi:10.x/y` — strip leading @.
+        collected.append(k.lstrip("@"))
+
+    if from_scan is not None:
+        collected.extend(collect_resolvable_keys(from_scan))
+
+    # De-dup while preserving order.
+    seen: set[str] = set()
+    unique: list[str] = []
+    for k in collected:
+        if k not in seen:
+            seen.add(k)
+            unique.append(k)
+
+    if not unique:
+        click.echo("No persistent-identifier cite keys to resolve.")
+        return
+
+    cache_path = cache if cache is not None else output
+    outcome = resolve_keys(
+        unique,
+        cache_path=cache_path,
+        output_path=output,
+        dry_run=dry_run,
+    )
+    click.echo(format_outcome(outcome))
+    if outcome.failures:
+        raise SystemExit(1)
 
 
 @main.command()
@@ -72,14 +137,62 @@ def resolve(keys: tuple[str, ...], from_scan: Path | None) -> None:
     default=".",
 )
 def validate(project: Path) -> None:
-    """Pre-flight check a Quarto project for citation and config issues.
+    """Pre-flight check a Quarto project for the quartobot pattern.
 
-    Every cite key in the prose either lives in references.bib or
-    resolves cleanly; _quarto.yml declares both bibliographies;
-    manubot-bibliography-cache is set. Exit nonzero on any failure.
+    Runs a battery of static config checks: the extension is installed,
+    `_quarto.yml` declares `bibliography:` and the manubot keys, the
+    output bibliography is also in the bibliography list, no duplicate
+    cite keys across files.
+
+    Citation-resolution checks (does Crossref actually return metadata
+    for this DOI?) are out of scope here — they need network. Run
+    `quartobot resolve --dry-run --from-scan .` if you want that.
+
+    Exits 1 if any check fails, 0 if all pass.
     """
-    click.echo("not yet — see https://github.com/seandavi/quartobot/issues/28")
-    raise SystemExit(2)
+    from quartobot.validate import format_outcome, validate_project
+
+    outcome = validate_project(project)
+    click.echo(format_outcome(outcome))
+    if not outcome.passed:
+        raise SystemExit(1)
+
+
+@main.command()
+@click.argument(
+    "project",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    default=".",
+)
+@click.option(
+    "--project-type",
+    type=click.Choice(["auto", "manuscript", "book"]),
+    default="auto",
+    show_default=True,
+    help=(
+        "Quarto project shape. `auto` detects from an existing _quarto.yml "
+        "and falls back to manuscript when there's nothing to detect from."
+    ),
+)
+def init(project: Path, project_type: str) -> None:
+    """Scaffold the quartobot pattern into an existing Quarto project.
+
+    Writes the files that make a vanilla Quarto project adopt the
+    quartobot pattern: `_quarto.yml` (when absent), `references.bib`,
+    the version banner template + dev placeholder, a ten-line GitHub
+    Actions workflow that calls the upstream reusable workflow, the
+    PR-cleanup workflow, and `.gitignore` augments.
+
+    Conservative — never overwrites existing files. If `_quarto.yml`
+    already exists, prints a YAML snippet to merge in manually.
+
+    Doesn't run `quarto add` or `pip install` for you; the printed
+    "next steps" walk through both.
+    """
+    from quartobot.init_project import format_outcome, init_project
+
+    outcome = init_project(project, project_type=project_type)
+    click.echo(format_outcome(outcome, project=project))
 
 
 if __name__ == "__main__":
