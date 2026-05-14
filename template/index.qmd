@@ -22,10 +22,11 @@ keywords:
 # Introduction
 
 This template combines [Quarto](https://quarto.org), the
-[`quarto-manubot-cite`](https://github.com/seandavi/quartobot) extension,
-and a CI workflow that gives every commit an immutable permalink at
-`/v/<sha>/`, deploys HTML and PDF to GitHub Pages, and posts PR previews
-through a sticky comment. The pattern is manubot's
+[`quartobot`](https://github.com/seandavi/quartobot) CLI wired as a
+Quarto pre-render hook for citation resolution, and a CI workflow that
+gives every commit an immutable permalink at `/v/<sha>/`, deploys HTML
+and PDF to GitHub Pages, and posts PR previews through a sticky
+comment. The pattern is manubot's
 [@doi:10.1371/journal.pcbi.1007128], lifted onto Quarto's publishing
 stack [@quarto2024].
 
@@ -38,9 +39,9 @@ the rest.
 Two things to notice in the bibliography below:
 
 - `@doi:10.1371/journal.pcbi.1007128` resolved automatically. You wrote
-  the DOI in the prose; `pandoc-manubot-cite` fetched the metadata from
-  Crossref at render time and wrote it to `references.json`. The cache
-  in `_freeze/manubot-cache.json` means subsequent renders stay offline.
+  the DOI in the prose; the `quartobot resolve` pre-render hook fetched
+  the metadata from Crossref before pandoc started and wrote it to
+  `references.json`.
 - `@quarto2024` is a hand-curated entry from `references.bib`. Use this
   form when you want full control over the bibliography record — citing
   software, grey literature, or anything the resolver doesn't have good
@@ -76,8 +77,8 @@ Manubot's prefix syntax, available as-is:
 - Open a PR. CI posts a sticky comment with the preview URL.
 
 The full design is in [DESIGN.md](https://github.com/seandavi/quartobot/blob/main/DESIGN.md);
-the extension's behavior is documented at
-[`_extensions/seandavi/quarto-manubot-cite/`](https://github.com/seandavi/quartobot/blob/main/_extensions/seandavi/quarto-manubot-cite/README.md).
+the citation pipeline (pre-render hook over filter) is documented in
+[`docs/citation-pipeline.md`](https://github.com/seandavi/quartobot/blob/main/docs/citation-pipeline.md).
 
 # References {.unnumbered}
 

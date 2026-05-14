@@ -1,8 +1,8 @@
 # quartobot-book
 
 Book template for the [quartobot](https://github.com/seandavi/quartobot)
-pattern: Quarto book project + the citation extension + version
-banner + the ten-line workflow caller.
+pattern: Quarto book project + the `quartobot resolve` pre-render hook
++ version banner + the ten-line workflow caller.
 
 > **Status:** scaffold from [seandavi/quartobot](https://github.com/seandavi/quartobot).
 > Not yet available via `gh repo create --template`. Once promoted to its
@@ -17,8 +17,9 @@ banner + the ten-line workflow caller.
 - **PR previews** at `https://<owner>.github.io/<repo>/pr/<n>/` plus a
   sticky comment on every PR with preview links.
 - **Auto-resolved citations** — paste `@doi:10.1371/journal.pcbi.1007128`
-  anywhere in any chapter; the resolver writes the CSL JSON entry on
-  next render. Same vocabulary as quartobot's manuscript template.
+  anywhere in any chapter; the pre-render hook writes the CSL JSON
+  entry on next render. Same vocabulary as quartobot's manuscript
+  template.
 - **Hand-curated entries** live in `references.bib` for the things the
   resolver can't (or shouldn't) handle.
 - **Search + sidebar navigation** — out of the box, Quarto book's
@@ -30,9 +31,8 @@ banner + the ten-line workflow caller.
 gh repo create my-book --template seandavi/quartobot-book   # once available
 cd my-book
 
-# Local render needs Quarto and manubot.
-quarto add seandavi/quartobot   # installs the citation filter
-pip install 'manubot>=0.6,<0.7' # provides pandoc-manubot-cite on PATH
+# Local render needs Quarto and quartobot on PATH.
+uv tool install git+https://github.com/seandavi/quartobot
 quarto render
 open _book/index.html
 
@@ -47,7 +47,7 @@ After the first push, enable GitHub Pages in the repo settings
 
 ```
 .
-├── _quarto.yml                  # project + filter + bibliography config
+├── _quarto.yml                  # project + pre-render hook + bibliography
 ├── index.qmd                    # preface
 ├── chapters/
 │   ├── intro.qmd                # first chapter
@@ -67,39 +67,39 @@ render step. The `.gitignore` excludes them — they regenerate from
 
 ## How citations work
 
-Two bibliographies are declared in `_quarto.yml`:
+`_quarto.yml` wires `quartobot resolve` as a Quarto pre-render hook
+that runs before pandoc — across all chapters in one pass:
 
 ```yaml
+project:
+  type: book
+  pre-render: quartobot resolve --from-scan . --output references.json --id-mode citation-key
+
 bibliography:
   - references.bib    # hand-curated
-  - references.json   # auto-resolved by pandoc-manubot-cite
+  - references.json   # auto-resolved by quartobot
 ```
 
-Pandoc citeproc merges them at render. Cite anywhere in any chapter:
+Cite anywhere in any chapter:
 
 ```markdown
 The manubot pattern is described in @doi:10.1371/journal.pcbi.1007128.
 Quarto provides the publishing layer [@quarto2024].
 ```
 
-On `quarto render`, `pandoc-manubot-cite` resolves the `@doi:` key
-from Crossref, writes the CSL JSON entry to `references.json`, and
-caches it in `_freeze/manubot-cache.json` so subsequent renders stay
-offline. The `@quarto2024` key is read directly from `references.bib`.
+The `@doi:` key gets resolved through the pre-render hook. The
+`@quarto2024` key is read directly from `references.bib`.
 
 Each chapter's HTML carries the entries it cites at the bottom — that's
 Quarto book's idiomatic per-chapter bibliography layout, separate from
 how the manuscript template puts all references at the end of one
 document.
 
-Full citation-key reference is in the
-[`quarto-manubot-cite` extension README](https://github.com/seandavi/quartobot/blob/main/_extensions/seandavi/quarto-manubot-cite/README.md).
-
 ## The version banner
 
 `_version-banner.html.template` contains the HTML banner Quarto injects
 above every chapter's title (via `format.html.include-before-body`).
-On push-to-main builds, CI substitutes five placeholders:
+On push-to-main builds, CI substitutes four placeholders:
 
 | Placeholder            | Substitution                              |
 |------------------------|-------------------------------------------|
@@ -122,8 +122,7 @@ behavior, you have three options:
 
 1. **Override inputs** in the `with:` block — see
    [the reusable workflow](https://github.com/seandavi/quartobot/blob/main/.github/workflows/render-reusable.yml)
-   for the full list (Python version, manubot version, Quarto version,
-   banner paths, etc.).
+   for the full list (Python version, Quarto version, banner paths, etc.).
 2. **Detach** with `quartobot detach` (once shipped — tracked at
    [#25](https://github.com/seandavi/quartobot/issues/25)): copy the
    whole pipeline locally so you can edit it freely. You won't get
@@ -136,8 +135,9 @@ behavior, you have three options:
 
 - [The manuscript template](https://github.com/seandavi/quartobot/tree/main/template) — same pattern, single-document layout.
 - [quartobot DESIGN doc](https://github.com/seandavi/quartobot/blob/main/DESIGN.md).
+- [Citation pipeline](https://github.com/seandavi/quartobot/blob/main/docs/citation-pipeline.md) — why pre-render hook, not a pandoc filter.
 - [Working example: Venice 2026 manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript) — manuscript-shape reference of the CI half.
-- [manubot](https://github.com/manubot/manubot) — the upstream that contributed the citation resolver.
+- [manubot](https://github.com/manubot/manubot) — the upstream Python library that does the citation resolution.
 
 ## License
 

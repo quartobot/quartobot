@@ -6,11 +6,8 @@ _book/
 _freeze/
 *_files/
 
-# manubot resolver output (regenerated each render).
+# Pre-render hook output (regenerated each render).
 references.json
-
-# Quarto extension cache (installed via `quarto add`).
-_extensions/
 
 /.quarto/
 **/*.quarto_ipynb
