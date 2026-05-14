@@ -1,0 +1,93 @@
+name: Test Python package
+
+# Runs ruff, mypy, and pytest against the quartobot Python package on
+# every PR that touches the source, tests, or this workflow itself.
+# Matrix covers the supported Python versions.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/test-python.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/test-python.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/uv.lock
+
+      - name: Install dev dependencies
+        run: uv sync --extra dev --python ${{ matrix.python-version }}
+
+      - name: Lint (ruff check)
+        run: uv run --python ${{ matrix.python-version }} ruff check src tests
+
+      - name: Format (ruff format --check)
+        run: uv run --python ${{ matrix.python-version }} ruff format --check src tests
+
+      - name: Type-check (mypy strict)
+        run: uv run --python ${{ matrix.python-version }} mypy
+
+      - name: Tests (pytest)
+        run: uv run --python ${{ matrix.python-version }} pytest -v --cov=quartobot --cov-report=term-missing
+
+      - name: Verify entry point installs
+        run: |
+          uv run --python ${{ matrix.python-version }} quartobot --version
+          uv run --python ${{ matrix.python-version }} quartobot --help
+
+  smoke-scan:
+    name: scan against in-tree fixtures
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv sync --extra dev
+      - name: scan tests/fixtures/sample.qmd
+        # Exits 1 because the fixture deliberately contains duplicates.
+        # That's the right exit code for a duplicates-found scan; this
+        # step asserts on that.
+        run: |
+          set +e
+          uv run quartobot scan tests/fixtures/sample.qmd
+          status=$?
+          set -e
+          if [ "$status" -ne 1 ]; then
+            echo "::error::Expected scan to exit 1 (duplicates found); got $status"
+            exit 1
+          fi
+      - name: scan examples/extension-minimal
+        # Clean exit expected.
+        run: uv run quartobot scan examples/extension-minimal
