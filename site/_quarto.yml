@@ -1,8 +1,6 @@
 project:
   type: website
   output-dir: _site
-  resources:
-    - CNAME
 
 website:
   title: "quartobot"

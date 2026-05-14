@@ -18,7 +18,7 @@ Manubot's manuscript-as-software pattern, implemented natively for the Quarto ec
 - `actions/` — composite GitHub Actions (`setup-quartobot`, `render-manuscript`) used by the reusable workflow.
 - `paper/` — eventual home for `paper.md`, the JOSS submission (~1000 words). Voice guide for this file lives in the "Writing in Sean Davis's voice" section below.
 - `docs/` — design docs (`citation-pipeline.md`, `prior-art.md`, `publication-plan.md`, `conversation-notes.md`). Read before non-trivial design changes.
-- `site/` — the documentation site (`quarto preview site/`).
+- `site/` — the documentation site (`quarto preview site/`). Deploys to https://seandavi.github.io/quartobot/ via `.github/workflows/publish-site.yml` on every push to `main` that touches `site/**`. First deploy needs Settings → Pages → Source: GitHub Actions flipped on once.
 
 ## Commands
 
