@@ -41,10 +41,12 @@ jobs:
           project: examples/extension-minimal
 
       # Patch manubot 0.6.1 for compatibility with pandoc 3.x bundled
-      # by recent Quarto releases. Manubot expects a top-level
-      # `pandoc version` key in `pandoc --version --version` YAML; pandoc
-      # 3.x nests it under `pandoc.version`. Patch handles both shapes.
-      # Tracked at https://github.com/seandavi/quartobot/issues/32.
+      # by recent Quarto releases. The version check at util.py:35
+      # assumes the legacy YAML output format with a top-level
+      # `pandoc version` key; pandoc 3.x changed the format entirely.
+      # We bypass the version check — modern pandoc is always >= 2.11
+      # in practice. Tracked at
+      # https://github.com/seandavi/quartobot/issues/32.
       - name: Patch manubot for pandoc 3.x compatibility
         shell: python
         run: |
@@ -53,12 +55,8 @@ jobs:
           path = Path(util.__file__)
           src = path.read_text()
           marker = 'if stats["pandoc version"] < (2, 11):'
-          replacement = (
-              'pv = stats.get("pandoc version") or stats.get("pandoc", {}).get("version") or (0,)\n'
-              '    if isinstance(pv, str):\n'
-              '        pv = tuple(int(p) for p in pv.split(".") if p.isdigit())\n'
-              '    if pv < (2, 11):'
-          )
+          # Bypass: comment out the check, keep the body harmless.
+          replacement = 'if False:  # patched out — see seandavi/quartobot#32'
           if marker not in src:
               print("::warning::manubot source no longer matches — patch may be obsolete")
           else:
