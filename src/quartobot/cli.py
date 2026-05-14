@@ -158,5 +158,42 @@ def validate(project: Path) -> None:
         raise SystemExit(1)
 
 
+@main.command()
+@click.argument(
+    "project",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    default=".",
+)
+@click.option(
+    "--project-type",
+    type=click.Choice(["auto", "manuscript", "book"]),
+    default="auto",
+    show_default=True,
+    help=(
+        "Quarto project shape. `auto` detects from an existing _quarto.yml "
+        "and falls back to manuscript when there's nothing to detect from."
+    ),
+)
+def init(project: Path, project_type: str) -> None:
+    """Scaffold the quartobot pattern into an existing Quarto project.
+
+    Writes the files that make a vanilla Quarto project adopt the
+    quartobot pattern: `_quarto.yml` (when absent), `references.bib`,
+    the version banner template + dev placeholder, a ten-line GitHub
+    Actions workflow that calls the upstream reusable workflow, the
+    PR-cleanup workflow, and `.gitignore` augments.
+
+    Conservative — never overwrites existing files. If `_quarto.yml`
+    already exists, prints a YAML snippet to merge in manually.
+
+    Doesn't run `quarto add` or `pip install` for you; the printed
+    "next steps" walk through both.
+    """
+    from quartobot.init_project import format_outcome, init_project
+
+    outcome = init_project(project, project_type=project_type)
+    click.echo(format_outcome(outcome, project=project))
+
+
 if __name__ == "__main__":
     main()
