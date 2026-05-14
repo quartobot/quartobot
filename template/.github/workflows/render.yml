@@ -1,3 +1,17 @@
+# Renders the manuscript on every push and PR. Behavior — multi-format
+# render, immutable per-commit permalink in HTML, gh-pages deploy, sticky
+# PR comment with preview links — lives in the upstream reusable
+# workflow. Bug fixes there flow here automatically via the version pin.
+#
+# To customize the pipeline, you have two options:
+#
+#   1. Override inputs below (`formats`, `manuscript-name`, etc.). See
+#      https://github.com/seandavi/quartobot/blob/main/.github/workflows/render-reusable.yml
+#      for the full list.
+#   2. Detach into a full local copy: `quartobot detach` writes the
+#      whole pipeline out so you can edit it freely. You won't get
+#      upstream fixes after detaching.
+
 name: Render manuscript
 
 on:
@@ -7,18 +21,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Required so GITHUB_TOKEN can push to gh-pages and comment on PRs.
-permissions:
-  contents: write
-  pull-requests: write
-
-# Serialize all gh-pages writes so concurrent runs don't clobber each other.
-concurrency:
-  group: gh-pages-deploy
-  cancel-in-progress: false
-
 jobs:
   render:
+<<<<<<< HEAD
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -142,3 +147,14 @@ jobs:
             | Latest main | [latest](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/) | [PDF](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/manuscript.pdf) |
 
             Snapshots are immutable. Latest links update on every push to `main`.
+=======
+    uses: seandavi/quartobot/.github/workflows/render-reusable.yml@main
+    permissions:
+      contents: write
+      pull-requests: write
+    # Override defaults here, e.g.:
+    #   with:
+    #     formats: "html,pdf"
+    #     manuscript-name: "my-paper"
+    #     quarto-version: "1.5.57"
+>>>>>>> 4c07afc (feat(workflows): reusable render workflow + ten-line template caller)

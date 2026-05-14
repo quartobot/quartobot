@@ -1,0 +1,222 @@
+name: Render quartobot manuscript (reusable)
+
+# A single workflow_call entry point that wraps the entire render
+# pipeline: setup, banner substitution, render to multiple formats,
+# stage outputs, deploy to gh-pages, sticky PR comment.
+#
+# Consumer workflows shrink to:
+#
+#   name: Render
+#   on:
+#     push: { branches: [main] }
+#     pull_request: { branches: [main] }
+#     workflow_dispatch:
+#   jobs:
+#     render:
+#       uses: seandavi/quartobot/.github/workflows/render-reusable.yml@v0.1
+#       permissions:
+#         contents: write
+#         pull-requests: write
+#
+# Pin to a tag (`@v0.1`), not `@main`, in production consumers.
+# References to `actions/` inside this workflow use `@main` while v0.1
+# is unreleased; the tag-release commit will sweep them to `@v0.1`.
+
+on:
+  workflow_call:
+    inputs:
+      formats:
+        description: "Comma-separated render formats."
+        type: string
+        required: false
+        default: "html,pdf,docx"
+      manuscript-name:
+        description: |
+          Base name for the PDF/DOCX copies under `/v/<sha>/` and `/`.
+          Default produces `manuscript.pdf` and `manuscript.docx` so the
+          stable URL pattern is `…/v/<sha>/manuscript.pdf`.
+        type: string
+        required: false
+        default: "manuscript"
+      output-name:
+        description: |
+          Base name Quarto writes outputs as. For a project rendering
+          `index.qmd`, this is `index` and produces `index.html`,
+          `index.pdf`, `index.docx`. Override if your project type
+          writes outputs to a different name or directory.
+        type: string
+        required: false
+        default: "index"
+      python-version:
+        description: "Python version for the manubot install."
+        type: string
+        required: false
+        default: "3.12"
+      manubot-spec:
+        description: "Pip spec for manubot."
+        type: string
+        required: false
+        default: "manubot>=0.6,<0.7"
+      quarto-version:
+        description: "Quarto version (empty = latest stable)."
+        type: string
+        required: false
+        default: ""
+      tinytex:
+        description: "Install TinyTeX (required for PDF render)."
+        type: string
+        required: false
+        default: "true"
+      extension-source:
+        description: |
+          Source for `quarto add`. Use `seandavi/quartobot` in production;
+          override with a fork or workspace path for testing.
+        type: string
+        required: false
+        default: "seandavi/quartobot"
+      banner-template:
+        description: "Banner template path (sed substitution input)."
+        type: string
+        required: false
+        default: "_version-banner.html.template"
+      banner-output:
+        description: "Banner output path (sed substitution output)."
+        type: string
+        required: false
+        default: "_version-banner.html"
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Serialize gh-pages writes across concurrent runs of this workflow
+    # in any consumer repo using the same job.
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up quartobot toolchain
+        uses: seandavi/quartobot/actions/setup-quartobot@main
+        with:
+          python-version: ${{ inputs.python-version }}
+          manubot-spec: ${{ inputs.manubot-spec }}
+          quarto-version: ${{ inputs.quarto-version }}
+          tinytex: ${{ inputs.tinytex }}
+          extension-source: ${{ inputs.extension-source }}
+
+      - name: Substitute version banner (push to main only)
+        # PR builds keep the committed placeholder; the PR-specific URLs
+        # are posted in the sticky PR comment below. Only main builds
+        # get the immutable per-commit permalink in HTML.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          MANUSCRIPT: ${{ inputs.manuscript-name }}
+          BANNER_TEMPLATE: ${{ inputs.banner-template }}
+          BANNER_OUTPUT: ${{ inputs.banner-output }}
+        run: |
+          SHORT="${GITHUB_SHA:0:7}"
+          BASE="https://${OWNER}.github.io/${REPO_NAME}"
+          sed \
+            -e "s|__VERSION_SHA__|${SHORT}|g" \
+            -e "s|__VERSION_URL__|${BASE}/v/${GITHUB_SHA}/|g" \
+            -e "s|__VERSION_PDF__|${BASE}/v/${GITHUB_SHA}/${MANUSCRIPT}.pdf|g" \
+            -e "s|__VERSION_LATEST__|${BASE}/|g" \
+            -e "s|__VERSION_GH__|https://github.com/${OWNER}/${REPO_NAME}|g" \
+            "${BANNER_TEMPLATE}" > "${BANNER_OUTPUT}"
+          echo "--- generated ${BANNER_OUTPUT} ---"
+          cat "${BANNER_OUTPUT}"
+
+      - name: Render manuscript
+        uses: seandavi/quartobot/actions/render-manuscript@main
+        with:
+          formats: ${{ inputs.formats }}
+
+      # ----------------------------------------------------------------
+      # Stage outputs for deployment.
+      #
+      # Layout on gh-pages (mirrors the manubot pattern):
+      #
+      #   /                              latest main build
+      #   /v/<commit-sha>/               immutable per-commit snapshot
+      #   /pr/<pr-number>/               live preview for an open PR
+      #
+      # `keep_files: true` on the deploy step preserves prior /v/* and
+      # /pr/* directories. Stale PR previews are cleaned up by a
+      # separate pr-closed workflow when a PR closes.
+      # ----------------------------------------------------------------
+      - name: Stage outputs
+        env:
+          OUTPUT: ${{ inputs.output-name }}
+          MANUSCRIPT: ${{ inputs.manuscript-name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euxo pipefail
+          stage_dir() {
+            local dest="$1"
+            mkdir -p "$dest"
+            # Copy by Quarto's output name (typically "index"), and also
+            # under the stable manuscript name so /v/<sha>/manuscript.pdf
+            # works regardless of source filename.
+            for ext in html pdf docx; do
+              if [ -f "${OUTPUT}.${ext}" ]; then
+                cp "${OUTPUT}.${ext}" "$dest/${OUTPUT}.${ext}"
+                if [ "$ext" != "html" ]; then
+                  cp "${OUTPUT}.${ext}" "$dest/${MANUSCRIPT}.${ext}"
+                fi
+              fi
+            done
+          }
+
+          # Always stage a per-commit snapshot.
+          stage_dir "public/v/${GITHUB_SHA}"
+
+          # On push to main, also publish to the root.
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            stage_dir "public"
+          fi
+
+          # On PR, publish a per-PR preview alongside the snapshot.
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            stage_dir "public/pr/${PR_NUMBER}"
+          fi
+
+          echo "--- staged ---"
+          find public -maxdepth 3 -type f | sort
+
+      - name: Deploy to gh-pages
+        # Forks can't push to gh-pages with the default GITHUB_TOKEN —
+        # skip the deploy on those, but the render itself still
+        # validates the build.
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./public
+          keep_files: true
+          commit_message: |
+            Render ${{ github.event_name }} ${{ github.sha }}
+            ${{ github.event.head_commit.message || github.event.pull_request.title }}
+          user_name: "github-actions[bot]"
+          user_email: "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Comment on PR with preview links
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: manuscript-preview
+          message: |
+            ### Rendered preview
+
+            | Version | HTML | PDF |
+            |---|---|---|
+            | This PR (latest) | [`pr/${{ github.event.pull_request.number }}/`](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr/${{ github.event.pull_request.number }}/) | [PDF](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr/${{ github.event.pull_request.number }}/${{ inputs.manuscript-name }}.pdf) |
+            | This commit (`${{ github.event.pull_request.head.sha }}`) | [snapshot](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/v/${{ github.event.pull_request.head.sha }}/) | [PDF](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/v/${{ github.event.pull_request.head.sha }}/${{ inputs.manuscript-name }}.pdf) |
+            | Latest main | [latest](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/) | [PDF](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ inputs.manuscript-name }}.pdf) |
+
+            Snapshots are immutable. Latest links update on every push to `main`.
