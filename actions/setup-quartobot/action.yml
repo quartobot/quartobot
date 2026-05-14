@@ -30,9 +30,10 @@ inputs:
     required: false
     default: "true"
   extension-source:
-    description: |
+    description: >
       Source for `quarto add`. Defaults to the published quartobot repo;
-      for testing against an in-tree copy pass `${{ github.workspace }}`.
+      for testing against an in-tree copy pass the GitHub workspace path
+      (e.g., the value of `github.workspace`).
     required: false
     default: "seandavi/quartobot"
   project:
