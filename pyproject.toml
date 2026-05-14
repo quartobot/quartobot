@@ -1,6 +1,6 @@
 [project]
 name = "quartobot"
-version = "0.0.1"
+version = "0.1.0"
 description = "The manubot manuscript-as-software pattern, on Quarto."
 readme = "README.md"
 license = "MIT"
