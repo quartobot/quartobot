@@ -19,13 +19,28 @@ jobs:
     # was never deployed.
     if: github.event.pull_request.head.repo.full_name == github.repository
     steps:
+      - name: Check whether gh-pages branch exists
+        id: branch
+        run: |
+          # The first run on a brand-new repo (before any main deploy) will
+          # have no gh-pages branch yet. Skip cleanly instead of failing the
+          # checkout step.
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "gh-pages branch does not exist yet — nothing to clean up"
+          fi
+
       - name: Check out gh-pages
+        if: steps.branch.outputs.exists == 'true'
         uses: actions/checkout@v4
         with:
           ref: gh-pages
           fetch-depth: 1
 
       - name: Remove PR preview directory
+        if: steps.branch.outputs.exists == 'true'
         run: |
           pr="${{ github.event.pull_request.number }}"
           if [ -d "pr/${pr}" ]; then
@@ -37,6 +52,7 @@ jobs:
           fi
 
       - name: Commit and push
+        if: steps.branch.outputs.exists == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

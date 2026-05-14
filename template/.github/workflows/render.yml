@@ -72,10 +72,17 @@ jobs:
       # directories so old snapshots and other open PRs are never wiped.
       # Stale PR previews are cleaned up by the separate pr-closed.yml
       # workflow when a PR is closed.
+      #
+      # On `pull_request` events, GITHUB_SHA is the synthetic merge commit
+      # GitHub creates for the test. The sticky PR comment below links to
+      # the head commit (what the author actually pushed), so the staging
+      # path uses the head SHA on PR events to match.
       # ----------------------------------------------------------------
       - name: Stage per-commit snapshot
+        env:
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          dest="public/v/${GITHUB_SHA}"
+          dest="public/v/${SHA}"
           mkdir -p "$dest"
           cp index.html "$dest/index.html"
           cp index.pdf  "$dest/index.pdf"
