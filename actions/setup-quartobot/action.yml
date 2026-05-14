@@ -19,10 +19,11 @@ inputs:
     default: "manubot>=0.6,<0.7"
   quarto-version:
     description: |
-      Quarto version. Empty means the latest stable release. Pass a
-      specific version like "1.5.57" for reproducible CI.
+      Quarto version. `release` is the latest stable; `prerelease` and
+      `daily` are also valid. Pass a specific version like "1.5.57" for
+      reproducible CI.
     required: false
-    default: ""
+    default: "release"
   tinytex:
     description: |
       Install TinyTeX. Set to "false" to skip if you only render HTML
