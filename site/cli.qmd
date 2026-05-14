@@ -29,13 +29,13 @@ and reports duplicates with file:line locations. Pure read. No network.
 
 ```
 $ quartobot scan .
+arxiv:
+  2104.10729 (2x)
 doi:
   10.1038/s41586-024-12345
   10.1371/journal.pcbi.1007128 (3x)
 pmid:
   31479462
-arxiv:
-  2104.10729 (2x)
 (hand-curated):
   quarto2024
 
@@ -47,6 +47,8 @@ Duplicates:
     methods.qmd:42
     discussion.qmd:9
 ```
+
+Prefixes are listed alphabetically; hand-curated keys appear last.
 
 The scan is heuristic — it strips YAML/TOML frontmatter, fenced code
 blocks (```/~~~), and inline code spans before searching, so decoys

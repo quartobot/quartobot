@@ -78,6 +78,21 @@ def test_find_cite_keys_simple():
     assert ("@pmid:123", 1) in found
 
 
+def test_skips_multi_backtick_inline_code():
+    # Pandoc allows multi-backtick inline code spans (for content that
+    # itself contains backticks). Cite keys inside double/triple-tick
+    # spans should be stripped just like single-tick.
+    text = "Double: ``@doi:10.1371/double``; triple: ```@doi:10.1371/triple```.\n"
+    assert list(find_cite_keys(text)) == []
+
+
+def test_url_cite_with_query_string():
+    text = "Source: @url:https://example.com/page?q=foo&n=1.\n"
+    keys = [key for key, _ in find_cite_keys(text)]
+    # The whole URL — including query string — should survive as one key.
+    assert "@url:https://example.com/page?q=foo&n=1" in keys
+
+
 def test_skips_email_addresses():
     text = "Contact you@example.com about this.\n"
     assert list(find_cite_keys(text)) == []

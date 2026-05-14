@@ -42,12 +42,23 @@ SCANNED_SUFFIXES: frozenset[str] = frozenset({".qmd", ".md"})
 
 # A cite key begins with @, must be preceded by start-of-line or non-word
 # character (so email addresses don't match), and starts with a letter or
-# digit (digit-leading allows bare DOIs like @10.1371/...).
-_CITE_KEY_RE = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z0-9][A-Za-z0-9_:./-]*")
+# digit (digit-leading allows bare DOIs like @10.1371/...). The character
+# class after the leading character covers the manubot identifier syntax,
+# including URLs with query strings (`?`, `&`, `=`, `#`, `%`, `+`, `~`).
+# Sentence-ending punctuation (`.`, `,`, `;`, `:`, `!`, `?`, `)`) is
+# stripped from each match post-hoc; see _TRAILING_PUNCT below.
+_CITE_KEY_RE = re.compile(r"(?<![A-Za-z0-9_])@[A-Za-z0-9][A-Za-z0-9_:./?&=#%+~-]*")
 
 _PREFIX_RE = re.compile(r"^@([a-z]+):(.+)$")
 _BARE_DOI_RE = re.compile(r"^@(10\.\d+/.+)$")
-_INLINE_CODE_RE = re.compile(r"`[^`]*`")
+
+# Inline code spans in pandoc markdown can be delimited by any run of
+# backticks; closing must match the opening run length. The regex
+# captures the opening run and requires the same count to close, so
+# both single-backtick (`@x`) and multi-backtick (``@x``) spans are
+# stripped before the cite-key scan. Inline code is single-line in
+# pandoc, so we don't enable re.DOTALL.
+_INLINE_CODE_RE = re.compile(r"(`+).+?\1")
 
 # Trailing punctuation the regex greedily includes from sentence-final
 # positions (`@doi:10.1/foo.` at end of sentence). Stripped from every

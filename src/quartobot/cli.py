@@ -61,7 +61,7 @@ def resolve(keys: tuple[str, ...], from_scan: Path | None) -> None:
     does at render — it's to do it ahead of time so CI never sees a
     Crossref hiccup.
     """
-    click.echo("not yet — see https://github.com/seandavi/quartobot/issues/22")
+    click.echo("not yet — see https://github.com/seandavi/quartobot/issues/27")
     raise SystemExit(2)
 
 
@@ -78,7 +78,7 @@ def validate(project: Path) -> None:
     resolves cleanly; _quarto.yml declares both bibliographies;
     manubot-bibliography-cache is set. Exit nonzero on any failure.
     """
-    click.echo("not yet — see https://github.com/seandavi/quartobot/issues/22")
+    click.echo("not yet — see https://github.com/seandavi/quartobot/issues/28")
     raise SystemExit(2)
 
 
