@@ -14,6 +14,7 @@ from quartobot.resolve import (
     ResolveOutcome,
     _build_cache_index,
     _load_existing,
+    _standard_id_from_note,
     collect_resolvable_keys,
     format_outcome,
     resolve_keys,
@@ -226,6 +227,140 @@ def test_resolve_output_sorted_for_diff_stability(tmp_path):
     assert ids == sorted(ids)
 
 
+# ----------------------------------------------------------- _standard_id_from_note
+
+
+def test_standard_id_from_note_extracts_value():
+    note = "free-text line\nstandard_id: doi:10.1/x\ntrailing"
+    assert _standard_id_from_note(note) == "doi:10.1/x"
+
+
+def test_standard_id_from_note_none_input():
+    assert _standard_id_from_note(None) is None
+
+
+def test_standard_id_from_note_non_string_input():
+    assert _standard_id_from_note(42) is None
+
+
+def test_standard_id_from_note_missing_marker():
+    assert _standard_id_from_note("just a free-text note") is None
+
+
+def test_standard_id_from_note_first_match_wins():
+    note = "standard_id: doi:10.1/first\nstandard_id: pmid:99"
+    assert _standard_id_from_note(note) == "doi:10.1/first"
+
+
+# ----------------------------------------------------------- id_mode
+
+
+def test_id_mode_short_hash_default_preserves_manubot_id(tmp_path):
+    """Default id_mode keeps the resolver's `id` field unchanged."""
+    out = tmp_path / "references.json"
+    with (
+        patch("manubot.cite.citekey.CiteKey", _FakeCiteKey),
+        patch("manubot.cite.citekey.citekey_to_csl_item", _fake_csl_item),
+    ):
+        resolve_keys(["doi:10.1/x"], output_path=out)
+    data = json.loads(out.read_text())
+    assert data[0]["id"] == "SHORT_101x"
+
+
+def test_id_mode_citation_key_rewrites_id(tmp_path):
+    """`citation-key` rewrites `id` to the user's prose form."""
+    out = tmp_path / "references.json"
+    with (
+        patch("manubot.cite.citekey.CiteKey", _FakeCiteKey),
+        patch("manubot.cite.citekey.citekey_to_csl_item", _fake_csl_item),
+    ):
+        resolve_keys(["doi:10.1/x"], output_path=out, id_mode="citation-key")
+    data = json.loads(out.read_text())
+    assert data[0]["id"] == "doi:10.1/x"
+
+
+def test_id_mode_citation_key_prefers_input_over_canonical(tmp_path):
+    """When manubot canonicalizes a prefix (pmid → pubmed), `id` matches
+    the user's prose form, not the canonical form. The prose is the
+    source of truth for what citeproc will look for.
+    """
+
+    class _CanonicalizingFake(_FakeCiteKey):
+        def __init__(self, raw: str, infer_prefix: bool = True) -> None:
+            super().__init__(raw, infer_prefix)
+            # Mimic manubot's pmid → pubmed canonicalization.
+            if raw.startswith("pmid:"):
+                self.standard_id = "pubmed:" + raw.split(":", 1)[1]
+
+    def _csl_using_standard_id(citekey, **_):
+        sid = citekey.standard_id
+        return {
+            "id": f"SHORT_{sid.split(':', 1)[1]}",
+            "title": f"Stub for {sid}",
+            "type": "article-journal",
+            "note": f"standard_id: {sid}",
+        }
+
+    out = tmp_path / "references.json"
+    with (
+        patch("manubot.cite.citekey.CiteKey", _CanonicalizingFake),
+        patch("manubot.cite.citekey.citekey_to_csl_item", _csl_using_standard_id),
+    ):
+        resolve_keys(["pmid:26678082"], output_path=out, id_mode="citation-key")
+    data = json.loads(out.read_text())
+    # User wrote `pmid:` in prose — `id` must be `pmid:`, not `pubmed:`.
+    assert data[0]["id"] == "pmid:26678082"
+
+
+def test_id_mode_citation_key_orphan_cache_falls_back_to_standard_id(tmp_path):
+    """Cache entries with no resolution this run fall back to their
+    standard_id (from the `note` field) for the rewritten id, since
+    we don't know what the user's prose form was."""
+    out = tmp_path / "references.json"
+    # Pre-populate cache with an entry not asked about this run.
+    out.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "SHORT_orphaned",
+                    "title": "Orphan from a prior run",
+                    "note": "standard_id: doi:10.1/orphan",
+                }
+            ]
+        )
+    )
+    with (
+        patch("manubot.cite.citekey.CiteKey", _FakeCiteKey),
+        patch("manubot.cite.citekey.citekey_to_csl_item", _fake_csl_item),
+    ):
+        resolve_keys(
+            ["doi:10.1/x"],
+            cache_path=out,
+            output_path=out,
+            id_mode="citation-key",
+        )
+    data = json.loads(out.read_text())
+    ids = {item["id"] for item in data}
+    # The orphan was preserved with its standard_id from `note`.
+    assert "doi:10.1/orphan" in ids
+    # The resolved key uses the user's prose form.
+    assert "doi:10.1/x" in ids
+
+
+def test_id_mode_citation_key_handles_multiple_keys(tmp_path):
+    """Every successful resolution gets the user's prose key as `id`."""
+    out = tmp_path / "references.json"
+    keys = ["doi:10.1/x", "pmid:99", "arxiv:2104.10729"]
+    with (
+        patch("manubot.cite.citekey.CiteKey", _FakeCiteKey),
+        patch("manubot.cite.citekey.citekey_to_csl_item", _fake_csl_item),
+    ):
+        resolve_keys(keys, output_path=out, id_mode="citation-key")
+    data = json.loads(out.read_text())
+    ids = {item["id"] for item in data}
+    assert ids == set(keys)
+
+
 # ----------------------------------------------------------- format_outcome
 
 
@@ -341,3 +476,39 @@ def test_cli_exits_one_on_failure(tmp_path):
         with runner.isolated_filesystem():
             result = runner.invoke(main, ["resolve", "doi:10.1/missing"])
     assert result.exit_code == 1
+
+
+def test_cli_id_mode_citation_key(tmp_path):
+    """The `--id-mode citation-key` flag is plumbed end-to-end."""
+    qmd = tmp_path / "doc.qmd"
+    qmd.write_text("Cite: @doi:10.1/x.\n")
+    out = tmp_path / "references.json"
+
+    with (
+        patch("manubot.cite.citekey.CiteKey", _FakeCiteKey),
+        patch("manubot.cite.citekey.citekey_to_csl_item", _fake_csl_item),
+    ):
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            [
+                "resolve",
+                "--from-scan",
+                str(tmp_path),
+                "--output",
+                str(out),
+                "--id-mode",
+                "citation-key",
+            ],
+        )
+    assert result.exit_code == 0, result.output
+    data = json.loads(out.read_text())
+    assert data[0]["id"] == "doi:10.1/x"
+
+
+def test_cli_id_mode_rejects_invalid_value():
+    """Click should reject an unknown --id-mode value."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["resolve", "--id-mode", "nonsense"])
+    assert result.exit_code != 0
+    assert "Invalid value" in result.output or "Invalid choice" in result.output
