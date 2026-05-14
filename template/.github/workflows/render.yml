@@ -101,7 +101,7 @@ jobs:
       - name: Render PDF
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           (
             while true; do
               echo "[heartbeat] PDF render still running at $(date -Iseconds)"
@@ -110,12 +110,21 @@ jobs:
           ) &
           heartbeat_pid=$!
 
+          # NOTE: `set -e` is deliberately off here. With pipefail and -e,
+          # a failed `quarto render` would exit the step before we get a
+          # chance to kill the heartbeat or report a useful status. We
+          # capture the exit code from the pipe explicitly and clean up
+          # before propagating it.
           /usr/bin/time -v quarto render --to pdf --execute-debug 2>&1 | tee render-pdf.log
           status=${PIPESTATUS[0]}
 
-          kill "${heartbeat_pid}" || true
+          kill "${heartbeat_pid}" 2>/dev/null || true
           wait "${heartbeat_pid}" 2>/dev/null || true
-          exit "${status}"
+
+          if [ "$status" -ne 0 ]; then
+            echo "::error::PDF render failed (exit $status)"
+            exit "$status"
+          fi
 
       - name: Render DOCX
         shell: bash
@@ -146,10 +155,17 @@ jobs:
       # directories so old snapshots and other open PRs are never wiped.
       # Stale PR previews are cleaned up by the separate pr-closed.yml
       # workflow when a PR is closed.
+      #
+      # On `pull_request` events, GITHUB_SHA is the synthetic merge commit
+      # GitHub creates for the test. The sticky PR comment below links to
+      # the head commit (what the author actually pushed), so the staging
+      # path uses the head SHA on PR events to match.
       # ----------------------------------------------------------------
       - name: Stage per-commit snapshot
+        env:
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          dest="public/v/${GITHUB_SHA}"
+          dest="public/v/${SHA}"
           mkdir -p "$dest"
           cp index.html "$dest/index.html"
           cp index.pdf  "$dest/index.pdf"

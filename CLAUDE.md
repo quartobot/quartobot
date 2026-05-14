@@ -16,15 +16,17 @@ Manubot's manuscript-as-software pattern, implemented natively for the Quarto ec
 - `paper/` — eventual home for `paper.md`, the JOSS submission (~1000 words). Voice guide for this file lives in the "JOSS paper specifically" section below.
 - `docs/` — prior art, publication plan, conversation notes. Read these before making non-trivial design changes.
 
-Note: an earlier draft of this file said the extension lived in `src/`. That was wrong — Quarto extensions install from `_extensions/` at the repo root. `src/` was removed; if you see references to it elsewhere, they're stale.
+Note: an earlier draft of this file said the extension lived in `src/`. That was wrong — Quarto extensions install from `_extensions/` at the repo root. The `src/` directory was removed. (A later branch reintroduces `src/` for the `quartobot` Python CLI; that's a different artifact.)
 
 ## Commands
 
-No build, test, or lint pipeline exists yet — the codebase is design-only. Once the extension and template ship:
+The repo now contains a Quarto extension, a manuscript template, a docs site, and (on follow-up branches) a Python CLI. What's tracked vs. what's planned:
 
-- The extension will install via `quarto add seandavi/quarto-manubot-cite`.
-- The template will be adopted via `gh repo create my-paper --template seandavi/quartobot-manuscript`.
-- The Venice hackathon manuscript ([seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)) already runs the CI/permalink/banner half on a live 25-author preprint and is the reference implementation for the template's `.github/workflows/render.yml`.
+- **Extension install:** `quarto add seandavi/quartobot` (the extension lives in the parent repo while the scaffold matures; will move to `seandavi/quarto-manubot-cite` once split — tracked at [#13](https://github.com/seandavi/quartobot/issues/13)).
+- **Template adoption:** eventually `gh repo create my-paper --template seandavi/quartobot-manuscript`. The template currently lives at `template/` in this repo; promotion to its own repo is part of v0.1.
+- **Render the docs site locally:** `quarto preview site/`.
+- **Render the minimal example:** `cd examples/extension-minimal && quarto add ../.. --no-prompt && quarto render`.
+- The Venice hackathon manuscript ([seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)) runs the CI/permalink/banner half on a live 25-author preprint and is the reference implementation for the template's `.github/workflows/render.yml`.
 
 ## Contributing conventions
 
@@ -71,7 +73,7 @@ Weekend sequencing: CI template → Quarto extension → manuscript template →
 
 ## Open questions
 
-See `DESIGN.md#open-questions`. The biggest unresolved ones: naming (quartobot vs. quarto-manubot-pattern), extend vs. fork the first-party Quarto Manuscripts template, cache file location (`_freeze/` vs. `output/`).
+See `DESIGN.md#open-questions`. The biggest unresolved ones: naming (quartobot vs. quarto-manubot-pattern, [#1](https://github.com/seandavi/quartobot/issues/1)), and extend vs. fork the first-party Quarto Manuscripts template ([#3](https://github.com/seandavi/quartobot/issues/3)). The cache-file-location question is settled — `_freeze/manubot-cache.json` ([#8](https://github.com/seandavi/quartobot/issues/8)).
 
 ---
 

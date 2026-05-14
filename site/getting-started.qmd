@@ -72,7 +72,9 @@ That's the minimum. No CI, no banner, no template machinery.
 - **Quarto ≥ 1.4** — `quarto --version`. [Install](https://quarto.org/docs/get-started/).
 - **Python ≥ 3.10** — for the CLI and `pandoc-manubot-cite`.
 - **A GitHub repo** — for the CI / Pages parts. The bare extension works
-  offline.
+  without a GitHub repo or CI; the resolver needs network on first render
+  (Crossref/PubMed/etc.) but reads from `_freeze/manubot-cache.json` on
+  subsequent renders.
 
 ## See also
 

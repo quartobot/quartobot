@@ -26,11 +26,20 @@ open index.html
 - The rendered HTML shows both `@doi:…` and `@quarto2024` citations
   rendered correctly in a numbered bibliography.
 
-The second render should be ~instant — the cache covers both lookups.
+The second render should be ~instant — the cache covers the one resolver
+lookup. `@quarto2024` is read directly from `references.bib` and never
+needed a network round-trip.
+
+## Generated artifacts
+
+The render produces `index.html`, `references.json`, `_extensions/` (when
+you ran `quarto add`), and `_freeze/`. These are all gitignored
+(`examples/extension-minimal/.gitignore`) so this directory stays clean
+inside the repo.
 
 ## Why this isn't the template
 
-The template (`../template/`) adds: a version banner, per-commit
+The template (`../../template/`) adds: a version banner, per-commit
 permalinks via CI, PR previews, multi-format render (HTML + PDF + DOCX),
 gh-pages deploy. All of that is the *pattern*. The example here is just
 the *extension*.
