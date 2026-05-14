@@ -1,21 +1,29 @@
 """Scan a Quarto project for cite keys.
 
-Walks `.qmd` and `.md` files, extracts cite keys (`@<key>` syntax),
-classifies each as a persistent-identifier prefix (`doi:`, `pmid:`,
-`arxiv:`, etc.), a bare DOI (`10.x/y`), or a hand-curated key, and
-groups the results.
+Walks files of supported types (`.qmd`, `.md`, `.Rmd`, `.ipynb`),
+extracts cite keys (`@<key>` syntax), classifies each as a
+persistent-identifier prefix (`doi:`, `pmid:`, `arxiv:`, etc.), a
+bare DOI (`10.x/y`), or a hand-curated key, and groups the results.
+
+Notebook handling: for `.ipynb` files, only markdown cells are
+scanned. Each occurrence records the 1-based cell index alongside
+the 1-based line number within that cell, so duplicates report as
+`notebook.ipynb:cell3:5`.
 
 This is a heuristic scan, not a pandoc-grade parse. Frontmatter,
 fenced code blocks, and inline code spans are skipped. The
-authoritative parse happens at render time inside `pandoc-manubot-cite`.
+authoritative parse happens at render time inside the citeproc
+pipeline.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 #: Manubot citation-key prefixes documented in
 #: https://manubot.github.io/manubot/reference/manubot/pandoc/cite_filter/
@@ -26,19 +34,30 @@ KNOWN_PREFIXES: frozenset[str] = frozenset(
 #: Directories never worth descending into when scanning a Quarto project.
 EXCLUDED_DIRS: frozenset[str] = frozenset(
     {
+        # Quarto render outputs.
         "_site",
-        "_freeze",
+        "_book",
+        "_manuscript",
         "_output",
+        "_freeze",
         ".quarto",
+        # Tool caches and version control.
         ".git",
         ".venv",
+        ".tox",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".ipynb_checkpoints",
         "node_modules",
         "__pycache__",
     }
 )
 
-#: File extensions scanned for citations.
-SCANNED_SUFFIXES: frozenset[str] = frozenset({".qmd", ".md"})
+#: File extensions scanned for citations. `.ipynb` files are scanned
+#: by reading the JSON and walking markdown cells; everything else is
+#: read as plain markdown.
+SCANNED_SUFFIXES: frozenset[str] = frozenset({".qmd", ".md", ".Rmd", ".ipynb"})
 
 # A cite key begins with @, must be preceded by start-of-line or non-word
 # character (so email addresses don't match), and starts with a letter or
@@ -75,11 +94,13 @@ class CiteOccurrence:
     file: Path
     """Absolute or relative path to the source file."""
     line: int
-    """1-based line number."""
+    """1-based line number. For notebook cells, line within the cell."""
     prefix: str | None
     """One of KNOWN_PREFIXES, or None for hand-curated / unknown."""
     identifier: str
     """The identifier portion (after the prefix), or the whole key minus `@`."""
+    cell: int | None = None
+    """1-based cell index inside the notebook. None for non-notebook files."""
 
 
 @dataclass
@@ -188,11 +209,58 @@ def find_cite_keys(text: str) -> Iterator[tuple[str, int]]:
                 yield key, lineno
 
 
-def collect_files(path: Path) -> Iterator[Path]:
-    """Yield `.qmd` and `.md` files under `path`.
+def find_cite_keys_in_notebook(text: str) -> Iterator[tuple[str, int, int]]:
+    """Yield `(key, cell, lineno)` for each cite key in a Jupyter notebook.
+
+    `text` is the raw JSON of an `.ipynb` file. Only markdown cells
+    are scanned. `cell` is the 1-based index into the notebook's
+    cells list (so the first cell in the notebook is cell 1).
+    `lineno` is the 1-based line within that cell.
+
+    A malformed JSON file, or one without a `cells` array, yields
+    nothing — the caller treats the file as empty rather than
+    erroring.
+    """
+    try:
+        nb: Any = json.loads(text)
+    except json.JSONDecodeError:
+        return
+    if not isinstance(nb, dict):
+        return
+    cells = nb.get("cells")
+    if not isinstance(cells, list):
+        return
+
+    for raw_idx, cell in enumerate(cells):
+        if not isinstance(cell, dict):
+            continue
+        if cell.get("cell_type") != "markdown":
+            continue
+        source = cell.get("source")
+        # nbformat allows either a single string or a list of strings.
+        # The list form may or may not preserve trailing newlines; both
+        # forms are common in real notebooks.
+        if isinstance(source, list):
+            cell_text = "".join(str(part) for part in source)
+        elif isinstance(source, str):
+            cell_text = source
+        else:
+            continue
+        cell_index = raw_idx + 1  # 1-based for human-readable reporting.
+        for key, lineno in find_cite_keys(cell_text):
+            yield key, cell_index, lineno
+
+
+def collect_files(path: Path, *, recursive: bool = True) -> Iterator[Path]:
+    """Yield citation-bearing files under `path`.
 
     If `path` is a file, yield it (if its suffix matches). If `path`
-    is a directory, walk it recursively and skip `EXCLUDED_DIRS`.
+    is a directory:
+
+    - `recursive=True` (default) walks the tree, skipping
+      `EXCLUDED_DIRS` at any depth.
+    - `recursive=False` only looks at files directly under `path`.
+
     Results are sorted for deterministic output.
     """
     if path.is_file():
@@ -200,8 +268,8 @@ def collect_files(path: Path) -> Iterator[Path]:
             yield path
         return
 
-    # rglob returns arbitrary order; sort for deterministic output.
-    for item in sorted(path.rglob("*")):
+    iterator = path.rglob("*") if recursive else path.glob("*")
+    for item in sorted(iterator):
         if not item.is_file():
             continue
         if item.suffix not in SCANNED_SUFFIXES:
@@ -212,12 +280,32 @@ def collect_files(path: Path) -> Iterator[Path]:
         yield item
 
 
-def scan_path(path: Path) -> ScanResult:
-    """Scan `path` for cite keys and return a `ScanResult`."""
+def scan_path(path: Path, *, recursive: bool = True) -> ScanResult:
+    """Scan `path` for cite keys and return a `ScanResult`.
+
+    Pass `recursive=False` to limit a directory scan to files
+    directly under `path` (no descent).
+    """
     result = ScanResult()
-    for file in collect_files(path):
+    for file in collect_files(path, recursive=recursive):
         result.files_scanned += 1
         text = file.read_text(encoding="utf-8", errors="replace")
+
+        if file.suffix == ".ipynb":
+            for key, cell, line in find_cite_keys_in_notebook(text):
+                prefix, identifier = classify(key)
+                result.occurrences.append(
+                    CiteOccurrence(
+                        key=key,
+                        file=file,
+                        line=line,
+                        prefix=prefix,
+                        identifier=identifier,
+                        cell=cell,
+                    )
+                )
+            continue
+
         for key, line in find_cite_keys(text):
             prefix, identifier = classify(key)
             result.occurrences.append(
@@ -242,7 +330,8 @@ def format_scan_result(result: ScanResult, *, relative_to: Path | None = None) -
             are shown.
     """
     if result.files_scanned == 0:
-        return "No .qmd or .md files found."
+        suffixes = ", ".join(sorted(SCANNED_SUFFIXES))
+        return f"No matching files found (looked for: {suffixes})."
 
     if not result.occurrences:
         return f"Scanned {result.files_scanned} file(s). No citations found."
@@ -280,7 +369,10 @@ def format_scan_result(result: ScanResult, *, relative_to: Path | None = None) -
             lines.append(f"  {key}:")
             for occ in occs:
                 display = occ.file.relative_to(relative_to) if relative_to else occ.file
-                lines.append(f"    {display}:{occ.line}")
+                if occ.cell is not None:
+                    lines.append(f"    {display}:cell{occ.cell}:{occ.line}")
+                else:
+                    lines.append(f"    {display}:{occ.line}")
 
     return "\n".join(lines)
 
@@ -294,6 +386,7 @@ __all__: Sequence[str] = (
     "classify",
     "collect_files",
     "find_cite_keys",
+    "find_cite_keys_in_notebook",
     "format_scan_result",
     "scan_path",
 )

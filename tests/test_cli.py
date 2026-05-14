@@ -26,7 +26,21 @@ def test_scan_runs_on_empty_dir(tmp_path):
     runner = CliRunner()
     result = runner.invoke(main, ["scan", str(tmp_path)])
     assert result.exit_code == 0
-    assert "No .qmd or .md files found" in result.output
+    assert "No matching files found" in result.output
+
+
+def test_scan_no_recursive_stays_at_top(tmp_path):
+    """`--no-recursive` skips subdirectories."""
+    (tmp_path / "top.qmd").write_text("Top @doi:10.1/top.\n")
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    (sub / "deeper.qmd").write_text("Deeper @doi:10.1/deeper.\n")
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["scan", "--no-recursive", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "10.1/top" in result.output
+    assert "10.1/deeper" not in result.output
 
 
 def test_scan_exits_one_on_duplicates(tmp_path):
