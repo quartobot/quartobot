@@ -1,0 +1,45 @@
+# Quarto build artifacts
+_output/
+_freeze/
+.quarto/
+*_files/
+*_cache/
+**/*.quarto_ipynb
+
+# Rendered outputs anywhere in the tree (commit only when explicitly intended)
+**/*.html
+**/*.pdf
+**/*.docx
+**/*.tex
+**/*.aux
+**/*.log
+**/*.out
+**/*.toc
+
+# manubot resolver outputs — these are regenerated on every render.
+references.json
+
+# Quarto extensions are managed via `quarto add`; don't commit the cache.
+_extensions/
+
+# Some figures and references are legitimate PDFs/HTML downloads — these
+# are tracked explicitly even though they match the patterns above. Use:
+#   git add -f path/to/file.pdf
+# to override the ignore rule when adding a real artifact.
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Local env
+.Renviron
+.Rhistory
+.RData
+.Rproj.user/
+
+# Exception: the version banner is checked-in HTML source, not render output
+!_version-banner.html
+!_version-banner.html.template

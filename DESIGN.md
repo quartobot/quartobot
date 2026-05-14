@@ -89,8 +89,12 @@ A thin Quarto extension that:
 - Optionally bundles a small `quartobot scan` CLI for offline cache
   warm-up and dry-run validation of unresolved keys.
 
-Install path: `quarto add seandavi/quarto-manubot-cite`. ~50–200 lines
-plus tests and docs. Reuses `manubot.cite` for all resolvers.
+Install path: `quarto add seandavi/quartobot` (single-repo while we
+scaffold; will move to `seandavi/quarto-manubot-cite` once the extension
+is split into its own repo). The extension lives at the repo root in
+`_extensions/seandavi/quarto-manubot-cite/`, because that's where
+`quarto add` looks. ~50–200 lines plus tests and docs. Reuses
+`manubot.cite` for all resolvers.
 
 ### 2. `quartobot-manuscript` — Template repository
 
@@ -118,7 +122,7 @@ the pattern is identical, only the project type differs.
 | Bibliography format for auto-resolved entries | **CSL JSON**, alongside any hand-curated `references.bib` | CSL JSON's `id` field accepts arbitrary strings, so `@doi:10.1038/foo` can be both the citation key and the BibTeX-equivalent entry id. BibTeX keys forbid `/` and `:` and would require key transformation, which defeats the manubot point. |
 | Citation key normalization | Lowercase prefix, identifier preserved as-is (`@doi:10.X/y`, not `@DOI:10.X/y`) | Matches manubot's own convention; lets us reuse `manubot.cite` directly. |
 | Resolver implementation | Reuse `manubot.cite` (already in the `manubot` Python package) | Tested, maintained, covers all the identifier types, has good error handling and rate-limit awareness. We get this for free. |
-| Caching | Build-time cache at `_freeze/quartobot-cache.json` (or whatever Quarto convention picks up) | Once an entry is resolved, builds stay offline. CI never re-fetches if `.json` is already present. |
+| Caching | Build-time cache at `_freeze/manubot-cache.json` | Quarto users already know `_freeze/` as "cached compute artifacts"; co-locating the bibliography cache there means one cache directory, not two. Manubot's default `output/` is configurable via the `manubot-bibliography-cache` metadata key. Resolved [#8](https://github.com/seandavi/quartobot/issues/8). |
 | Permalink format | `/v/<full-sha>/` per the manubot convention | Long-form SHA so the snapshot URL contains a verifiable identifier. Short SHA shown to humans in the banner. |
 | Version banner placement | Title-adjacent callout in HTML only; PDF/DOCX skip via `content-visible when-format="html"` | Quarto's right-side TOC is generated from headings; injecting arbitrary content there requires templates we don't want to maintain. |
 | PR preview links | Sticky PR comment from `marocchino/sticky-pull-request-comment` | The HTML doesn't need a PR-aware banner — the comment is the right surface. Keeps the HTML simple. |
@@ -221,9 +225,6 @@ ecosystem can't currently match without rebuilding.
   `quartobot-manuscript` *extend* the first-party template (so we
   inherit upstream improvements), or *fork* it (so we have control over
   defaults)? Probably extend.
-- **Citation cache location and versioning.** Manubot caches under
-  `output/`; Quarto's conventions point at `_freeze/`. Pick one and
-  document.
 - **Whether the Python CLI is needed at all.** The whole resolver may
   just be `pandoc-manubot-cite` declared as a filter. A separate
   `quartobot scan` CLI is only worth it if there's offline cache

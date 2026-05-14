@@ -1,0 +1,65 @@
+---
+title: "quartobot"
+subtitle: "The manubot manuscript-as-software pattern, on Quarto."
+toc: false
+---
+
+::: {.callout-note appearance="simple"}
+**Status:** design phase, v0.1 scaffold in flight. Nothing to install
+yet. Track [v0.1 on the milestone board](https://github.com/seandavi/quartobot/milestone/1).
+:::
+
+Manubot has, for eight years, run scholarly manuscripts as a git
+repository that builds itself on every commit, resolves citations from
+DOIs and PubMed IDs automatically, hands out an immutable permalink per
+commit, and collaborates through pull requests. The pattern is
+[published](https://doi.org/10.1371/journal.pcbi.1007128) and used in
+hundreds of preprints.
+
+Quarto now covers more of scholarly publishing than manubot ever did —
+manuscripts, books, websites, slides, dashboards, courseware — but the
+manubot pattern does not exist there natively. quartobot closes that
+gap.
+
+## What ships
+
+Four artifacts, designed to work alone or together:
+
+- **[A Quarto extension](extension.qmd)** that wires `pandoc-manubot-cite`
+  into any Quarto project. Authors write `@doi:10.1371/journal.pcbi.1007128`
+  in their prose; citations resolve on next build.
+- **[A manuscript template](template.qmd)** combining Quarto, the
+  extension, and a CI workflow that gives every commit an immutable
+  permalink at `/v/<sha>/`, embeds that permalink in rendered HTML,
+  posts PR previews, and deploys HTML + PDF + DOCX to GitHub Pages.
+- **[A Python CLI](cli.qmd)** for scanning, pre-resolving, and validating
+  citations before render. Plus `usethis`-style scaffolding into existing
+  projects.
+- **Composite GitHub Actions + a reusable workflow** so consumer-side
+  CI is ten lines, with upstream improvements flowing through version
+  pins.
+
+## Origin
+
+[manubot/manubot#332](https://github.com/manubot/manubot/issues/332)
+("Quarto integration") was opened by Anthony Gitter in April 2022 after
+a conversation with Sean Davis. Four years later, no PR, no assignee —
+but `pandoc-manubot-cite` shipped inside the `manubot` package and Quarto
+Manuscripts shipped as a first-party project type. The integration is
+small once you stop trying to rebuild the resolver. This site documents
+the work to resolve that issue.
+
+## Working example
+
+[seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)
+runs the CI / permalink / banner half of the pattern on a live 25-author
+preprint from the Bioconductor Spatial Hackathon. The template repo is
+being lifted from it.
+
+## Where to go next
+
+- New to the project? Start with [Getting started](getting-started.qmd).
+- Looking for design rationale? [Design](design.qmd) collects the
+  decisions and the prior art.
+- Want to contribute? See [`CONTRIBUTING.md`](https://github.com/seandavi/quartobot/blob/main/CONTRIBUTING.md)
+  and the [open issues](https://github.com/seandavi/quartobot/issues).

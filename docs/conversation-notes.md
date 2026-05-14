@@ -91,3 +91,15 @@ sketching. That collapsed the package side of the work and made the
 template / pattern side the actual contribution. Lower technical risk,
 higher social legitimacy, and the manubot maintainer has already
 explicitly invited it.
+
+---
+
+## Follow-up — 2026-05-13 (scope clarification)
+
+A second working session surfaced an important framing correction:
+
+**"Manubot equivalent" undersells the scope.** Manubot is explicitly manuscript-centric. Quarto is not — it covers websites, posters, books, slides, dashboards, courseware. The quartobot value proposition is bringing manubot's versioning + citation management to *all of these*, not just to manuscripts. The manuscript template is the concrete v1 deliverable, but the scope claim in the JOSS paper should be the full Quarto publishing surface.
+
+This matters for the JOSS framing: the "statement of need" can open with Quarto's breadth, note that the manubot pattern exists only for a narrow manuscript workflow, and claim the broader surface as the contribution. Reviewers unfamiliar with Quarto will need that framing to understand why this isn't just "manubot + Quarto = done."
+
+The Venice hackathon manuscript (already live, already getting community PRs) is the worked example in the paper — it demonstrates the CI / permalink / versioning half on a real multi-author document.

@@ -1,36 +1,71 @@
 # quartobot
 
-The manubot manuscript-as-software pattern, ergonomically, on Quarto.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-design%20phase-orange.svg)](DESIGN.md)
 
-> **Status:** design phase. Nothing to install yet — we're writing down the
-> pattern and the plan before we cut code. See [DESIGN.md](DESIGN.md).
+The manubot manuscript-as-software pattern, on Quarto.
 
-## What this will be
+> **Status:** design phase. Nothing to install yet. The architecture is
+> settled in [`DESIGN.md`](DESIGN.md); the implementation is being scaffolded
+> in [#7](https://github.com/seandavi/quartobot/issues/7) and adjacent issues.
 
-Two artifacts that ship together:
+## What this is
 
-1. A small **Quarto extension** (`quarto-manubot-cite`) that wires
+Manubot has, for eight years, run scholarly manuscripts as a git repository
+that builds itself on every commit, resolves citations from DOIs and
+PubMed IDs automatically, hands out an immutable permalink per commit, and
+collaborates through pull requests. The pattern is published
+([Himmelstein et al. 2019](https://doi.org/10.1371/journal.pcbi.1007128))
+and has been used for hundreds of preprints.
+
+Quarto now covers more of scholarly publishing than manubot ever did —
+manuscripts, books, websites, slides, dashboards, courseware — but the
+manubot pattern does not yet exist there natively. That's the gap this
+repo closes.
+
+Two artifacts ship together:
+
+1. **`quarto-manubot-cite`** — a thin Quarto extension that wires
    [`pandoc-manubot-cite`](https://manubot.github.io/manubot/reference/manubot/pandoc/cite_filter/)
-   — already shipped inside the `manubot` Python package — into a Quarto
-   project, so authors can write `@doi:10.x/y`, `@pmid:N`, `@arxiv:…`,
-   `@biorxiv:…`, `@isbn:…`, etc., and have entries auto-resolved into a
-   CSL JSON bibliography.
-2. A **template repository** that bundles Quarto Manuscripts + the
-   extension + a CI workflow that gives every commit an immutable
-   permalink, embeds that permalink in the rendered HTML, posts PR
-   previews on every pull request, and deploys to GitHub Pages.
+   into any Quarto project. Authors write `@doi:10.1371/journal.pcbi.1007128`,
+   `@pmid:31479462`, `@arxiv:2104.10729`, `@isbn:…`, or bare DOIs in
+   their prose, and citations resolve on next build.
 
-Adoption: `gh repo create my-paper --template seandavi/quartobot-manuscript`
-and you're writing prose against the same flow manubot pioneered, on top
-of Quarto's full publishing stack (manuscripts, books, websites, slides).
+   ```bash
+   quarto add seandavi/quartobot
+   ```
 
-## Origin
+2. **`quartobot-manuscript`** — a GitHub template that combines Quarto
+   Manuscripts, the extension, and a CI workflow that gives every commit
+   an immutable permalink at `/v/<sha>/`, embeds that permalink in the
+   rendered HTML, posts PR previews via sticky comment, and deploys
+   HTML + PDF + DOCX to GitHub Pages.
 
-Manubot's [issue #332](https://github.com/manubot/manubot/issues/332)
-("Quarto integration"), opened by [@agitter](https://github.com/agitter)
-in April 2022, identifies exactly this opening. That issue grew out of
-conversations between Sean Davis and the manubot team. This repo is the
-work to resolve it.
+   ```bash
+   gh repo create my-paper --template seandavi/quartobot-manuscript
+   ```
+
+Neither command runs today. Both are the target of the in-progress
+scaffold; track [#7](https://github.com/seandavi/quartobot/issues/7),
+[#14](https://github.com/seandavi/quartobot/issues/14), and the
+`extension` / `template` labels.
+
+## Why this exists
+
+[manubot/manubot#332](https://github.com/manubot/manubot/issues/332)
+("Quarto integration") was opened by Anthony Gitter in April 2022 after a
+conversation with Sean Davis. Four years later, no PR, no assignee — but
+`pandoc-manubot-cite` shipped inside the `manubot` package and Quarto
+Manuscripts shipped as a first-party project type. The integration is
+small once you stop trying to rebuild the resolver. This repo is the work
+to resolve that issue.
+
+## Working example
+
+[seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)
+runs the CI / permalink / banner half of the pattern on a live 25-author
+preprint from the Bioconductor Spatial Hackathon. That's the working
+reference the template is being lifted from.
 
 ## See also
 
@@ -38,9 +73,8 @@ work to resolve it.
 - Prior art — [`docs/prior-art.md`](docs/prior-art.md)
 - Publication plan — [`docs/publication-plan.md`](docs/publication-plan.md)
 - Conversation notes — [`docs/conversation-notes.md`](docs/conversation-notes.md)
-- Working example — [seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)
-  has the CI/permalink/banner half of the pattern already running on a
-  25-author preprint.
+- Contributing — [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- Code of conduct — [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 
 ## License
 

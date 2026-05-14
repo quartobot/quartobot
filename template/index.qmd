@@ -1,0 +1,85 @@
+---
+title: "A quartobot-manuscript example"
+subtitle: "What this template gives you"
+author:
+  - name: Your Name
+    affiliation: Your Institution
+    orcid: 0000-0000-0000-0000
+    corresponding: true
+    email: you@example.org
+date: today
+abstract: |
+  This is the template's example manuscript. Replace the prose and
+  metadata with your own and start writing. Citations work by persistent
+  identifier — paste a DOI, PubMed ID, arXiv ID, or ISBN into your text
+  and the bibliography updates on next render.
+keywords:
+  - quartobot
+  - manubot
+  - reproducible-publishing
+---
+
+# Introduction
+
+This template combines [Quarto](https://quarto.org), the
+[`quarto-manubot-cite`](https://github.com/seandavi/quartobot) extension,
+and a CI workflow that gives every commit an immutable permalink at
+`/v/<sha>/`, deploys HTML and PDF to GitHub Pages, and posts PR previews
+through a sticky comment. The pattern is manubot's
+[@doi:10.1371/journal.pcbi.1007128], lifted onto Quarto's publishing
+stack [@quarto2024].
+
+You're reading the rendered version. The source lives in
+`index.qmd` next to this file. Edit the prose, push, and CI takes care of
+the rest.
+
+# What's wired up
+
+Two things to notice in the bibliography below:
+
+- `@doi:10.1371/journal.pcbi.1007128` resolved automatically. You wrote
+  the DOI in the prose; `pandoc-manubot-cite` fetched the metadata from
+  Crossref at render time and wrote it to `references.json`. The cache
+  in `_freeze/manubot-cache.json` means subsequent renders stay offline.
+- `@quarto2024` is a hand-curated entry from `references.bib`. Use this
+  form when you want full control over the bibliography record — citing
+  software, grey literature, or anything the resolver doesn't have good
+  metadata for.
+
+Both files are declared under `bibliography:` in `_quarto.yml` and pandoc
+citeproc merges them at render.
+
+# Citation key vocabulary
+
+Manubot's prefix syntax, available as-is:
+
+| Prefix      | Example                                |
+|-------------|----------------------------------------|
+| `@doi:`     | `@doi:10.1371/journal.pcbi.1007128`    |
+| `@pmid:`    | `@pmid:31479462`                       |
+| `@pmcid:`   | `@pmcid:PMC6735409`                    |
+| `@arxiv:`   | `@arxiv:2104.10729`                    |
+| `@isbn:`    | `@isbn:9780262035613`                  |
+| `@url:`     | `@url:https://manubot.org`             |
+| `@wikidata:`| `@wikidata:Q56458094`                  |
+| bare DOI    | `@10.1371/journal.pcbi.1007128`        |
+
+# Next steps
+
+- Edit author metadata in the YAML header.
+- Replace this prose with your own.
+- Add citations as you go — by DOI/PMID where possible, hand-curated for
+  the rest.
+- Push to `main`. CI renders HTML, PDF, and DOCX; deploys to
+  `https://<owner>.github.io/<repo>/`; embeds the per-commit permalink
+  in the HTML version banner.
+- Open a PR. CI posts a sticky comment with the preview URL.
+
+The full design is in [DESIGN.md](https://github.com/seandavi/quartobot/blob/main/DESIGN.md);
+the extension's behavior is documented at
+[`_extensions/seandavi/quarto-manubot-cite/`](https://github.com/seandavi/quartobot/blob/main/_extensions/seandavi/quarto-manubot-cite/README.md).
+
+# References {.unnumbered}
+
+::: {#refs}
+:::

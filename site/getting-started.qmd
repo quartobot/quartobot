@@ -1,0 +1,83 @@
+---
+title: "Getting started"
+---
+
+::: {.callout-warning}
+quartobot is in v0.1 scaffold. The commands below describe what install
+*will* look like once v0.1 ships. Track progress on the
+[v0.1 milestone](https://github.com/seandavi/quartobot/milestone/1).
+:::
+
+## Three paths in
+
+Pick the one that matches where you are.
+
+### I'm starting a new manuscript
+
+```bash
+gh repo create my-paper --template seandavi/quartobot-manuscript
+cd my-paper
+git push
+```
+
+CI takes care of rendering and deploying. Open the Pages URL from
+your repo settings.
+
+### I have an existing Quarto project
+
+```bash
+pip install quartobot
+quartobot init
+git add . && git commit -m "Adopt the quartobot pattern"
+git push
+```
+
+`quartobot init` adds the citation extension, merges the manubot keys
+into your `_quarto.yml`, seeds a `references.bib`, drops in the version
+banner template, and writes a ten-line `render.yml` that calls the
+upstream reusable workflow. Idempotent — run it again and nothing breaks.
+
+### I just want auto-resolved citations
+
+```bash
+quarto add seandavi/quartobot
+pip install 'manubot>=0.6,<0.7'
+```
+
+Then in your `_quarto.yml`:
+
+```yaml
+filters:
+  - quarto-manubot-cite
+
+manubot-output-bibliography: references.json
+manubot-bibliography-cache: _freeze/manubot-cache.json
+manubot-fail-on-errors: false
+
+bibliography:
+  - references.bib
+  - references.json
+```
+
+And in your prose:
+
+```markdown
+The pattern is described in @doi:10.1371/journal.pcbi.1007128.
+```
+
+That's the minimum. No CI, no banner, no template machinery.
+
+## Prerequisites
+
+- **Quarto ≥ 1.4** — `quarto --version`. [Install](https://quarto.org/docs/get-started/).
+- **Python ≥ 3.10** — for the CLI and `pandoc-manubot-cite`.
+- **A GitHub repo** — for the CI / Pages parts. The bare extension works
+  without a GitHub repo or CI; the resolver needs network on first render
+  (Crossref/PubMed/etc.) but reads from `_freeze/manubot-cache.json` on
+  subsequent renders.
+
+## See also
+
+- [Extension reference](extension.qmd)
+- [Template walkthrough](template.qmd)
+- [CLI reference](cli.qmd)
