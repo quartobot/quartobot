@@ -65,6 +65,11 @@ being lifted from it.
 ## Where to go next
 
 - New to the project? Start with [Getting started](getting-started.qmd).
+- Coming from a manubot manuscript?
+  [Differences from manubot](differences-from-manubot.qmd) explains
+  what carries over and what changes;
+  [Migrating from manubot](migrating-from-manubot.qmd) is the
+  step-by-step.
 - Looking for design rationale? [Design](design.qmd) collects the
   decisions and the prior art.
 - Want to contribute? See [`CONTRIBUTING.md`](https://github.com/seandavi/quartobot/blob/main/CONTRIBUTING.md)

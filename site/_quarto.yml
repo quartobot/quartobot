@@ -29,6 +29,12 @@ website:
             text: Book
       - href: cli.qmd
         text: CLI
+      - text: From manubot
+        menu:
+          - href: differences-from-manubot.qmd
+            text: Differences
+          - href: migrating-from-manubot.qmd
+            text: Migration
       - href: design.qmd
         text: Design
     right:
