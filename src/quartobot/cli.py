@@ -31,9 +31,17 @@ def scan(path: Path) -> None:
     Walks .qmd and .md files under PATH, extracts cite keys (both
     persistent-identifier ones like @doi: and @pmid:, and hand-curated
     keys), and reports counts and duplicates. Pure read; no network.
+
+    Exits 1 if any duplicates are found (so it works as a pre-commit
+    hook), 0 otherwise.
     """
-    click.echo("not yet — see https://github.com/seandavi/quartobot/issues/22")
-    raise SystemExit(2)
+    from quartobot.scan import format_scan_result, scan_path
+
+    result = scan_path(path)
+    relative_to = path if path.is_dir() else path.parent
+    click.echo(format_scan_result(result, relative_to=relative_to))
+    if result.duplicates:
+        raise SystemExit(1)
 
 
 @main.command()

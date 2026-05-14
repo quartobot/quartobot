@@ -1,0 +1,36 @@
+---
+title: "A test fixture for quartobot scan"
+author: Test Author
+bibliography:
+  - references.bib
+---
+
+# Introduction
+
+The manubot pattern is described in @doi:10.1371/journal.pcbi.1007128.
+A PubMed citation: @pmid:31479462. An arXiv preprint: @arxiv:2104.10729.
+A book: @isbn:9780262035613. A bare DOI: @10.1038/s41586-024-12345.
+A hand-curated entry: @quarto2024.
+
+# Multiple citations
+
+A bracketed group [@doi:10.1371/journal.pcbi.1007128; @quarto2024; @pmid:99999999].
+A citation with locator [@arxiv:2104.10729, p. 33].
+A negated cite [-@doi:10.1371/journal.pcbi.1007128] suppresses the author.
+
+# Things that should NOT be detected
+
+An email address: you@example.com should not be a cite key.
+
+Inline code: `@doi:10.1371/inline_should_be_skipped` should not appear.
+
+```python
+# Fenced code blocks should be skipped, even with @doi:10.1371/inline_2
+print("@doi:10.1371/fenced_should_be_skipped")
+```
+
+~~~
+@doi:10.1371/tilde_fence_should_be_skipped
+~~~
+
+Back to prose: @url:https://manubot.org and @wikidata:Q56458094.

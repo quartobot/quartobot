@@ -22,11 +22,20 @@ def test_version_reports_package_version():
     assert __version__ in result.output
 
 
-def test_scan_stub_exits_two():
+def test_scan_runs_on_empty_dir(tmp_path):
     runner = CliRunner()
-    result = runner.invoke(main, ["scan", "."])
-    assert result.exit_code == 2
-    assert "not yet" in result.output
+    result = runner.invoke(main, ["scan", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "No .qmd or .md files found" in result.output
+
+
+def test_scan_exits_one_on_duplicates(tmp_path):
+    (tmp_path / "a.qmd").write_text("See @doi:10.1371/journal.pcbi.1007128.\n")
+    (tmp_path / "b.qmd").write_text("Also @doi:10.1371/journal.pcbi.1007128.\n")
+    runner = CliRunner()
+    result = runner.invoke(main, ["scan", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "Duplicates:" in result.output
 
 
 def test_resolve_stub_exits_two():
