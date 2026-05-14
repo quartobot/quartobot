@@ -12,10 +12,9 @@ uv tool install git+https://github.com/seandavi/quartobot
 ```
 
 This puts `quartobot` on your user `PATH` (typically `~/.local/bin` or
-similar). That matters because the `quartobot resolve` pre-render hook
-in `_quarto.yml` runs `quartobot` as a subprocess of `quarto render` —
-so `quartobot` needs to be discoverable without venv activation, which
-this install gives you.
+similar) so commands like `quartobot init`, `scan`, `validate`, and
+`resolve` work from any project directory without a venv activation
+dance.
 
 [uv](https://docs.astral.sh/uv/) manages the underlying Python and
 dependencies in an isolated environment behind the scenes. You don't
@@ -101,13 +100,7 @@ quartobot --version
 quartobot --help
 ```
 
-If `quartobot --version` works in your shell but `quarto render`
-can't find `quartobot` from a pre-render hook, the `~/.local/bin`
-directory probably isn't on the PATH that Quarto inherits. Most
-shells fix this with a login reload; in pinch you can hard-code
-the full path in your `_quarto.yml`:
-
-```yaml
-project:
-  pre-render: ~/.local/bin/quartobot resolve --from-scan . --output references.json --id-mode citation-key
-```
+If `quartobot --version` works but the freshly-installed command
+isn't picked up by a new shell, the install directory (typically
+`~/.local/bin`) isn't on your `PATH`. `uv tool update-shell` adds
+it; a login reload then picks it up.
