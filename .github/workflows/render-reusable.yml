@@ -30,21 +30,42 @@ on:
         type: string
         required: false
         default: "html,pdf,docx"
+      project-type:
+        description: |
+          Quarto project type. Affects the staging step:
+            - "manuscript" (default): per-format file copy from project
+              root (`index.html`, `index.pdf`, `index.docx`, etc.) to
+              `public/v/<sha>/`, with a stable `manuscript.<ext>` alias
+              for PDF/DOCX.
+            - "book": copy the whole `_book/` directory recursively into
+              `public/v/<sha>/`. No PDF alias (Quarto book HTML output
+              is multi-page; PDF book output isn't staged in v0.1).
+        type: string
+        required: false
+        default: "manuscript"
       manuscript-name:
         description: |
           Base name for the PDF/DOCX copies under `/v/<sha>/` and `/`.
           Default produces `manuscript.pdf` and `manuscript.docx` so the
-          stable URL pattern is `…/v/<sha>/manuscript.pdf`.
+          stable URL pattern is `…/v/<sha>/manuscript.pdf`. Ignored when
+          `project-type: book`.
         type: string
         required: false
         default: "manuscript"
-      # NOTE: The reusable workflow assumes a Quarto-Manuscripts-style
-      # project with `index.qmd` at the project root, producing
-      # `index.html`/`index.pdf`/`index.docx`. The deployment URLs
-      # (`/v/<sha>/`, `/pr/<n>/`, `/`) serve the directory and require
-      # an `index.html` to land. Consumers with a different source
-      # filename should use `quartobot detach` (once that lands in #25)
-      # to copy the full pipeline locally and edit it.
+      book-output-dir:
+        description: |
+          Output directory Quarto books write to. Defaults to `_book/`
+          (Quarto's default). Only used when `project-type: book`.
+        type: string
+        required: false
+        default: "_book"
+      # NOTE: For project-type "manuscript", the workflow assumes a
+      # Quarto-Manuscripts-style project with `index.qmd` at the
+      # project root producing `index.html`/`index.pdf`/`index.docx`.
+      # For project-type "book", it assumes Quarto's default
+      # `_book/` output directory. Consumers with a different layout
+      # should use `quartobot detach` (once that lands in #25) to copy
+      # the full pipeline locally and edit it.
       python-version:
         description: "Python version for the manubot install."
         type: string
@@ -170,8 +191,10 @@ jobs:
         # author actually pushed), so the staging path uses head.sha on
         # PR events to match.
         env:
+          PROJECT_TYPE: ${{ inputs.project-type }}
           OUTPUT: "index"
           MANUSCRIPT: ${{ inputs.manuscript-name }}
+          BOOK_OUTPUT_DIR: ${{ inputs.book-output-dir }}
           FORMATS: ${{ inputs.formats }}
           PROJECT: ${{ inputs.project }}
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -193,7 +216,8 @@ jobs:
             [gfm]=md
           )
 
-          stage_dir() {
+          # Manuscript staging: copy per-format files from project root.
+          stage_manuscript() {
             local dest="$1"
             mkdir -p "$dest"
             IFS=',' read -ra REQUESTED <<< "$FORMATS"
@@ -216,6 +240,34 @@ jobs:
             done
           }
 
+          # Book staging: copy the entire _book/ site recursively. Books
+          # produce a multi-page site with search, chapter navigation,
+          # and per-chapter HTML, so we lift the whole directory rather
+          # than picking individual files.
+          stage_book() {
+            local dest="$1"
+            mkdir -p "$dest"
+            if [ ! -d "$BOOK_OUTPUT_DIR" ]; then
+              echo "::error::book output directory '$BOOK_OUTPUT_DIR' not found"
+              exit 1
+            fi
+            # `cp -R $src/. $dest/` copies CONTENTS not the directory
+            # itself, so the served URL is /v/<sha>/index.html, not
+            # /v/<sha>/_book/index.html.
+            cp -R "${BOOK_OUTPUT_DIR}/." "$dest/"
+          }
+
+          stage_dir() {
+            case "$PROJECT_TYPE" in
+              manuscript) stage_manuscript "$1" ;;
+              book)       stage_book "$1" ;;
+              *)
+                echo "::error::unknown project-type '$PROJECT_TYPE' (expected 'manuscript' or 'book')"
+                exit 1
+                ;;
+            esac
+          }
+
           # Always stage a per-commit snapshot.
           stage_dir "public/v/${SHA}"
 
@@ -230,7 +282,7 @@ jobs:
           fi
 
           echo "--- staged ---"
-          find public -maxdepth 3 -type f | sort
+          find public -maxdepth 3 -type f | sort | head -50
 
       - name: Move staged public/ up to repo root for deploy
         # The staging step runs inside `${{ inputs.project }}` so it
@@ -262,7 +314,8 @@ jobs:
       # Build the sticky comment body in a shell step so we can
       # conditionally include the PDF column when callers omit `pdf`
       # from `formats` (HTML-only renders shouldn't advertise PDF links
-      # that 404).
+      # that 404). Books skip the PDF column entirely since the staging
+      # step doesn't produce a per-book PDF in v0.1.
       - name: Build sticky comment body
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
@@ -272,6 +325,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           MANUSCRIPT: ${{ inputs.manuscript-name }}
           FORMATS: ${{ inputs.formats }}
+          PROJECT_TYPE: ${{ inputs.project-type }}
         run: |
           BASE="https://${OWNER}.github.io/${REPO_NAME}"
           PR_URL="${BASE}/pr/${PR_NUMBER}/"
@@ -279,7 +333,7 @@ jobs:
           LATEST_URL="${BASE}/"
 
           include_pdf=false
-          if echo ",${FORMATS}," | grep -q ',pdf,'; then
+          if [ "$PROJECT_TYPE" = "manuscript" ] && echo ",${FORMATS}," | grep -q ',pdf,'; then
             include_pdf=true
           fi
 
@@ -293,7 +347,7 @@ jobs:
               echo "| This commit (\`${HEAD_SHA:0:7}\`) | [snapshot](${SNAP_URL}) | [PDF](${SNAP_URL}${MANUSCRIPT}.pdf) |"
               echo "| Latest main | [latest](${LATEST_URL}) | [PDF](${LATEST_URL}${MANUSCRIPT}.pdf) |"
             else
-              echo "| Version | HTML |"
+              echo "| Version | Link |"
               echo "|---|---|"
               echo "| This PR (latest) | [\`pr/${PR_NUMBER}/\`](${PR_URL}) |"
               echo "| This commit (\`${HEAD_SHA:0:7}\`) | [snapshot](${SNAP_URL}) |"
