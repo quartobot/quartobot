@@ -40,8 +40,7 @@ The shipping surface is a Python CLI and (optionally) a GitHub template:
    their prose, and citations resolve.
 
    ```bash
-   pip install quartobot          # once v0.1 tags
-   uv pip install -e .            # from this repo, today
+   uv tool install git+https://github.com/seandavi/quartobot
    ```
 
 2. **`quartobot-manuscript`** — a GitHub template that combines Quarto

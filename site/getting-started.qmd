@@ -2,9 +2,9 @@
 title: "Getting started"
 ---
 
-::: {.callout-warning}
-quartobot is in v0.1 scaffold. The commands below describe what install
-*will* look like once v0.1 ships. Track progress on the
+::: {.callout-note}
+quartobot is pre-v0.1. Install today is via the git URL below;
+PyPI publishing follows the v0.1 tag. Track progress on the
 [v0.1 milestone](https://github.com/seandavi/quartobot/milestone/1).
 :::
 
@@ -26,7 +26,7 @@ your repo settings.
 ### I have an existing Quarto project
 
 ```bash
-pip install quartobot
+uv tool install git+https://github.com/seandavi/quartobot
 quartobot init
 git add . && git commit -m "Adopt the quartobot pattern"
 git push

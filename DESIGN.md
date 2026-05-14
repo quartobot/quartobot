@@ -101,8 +101,9 @@ The CLI is the load-bearing artifact. Four commands today:
   project: writes `_quarto.yml` (when absent), seeds `references.bib`,
   drops in the version-banner template, adds a ten-line workflow.
 
-Install: `pip install quartobot` (once v0.1 tags) or `uv pip install
--e .` from the repo. ~1k lines of Python plus tests.
+Install: `uv tool install git+https://github.com/seandavi/quartobot`
+(or `uv pip install -e .` from a clone for repo dev). ~1k lines of
+Python plus tests.
 
 A `quarto-manubot-cite` Quarto extension currently ships alongside —
 under the original architecture it was the primary surface, declaring

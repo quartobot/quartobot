@@ -22,7 +22,7 @@ Manubot's manuscript-as-software pattern, implemented natively for the Quarto ec
 
 ## Commands
 
-- **CLI install (local dev):** `uv pip install -e .` from the repo root. Once v0.1 tags: `pip install quartobot`.
+- **CLI install:** `uv tool install git+https://github.com/seandavi/quartobot` (recommended — puts `quartobot` on user PATH, so Quarto pre-render subprocesses find it without venv-activation). For repo dev: `uv pip install -e .` from a clone.
 - **Extension install (current architecture):** `quarto add seandavi/quartobot`. The extension lives in this repo while the scaffold matures.
 - **Template adoption:** `gh repo create my-paper --template seandavi/quartobot-manuscript` (template currently lives at `template/` in this repo; promotion to its own repo is part of v0.1).
 - **Render the docs site locally:** `quarto preview site/`.
