@@ -1,10 +1,10 @@
 """Scaffold the quartobot pattern into an existing Quarto project.
 
 `quartobot init` writes the files that make a vanilla Quarto project
-adopt the quartobot pattern: a manubot-wired `_quarto.yml`, a seed
-`references.bib`, the version-banner HTML template, a `.gitignore`
-augment, and a ten-line GitHub Actions workflow that calls the upstream
-reusable workflow.
+adopt the quartobot pattern: a `_quarto.yml` wired with the
+`quartobot resolve` pre-render hook, a seed `references.bib`, the
+version-banner HTML template, a `.gitignore` augment, and a ten-line
+GitHub Actions workflow that calls the upstream reusable workflow.
 
 Conservative by default:
 
@@ -14,8 +14,6 @@ Conservative by default:
   that path, if the file exists, init prints a YAML snippet the user
   should merge in manually.
 - `.gitignore` gets new lines appended (idempotent).
-- The Quarto extension itself is installed by `quarto add` (run
-  separately); init only scaffolds the surrounding files.
 
 The flow is intentionally pre-`usethis`: no interactive prompts, no
 auto-merge. Once the CLI matures we can add `--force` for overwrites
@@ -37,15 +35,11 @@ import yaml
 _QUARTO_YML_MANUSCRIPT = """\
 project:
   type: default
-
-filters:
-  - quarto-manubot-cite
-
-# Manubot wiring. Defaults shipped by the quartobot extension; tune as needed.
-manubot-output-bibliography: references.json
-manubot-bibliography-cache: _freeze/manubot-cache.json
-manubot-fail-on-errors: false
-manubot-infer-citekey-prefixes: true
+  # Resolves @doi:, @pmid:, @arxiv:, @isbn:, @url:, @wikidata:, @pmcid:,
+  # and bare DOIs before pandoc runs. The resolved CSL JSON lands in
+  # references.json (gitignored — regenerated each render) and pandoc
+  # citeproc reads it alongside hand-curated entries in references.bib.
+  pre-render: quartobot resolve --from-scan . --output references.json --id-mode citation-key
 
 bibliography:
   - references.bib
@@ -65,6 +59,8 @@ format:
 _QUARTO_YML_BOOK = """\
 project:
   type: book
+  # See the manuscript template for what the pre-render hook does.
+  pre-render: quartobot resolve --from-scan . --output references.json --id-mode citation-key
 
 book:
   title: "My quartobot book"
@@ -74,14 +70,6 @@ book:
     - index.qmd
   search: true
   page-navigation: true
-
-filters:
-  - quarto-manubot-cite
-
-manubot-output-bibliography: references.json
-manubot-bibliography-cache: _freeze/manubot-cache.json
-manubot-fail-on-errors: false
-manubot-infer-citekey-prefixes: true
 
 bibliography:
   - references.bib
@@ -97,8 +85,8 @@ format:
 
 _REFERENCES_BIB = """\
 % Hand-curated entries live here. Auto-resolved entries written by
-% pandoc-manubot-cite land in references.json (regenerated each
-% render, ignored by git).
+% `quartobot resolve` land in references.json (regenerated each render,
+% ignored by git).
 """
 
 # Embedded HTML banners. Lines are long because CSS is inlined for
@@ -210,7 +198,6 @@ _GITIGNORE_LINES = [
     "_book/",
     "_freeze/",
     ".quarto/",
-    "_extensions/",
     "references.json",
     "*_files/",
     "**/*.quarto_ipynb",
@@ -327,7 +314,7 @@ def init_project(
             Action(
                 path=yml_path,
                 status="manual-merge",
-                detail="merge the manubot block manually",
+                detail="merge the pre-render block manually",
             )
         )
         outcome.manual_merge_snippet = _quarto_yml_snippet_for_manual_merge()
@@ -366,15 +353,11 @@ def init_project(
 def _quarto_yml_snippet_for_manual_merge() -> str:
     """Return the YAML lines to add to an existing `_quarto.yml`."""
     return """\
-# Add to your existing _quarto.yml:
+# Add to your existing _quarto.yml. The pre-render line goes under
+# `project:` next to your existing `type:` value.
 
-filters:
-  - quarto-manubot-cite
-
-manubot-output-bibliography: references.json
-manubot-bibliography-cache: _freeze/manubot-cache.json
-manubot-fail-on-errors: false
-manubot-infer-citekey-prefixes: true
+project:
+  pre-render: quartobot resolve --from-scan . --output references.json --id-mode citation-key
 
 bibliography:
   - references.bib
@@ -412,10 +395,10 @@ def format_outcome(outcome: InitOutcome, *, project: Path) -> str:
     if outcome.manual_merge_snippet:
         lines.append(outcome.manual_merge_snippet)
     lines.append("Next steps:")
-    lines.append("  1. quarto add seandavi/quartobot --no-prompt")
-    lines.append("  2. pip install 'manubot>=0.6,<0.7'")
-    lines.append("  3. Add citations to your prose: @doi:..., @pmid:..., etc.")
-    lines.append("  4. quarto render")
+    lines.append("  1. Confirm `quartobot` is on PATH: `quartobot --version`")
+    lines.append("     (install with `uv tool install git+https://github.com/seandavi/quartobot`)")
+    lines.append("  2. Add citations to your prose: @doi:..., @pmid:..., etc.")
+    lines.append("  3. quarto render")
     return "\n".join(lines)
 
 

@@ -8,42 +8,34 @@ from click.testing import CliRunner
 
 from quartobot.cli import main
 from quartobot.validate import (
-    DEFAULT_EXTENSION_DIR,
     Check,
     ValidateOutcome,
     _check_bibliography_declared,
-    _check_extension_installed,
-    _check_manubot_cache,
-    _check_manubot_output_matches_bibliography,
     _check_no_duplicate_cites,
+    _check_pre_render_hook,
     _check_quarto_yml_exists,
+    _check_references_json_in_bibliography,
     _load_quarto_yml,
     format_outcome,
     validate_project,
 )
 
+_GOOD_PRE_RENDER = "quartobot resolve --from-scan . --output references.json --id-mode citation-key"
+
 
 def _make_project(
     tmp_path: Path,
     *,
-    extension: bool = True,
     quarto_yml: object = "ok",
     qmd_content: str = "Some prose.\n",
 ) -> Path:
     """Build a small Quarto project tree under tmp_path."""
-    if extension:
-        ext_dir = tmp_path / DEFAULT_EXTENSION_DIR
-        ext_dir.mkdir(parents=True, exist_ok=True)
-        (ext_dir / "_extension.yml").write_text("title: quarto-manubot-cite\n")
-
     if quarto_yml == "ok":
         import yaml
 
         cfg = {
-            "filters": ["quarto-manubot-cite"],
+            "project": {"pre-render": _GOOD_PRE_RENDER},
             "bibliography": ["references.bib", "references.json"],
-            "manubot-bibliography-cache": "_freeze/manubot-cache.json",
-            "manubot-output-bibliography": "references.json",
         }
         (tmp_path / "_quarto.yml").write_text(yaml.safe_dump(cfg))
     elif isinstance(quarto_yml, dict):
@@ -76,19 +68,6 @@ def test_load_non_mapping_yml(tmp_path):
 def test_load_ok_yml(tmp_path):
     (tmp_path / "_quarto.yml").write_text("title: ok\n")
     assert _load_quarto_yml(tmp_path) == {"title": "ok"}
-
-
-def test_extension_installed_pass(tmp_path):
-    _make_project(tmp_path)
-    c = _check_extension_installed(tmp_path)
-    assert c.passed
-
-
-def test_extension_not_installed(tmp_path):
-    _make_project(tmp_path, extension=False)
-    c = _check_extension_installed(tmp_path)
-    assert not c.passed
-    assert "quarto add" in (c.detail or "")
 
 
 def test_quarto_yml_exists(tmp_path):
@@ -125,37 +104,63 @@ def test_bibliography_garbage_type():
     assert not c.passed
 
 
-def test_manubot_cache_set():
-    c = _check_manubot_cache({"manubot-bibliography-cache": "_freeze/manubot-cache.json"})
+def test_pre_render_hook_set_as_string():
+    cfg = {"project": {"pre-render": _GOOD_PRE_RENDER}}
+    c = _check_pre_render_hook(cfg)
     assert c.passed
 
 
-def test_manubot_cache_missing():
-    c = _check_manubot_cache({})
+def test_pre_render_hook_set_as_list():
+    # Quarto accepts a list of pre-render commands; check substring detection
+    # still works against the joined form.
+    cfg = {"project": {"pre-render": ["echo hi", _GOOD_PRE_RENDER]}}
+    c = _check_pre_render_hook(cfg)
+    assert c.passed
+
+
+def test_pre_render_hook_missing():
+    cfg = {"project": {"type": "default"}}
+    c = _check_pre_render_hook(cfg)
+    assert not c.passed
+    assert "missing" in (c.detail or "")
+
+
+def test_pre_render_hook_no_project_key():
+    c = _check_pre_render_hook({})
     assert not c.passed
 
 
-def test_manubot_output_in_bibliography():
-    cfg = {
-        "bibliography": ["references.bib", "references.json"],
-        "manubot-output-bibliography": "references.json",
-    }
-    c = _check_manubot_output_matches_bibliography(cfg)
+def test_pre_render_hook_calls_something_else():
+    cfg = {"project": {"pre-render": "echo hello"}}
+    c = _check_pre_render_hook(cfg)
+    assert not c.passed
+    assert "quartobot resolve" in (c.detail or "")
+
+
+def test_pre_render_hook_missing_citation_key_flag():
+    # `quartobot resolve` declared, but with the wrong --id-mode (or none) —
+    # this silently breaks pandoc-citeproc matching, so validate flags it.
+    cfg = {"project": {"pre-render": "quartobot resolve --from-scan ."}}
+    c = _check_pre_render_hook(cfg)
+    assert not c.passed
+    assert "citation-key" in (c.detail or "")
+
+
+def test_references_json_in_bibliography():
+    cfg = {"bibliography": ["references.bib", "references.json"]}
+    c = _check_references_json_in_bibliography(cfg)
     assert c.passed
 
 
-def test_manubot_output_not_in_bibliography():
-    cfg = {
-        "bibliography": ["references.bib"],
-        "manubot-output-bibliography": "references.json",
-    }
-    c = _check_manubot_output_matches_bibliography(cfg)
+def test_references_json_missing_from_bibliography():
+    cfg = {"bibliography": ["references.bib"]}
+    c = _check_references_json_in_bibliography(cfg)
     assert not c.passed
     assert "Citeproc won't" in (c.detail or "")
 
 
-def test_manubot_output_missing():
-    c = _check_manubot_output_matches_bibliography({})
+def test_references_json_no_bibliography_at_all():
+    c = _check_references_json_in_bibliography({})
     assert not c.passed
 
 
@@ -177,38 +182,27 @@ def test_validate_happy_path(tmp_path):
     _make_project(tmp_path, qmd_content="Cite @doi:10.1371/journal.pcbi.1007128.\n")
     outcome = validate_project(tmp_path)
     assert outcome.passed, outcome.failures
-    assert len(outcome.checks) == 6
+    # _quarto.yml + bibliography + pre-render + references.json + dup-cites
+    assert len(outcome.checks) == 5
 
 
-def test_validate_missing_extension(tmp_path):
-    _make_project(tmp_path, extension=False)
-    outcome = validate_project(tmp_path)
-    assert not outcome.passed
-    names = [c.name for c in outcome.failures]
-    assert "extension installed" in names
-
-
-def test_validate_missing_cache_key(tmp_path):
-    cfg = {
-        "bibliography": ["references.bib", "references.json"],
-        "manubot-output-bibliography": "references.json",
-    }
+def test_validate_missing_pre_render(tmp_path):
+    cfg = {"bibliography": ["references.bib", "references.json"]}
     _make_project(tmp_path, quarto_yml=cfg)
     outcome = validate_project(tmp_path)
     assert not outcome.passed
-    assert "manubot-bibliography-cache" in [c.name for c in outcome.failures]
+    assert "pre-render hook" in [c.name for c in outcome.failures]
 
 
-def test_validate_output_not_in_bibliography(tmp_path):
+def test_validate_references_json_not_in_bibliography(tmp_path):
     cfg = {
+        "project": {"pre-render": _GOOD_PRE_RENDER},
         "bibliography": ["references.bib"],
-        "manubot-bibliography-cache": "_freeze/cache.json",
-        "manubot-output-bibliography": "references.json",
     }
     _make_project(tmp_path, quarto_yml=cfg)
     outcome = validate_project(tmp_path)
     assert not outcome.passed
-    assert "manubot-output-bibliography" in [c.name for c in outcome.failures]
+    assert "references.json in bibliography" in [c.name for c in outcome.failures]
 
 
 def test_validate_no_quarto_yml(tmp_path):
@@ -217,7 +211,7 @@ def test_validate_no_quarto_yml(tmp_path):
     assert not outcome.passed
     assert "_quarto.yml exists" in [c.name for c in outcome.failures]
     # Config checks skipped when _quarto.yml is missing.
-    assert len(outcome.checks) == 3
+    assert len(outcome.checks) == 2
 
 
 def test_validate_broken_yml(tmp_path):
@@ -260,8 +254,8 @@ def test_cli_happy_path_exits_zero(tmp_path):
 
 
 def test_cli_failure_exits_one(tmp_path):
-    _make_project(tmp_path, extension=False)
+    _make_project(tmp_path, quarto_yml={"bibliography": ["references.bib"]})
     runner = CliRunner()
     result = runner.invoke(main, ["validate", str(tmp_path)])
     assert result.exit_code == 1
-    assert "✗ extension installed" in result.output
+    assert "✗ pre-render hook" in result.output

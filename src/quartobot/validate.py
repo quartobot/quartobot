@@ -2,11 +2,12 @@
 
 `quartobot validate` runs a battery of static checks before render:
 
-- The quarto-manubot-cite extension is installed.
 - `_quarto.yml` exists and declares `bibliography:`.
-- The manubot configuration keys are present and consistent
-  (`manubot-bibliography-cache`, `manubot-output-bibliography`,
-  the output file is also in the bibliography list).
+- `project.pre-render` declares a `quartobot resolve` invocation with
+  `--id-mode citation-key` (the mode that lets pandoc-citeproc match
+  prose keys against the resolved CSL JSON).
+- `references.json` is listed under `bibliography:`. Otherwise the
+  pre-render hook writes a CSL JSON file that citeproc never reads.
 - The project's cite keys don't have duplicates that would break
   pre-commit hooks (delegates to `scan`).
 
@@ -28,8 +29,6 @@ from typing import Any
 import yaml
 
 from quartobot.scan import scan_path
-
-DEFAULT_EXTENSION_DIR = Path("_extensions") / "seandavi" / "quarto-manubot-cite"
 
 
 @dataclass(frozen=True)
@@ -75,22 +74,6 @@ def _load_quarto_yml(path: Path) -> dict[str, Any] | None:
     return loaded
 
 
-def _check_extension_installed(project: Path) -> Check:
-    """The quarto-manubot-cite extension must be present in `_extensions/`."""
-    target = project / DEFAULT_EXTENSION_DIR / "_extension.yml"
-    if target.exists():
-        return Check(
-            name="extension installed",
-            passed=True,
-            detail=f"found {DEFAULT_EXTENSION_DIR}/_extension.yml",
-        )
-    return Check(
-        name="extension installed",
-        passed=False,
-        detail=(f"missing {target} — run `quarto add seandavi/quartobot --no-prompt`"),
-    )
-
-
 def _check_quarto_yml_exists(project: Path) -> Check:
     """`_quarto.yml` must exist for any Quarto project."""
     yml = project / "_quarto.yml"
@@ -131,57 +114,86 @@ def _check_bibliography_declared(config: dict[str, Any]) -> Check:
     )
 
 
-def _check_manubot_cache(config: dict[str, Any]) -> Check:
-    """`manubot-bibliography-cache:` should be set so renders stay offline."""
-    cache = config.get("manubot-bibliography-cache")
-    if not cache:
+def _pre_render_value(config: dict[str, Any]) -> str | None:
+    """Return `project.pre-render` as a single string, or None.
+
+    Quarto accepts `pre-render:` as either a scalar string or a list of
+    strings (each command runs in order). Normalize to a single joined
+    string so a substring check across either shape just works.
+    """
+    project = config.get("project")
+    if not isinstance(project, dict):
+        return None
+    raw = project.get("pre-render")
+    if isinstance(raw, str):
+        return raw
+    if isinstance(raw, list):
+        return "\n".join(str(item) for item in raw)
+    return None
+
+
+def _check_pre_render_hook(config: dict[str, Any]) -> Check:
+    """`project.pre-render` must call `quartobot resolve` with `--id-mode citation-key`."""
+    value = _pre_render_value(config)
+    if value is None:
         return Check(
-            name="manubot-bibliography-cache",
+            name="pre-render hook",
             passed=False,
             detail=(
-                "missing — without this, manubot will re-resolve every "
-                "citation on every render. Recommended: "
-                "`manubot-bibliography-cache: _freeze/manubot-cache.json`"
+                "missing — add to `_quarto.yml`:\n"
+                "    project:\n"
+                "      pre-render: quartobot resolve --from-scan . "
+                "--output references.json --id-mode citation-key"
+            ),
+        )
+    if "quartobot resolve" not in value:
+        return Check(
+            name="pre-render hook",
+            passed=False,
+            detail=(
+                f"`project.pre-render` is set but does not call `quartobot resolve`: {value!r}"
+            ),
+        )
+    if "citation-key" not in value:
+        return Check(
+            name="pre-render hook",
+            passed=False,
+            detail=(
+                "`quartobot resolve` is invoked but `--id-mode citation-key` is missing. "
+                "Without it, CSL `id`s are manubot's short hashes "
+                "(`YuJbg3zO`), not the prose keys (`doi:10.1371/...`), and "
+                "pandoc-citeproc silently fails to match any cites."
             ),
         )
     return Check(
-        name="manubot-bibliography-cache",
+        name="pre-render hook",
         passed=True,
-        detail=f"set to `{cache}`",
+        detail="`quartobot resolve --id-mode citation-key` declared",
     )
 
 
-def _check_manubot_output_matches_bibliography(config: dict[str, Any]) -> Check:
-    """`manubot-output-bibliography` should also appear in `bibliography:`.
+def _check_references_json_in_bibliography(config: dict[str, Any]) -> Check:
+    """The pre-render hook's `references.json` output must be in `bibliography:`.
 
-    Otherwise manubot writes a CSL JSON file that citeproc never reads,
-    and the resolved entries don't reach the rendered output.
+    Otherwise `quartobot resolve` writes a CSL JSON file that pandoc
+    citeproc never reads, and the resolved entries don't reach the
+    rendered output.
     """
-    output = config.get("manubot-output-bibliography")
-    if not output:
-        return Check(
-            name="manubot-output-bibliography",
-            passed=False,
-            detail=(
-                "missing — recommended: "
-                "`manubot-output-bibliography: references.json` "
-                "(and include `references.json` in `bibliography:`)"
-            ),
-        )
     bibs = _bibliography_list(config)
-    if str(output) not in bibs:
+    if "references.json" in bibs:
         return Check(
-            name="manubot-output-bibliography",
-            passed=False,
-            detail=(
-                f"`{output}` set, but not listed under `bibliography:` "
-                f"({bibs}). Citeproc won't read manubot's resolved entries."
-            ),
+            name="references.json in bibliography",
+            passed=True,
+            detail="`references.json` listed in `bibliography:`",
         )
     return Check(
-        name="manubot-output-bibliography",
-        passed=True,
-        detail=f"set to `{output}` and listed in `bibliography:`",
+        name="references.json in bibliography",
+        passed=False,
+        detail=(
+            f"`references.json` is not in `bibliography:` ({bibs}). "
+            f"Citeproc won't read the resolved entries the pre-render "
+            f"hook writes there."
+        ),
     )
 
 
@@ -210,9 +222,6 @@ def validate_project(project: Path) -> ValidateOutcome:
     """Run every check against `project` (the Quarto project root)."""
     outcome = ValidateOutcome()
 
-    # Extension first — without it the whole flow doesn't work.
-    outcome.checks.append(_check_extension_installed(project))
-
     yml_check = _check_quarto_yml_exists(project)
     outcome.checks.append(yml_check)
 
@@ -228,8 +237,8 @@ def validate_project(project: Path) -> ValidateOutcome:
             )
         else:
             outcome.checks.append(_check_bibliography_declared(config))
-            outcome.checks.append(_check_manubot_cache(config))
-            outcome.checks.append(_check_manubot_output_matches_bibliography(config))
+            outcome.checks.append(_check_pre_render_hook(config))
+            outcome.checks.append(_check_references_json_in_bibliography(config))
 
     # Duplicate-cite scan is independent of _quarto.yml.
     outcome.checks.append(_check_no_duplicate_cites(project))
@@ -256,7 +265,6 @@ def format_outcome(outcome: ValidateOutcome) -> str:
 
 
 __all__: Sequence[str] = (
-    "DEFAULT_EXTENSION_DIR",
     "Check",
     "ValidateOutcome",
     "format_outcome",

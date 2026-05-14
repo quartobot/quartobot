@@ -14,8 +14,8 @@ from quartobot import __version__
 def main() -> None:
     """quartobot: manuscript-as-software, on Quarto.
 
-    Pre-render and out-of-render tooling for Quarto projects that use the
-    quarto-manubot-cite extension.
+    Pre-render and out-of-render tooling for Quarto projects that resolve
+    citations through manubot from a pre-render hook.
     """
 
 
@@ -80,12 +80,11 @@ def scan(path: Path) -> None:
     default="short-hash",
     show_default=True,
     help=(
-        "How to populate the CSL `id` field. `short-hash` (default) "
-        "keeps manubot's hash form, which the `pandoc-manubot-cite` "
-        "filter expects. `citation-key` writes the original "
-        "`prefix:identifier`, which lets pandoc-citeproc match prose "
-        "keys directly with no filter in the chain — the pre-render-"
-        "hook architecture."
+        "How to populate the CSL `id` field. `citation-key` (the form "
+        "expected by the `quartobot` pre-render hook) writes the user's "
+        "original `prefix:identifier` so pandoc-citeproc matches prose "
+        "keys directly. `short-hash` keeps manubot's hash form for "
+        "callers that consume `manubot.cite` output directly."
     ),
 )
 def resolve(
@@ -155,10 +154,10 @@ def resolve(
 def validate(project: Path) -> None:
     """Pre-flight check a Quarto project for the quartobot pattern.
 
-    Runs a battery of static config checks: the extension is installed,
-    `_quarto.yml` declares `bibliography:` and the manubot keys, the
-    output bibliography is also in the bibliography list, no duplicate
-    cite keys across files.
+    Runs a battery of static config checks: `_quarto.yml` exists and
+    declares `bibliography:`, `project.pre-render` calls
+    `quartobot resolve --id-mode citation-key`, `references.json`
+    is in the bibliography list, no duplicate cite keys across files.
 
     Citation-resolution checks (does Crossref actually return metadata
     for this DOI?) are out of scope here — they need network. Run
@@ -201,9 +200,6 @@ def init(project: Path, project_type: str) -> None:
 
     Conservative — never overwrites existing files. If `_quarto.yml`
     already exists, prints a YAML snippet to merge in manually.
-
-    Doesn't run `quarto add` or `pip install` for you; the printed
-    "next steps" walk through both.
     """
     from quartobot.init_project import format_outcome, init_project
 
