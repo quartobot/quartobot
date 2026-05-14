@@ -26,37 +26,12 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Set up Python (for manubot)
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install manubot
-        # `pandoc-manubot-cite` ships inside the manubot package. The Quarto
-        # extension declares it as a filter; pandoc looks for the binary on
-        # PATH at render time.
-        run: |
-          python -m pip install --upgrade pip
-          pip install 'manubot>=0.6,<0.7'
-          which pandoc-manubot-cite
-          pandoc-manubot-cite --help | head -5
-
-      - name: Set up Quarto
-        uses: quarto-dev/quarto-actions/setup@v2
-        with:
-          tinytex: true
-        env:
-          # Authenticate the TinyTeX release lookup against the GitHub API
-          # so we don't hit unauthenticated rate limits.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install quarto-manubot-cite extension
-        # Required so the `filters: - quarto-manubot-cite` line in
-        # _quarto.yml resolves. `--no-prompt` is essential in CI.
-        run: |
-          quarto add seandavi/quartobot --no-prompt
-          quarto list extensions
+      # The substantive setup — Python, manubot, Quarto+TinyTeX, and the
+      # quarto-manubot-cite extension — is delegated to the upstream
+      # composite action so consumers get bug fixes via the version pin.
+      # Switch `@main` to `@v0.1` once that tag exists.
+      - name: Set up quartobot toolchain
+        uses: seandavi/quartobot/actions/setup-quartobot@main
 
       - name: Substitute version banner (push to main only)
         # PR builds keep the committed placeholder _version-banner.html; the
@@ -79,59 +54,10 @@ jobs:
           echo "--- generated _version-banner.html ---"
           cat _version-banner.html
 
-      - name: Diagnostics before render
-        shell: bash
-        run: |
-          set -euxo pipefail
-          echo "PWD: $(pwd)"
-          echo "Date: $(date -Iseconds)"
-          echo "GitHub SHA: ${GITHUB_SHA}"
-          quarto --version
-          quarto pandoc --version || true
-          xelatex --version || pdflatex --version || true
-          ls -la
-          find . -maxdepth 2 \( -name "*.qmd" -o -name "_quarto.yml" -o -name "*.bib" -o -name "*.csl" \) | sort
-
-      - name: Render HTML
-        shell: bash
-        run: |
-          set -euxo pipefail
-          /usr/bin/time -v quarto render --to html --execute-debug 2>&1 | tee render-html.log
-
-      - name: Render PDF
-        shell: bash
-        run: |
-          set -euo pipefail
-          (
-            while true; do
-              echo "[heartbeat] PDF render still running at $(date -Iseconds)"
-              sleep 30
-            done
-          ) &
-          heartbeat_pid=$!
-
-          /usr/bin/time -v quarto render --to pdf --execute-debug 2>&1 | tee render-pdf.log
-          status=${PIPESTATUS[0]}
-
-          kill "${heartbeat_pid}" || true
-          wait "${heartbeat_pid}" 2>/dev/null || true
-          exit "${status}"
-
-      - name: Render DOCX
-        shell: bash
-        run: |
-          set -euxo pipefail
-          /usr/bin/time -v quarto render --to docx --execute-debug 2>&1 | tee render-docx.log
-
-      - name: Upload render logs
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Render manuscript
+        uses: seandavi/quartobot/actions/render-manuscript@main
         with:
-          name: render-logs
-          path: |
-            render-html.log
-            render-pdf.log
-            render-docx.log
+          formats: "html,pdf,docx"
 
       # ----------------------------------------------------------------
       # Stage outputs for deployment.
