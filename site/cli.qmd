@@ -97,25 +97,27 @@ before they reach a render.
 
 ```
 $ quartobot validate .
-  ✓ extension installed — found _extensions/seandavi/quarto-manubot-cite/_extension.yml
   ✓ _quarto.yml exists
   ✓ bibliography declared — 2 file(s): references.bib, references.json
-  ✗ manubot-bibliography-cache — missing — without this, manubot will re-resolve every citation on every render. Recommended: `manubot-bibliography-cache: _freeze/manubot-cache.json`
-  ✓ manubot-output-bibliography — set to `references.json` and listed in `bibliography:`
+  ✗ pre-render hook — `quartobot resolve` is invoked but `--id-mode citation-key` is missing. Without it, CSL `id`s are manubot's short hashes (`YuJbg3zO`), not the prose keys (`doi:10.1371/...`), and pandoc-citeproc silently fails to match any cites.
+  ✓ references.json in bibliography — `references.json` listed in `bibliography:`
   ✓ no duplicate cite keys — 5 unique key(s) in 3 file(s)
 
-1 of 6 check(s) failed. Exit 1.
+1 of 5 check(s) failed. Exit 1.
 ```
 
 Checks run:
 
-- The `quarto-manubot-cite` extension is installed.
 - `_quarto.yml` exists and parses as YAML.
 - `bibliography:` is declared (as a string or list).
-- `manubot-bibliography-cache:` is set.
-- `manubot-output-bibliography:` is set AND also appears in
-  `bibliography:` (the most common silent failure — without that,
-  citeproc never reads what manubot wrote).
+- `project.pre-render` calls `quartobot resolve` with `--id-mode citation-key`.
+  The flag is load-bearing — without it, manubot's canonical short
+  hashes replace the user's prose keys and pandoc-citeproc silently
+  fails to match anything.
+- `references.json` appears in `bibliography:` — the most common
+  silent failure under the pre-render hook architecture, since
+  without it pandoc citeproc never reads what `quartobot resolve`
+  wrote.
 - No duplicate cite keys across files.
 
 Citation-resolution checks ("does this DOI actually resolve at
@@ -141,13 +143,13 @@ Project type: manuscript
   + _version-banner.html  [written]
   + .github/workflows/render.yml  [written]
   + .github/workflows/pr-closed.yml  [written]
-  ~ .gitignore  [appended] — added 7 line(s)
+  ~ .gitignore  [appended] — added 6 line(s)
 
 Next steps:
-  1. quarto add seandavi/quartobot --no-prompt
-  2. pip install 'manubot>=0.6,<0.7'
-  3. Add citations to your prose: @doi:..., @pmid:..., etc.
-  4. quarto render
+  1. Confirm `quartobot` is on PATH: `quartobot --version`
+     (install with `uv tool install git+https://github.com/seandavi/quartobot`)
+  2. Add citations to your prose: @doi:..., @pmid:..., etc.
+  3. quarto render
 ```
 
 Conservative — never overwrites existing files. If `_quarto.yml`
@@ -166,11 +168,12 @@ shipped. Tracked at [#25](https://github.com/seandavi/quartobot/issues/25).
 
 ## Philosophy
 
-The CLI sits on top of pandoc-manubot-cite (the resolver) and pandoc
-citeproc (the renderer); it doesn't replace either. Every command is
-either pre-render (do work ahead of `quarto render` so CI is faster
-and more reliable) or out-of-render (`init`, `scan`, `validate` — work
-that doesn't touch render at all).
+The CLI calls `manubot.cite` (the resolver library) directly from a
+Quarto pre-render hook and lets pandoc citeproc (the renderer) consume
+the resulting CSL JSON. Every command is either pre-render (do work
+ahead of `quarto render` so the render itself is faster and more
+reliable) or out-of-render (`init`, `scan`, `validate` — work that
+doesn't touch render at all).
 
 Opaque-by-default for the CI surface: a consumer's `.github/workflows/render.yml`
 is ten lines pointing at the upstream reusable workflow. `quartobot

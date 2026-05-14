@@ -32,27 +32,22 @@ git add . && git commit -m "Adopt the quartobot pattern"
 git push
 ```
 
-`quartobot init` adds the citation extension, merges the manubot keys
-into your `_quarto.yml`, seeds a `references.bib`, drops in the version
-banner template, and writes a ten-line `render.yml` that calls the
-upstream reusable workflow. Idempotent — run it again and nothing breaks.
+`quartobot init` wires the `quartobot resolve` pre-render hook into
+`_quarto.yml`, seeds a `references.bib`, drops in the version banner
+template, and writes a ten-line `render.yml` that calls the upstream
+reusable workflow. Idempotent — run it again and nothing breaks.
 
 ### I just want auto-resolved citations
 
 ```bash
-quarto add seandavi/quartobot
-pip install 'manubot>=0.6,<0.7'
+uv tool install git+https://github.com/seandavi/quartobot
 ```
 
 Then in your `_quarto.yml`:
 
 ```yaml
-filters:
-  - quarto-manubot-cite
-
-manubot-output-bibliography: references.json
-manubot-bibliography-cache: _freeze/manubot-cache.json
-manubot-fail-on-errors: false
+project:
+  pre-render: quartobot resolve --from-scan . --output references.json --id-mode citation-key
 
 bibliography:
   - references.bib
@@ -65,20 +60,21 @@ And in your prose:
 The pattern is described in @doi:10.1371/journal.pcbi.1007128.
 ```
 
-That's the minimum. No CI, no banner, no template machinery.
+That's the minimum. No filter, no `quarto add`, no extension. The hook
+runs before pandoc on every render; pandoc-citeproc reads
+`references.json` and `references.bib` together.
 
 ## Prerequisites
 
 - **Quarto ≥ 1.4** — `quarto --version`. [Install](https://quarto.org/docs/get-started/).
-- **Python ≥ 3.10** — for the CLI and `pandoc-manubot-cite`.
-- **A GitHub repo** — for the CI / Pages parts. The bare extension works
-  without a GitHub repo or CI; the resolver needs network on first render
-  (Crossref/PubMed/etc.) but reads from `_freeze/manubot-cache.json` on
-  subsequent renders.
+- **Python ≥ 3.10** — for the `quartobot` CLI.
+- **A GitHub repo** — for the CI / Pages parts. The pre-render hook
+  works without a GitHub repo or CI; first render needs network for
+  Crossref/PubMed/etc., subsequent renders skip the network call when
+  `references.json` already has the entry.
 
 ## See also
 
 - [Install reference](install.qmd) — every install method, when to use which
-- [Extension reference](extension.qmd)
+- [CLI reference](cli.qmd) — including the `quartobot resolve` pre-render hook
 - [Template walkthrough](template.qmd)
-- [CLI reference](cli.qmd)

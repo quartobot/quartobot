@@ -3,10 +3,10 @@ title: "The book template"
 ---
 
 A GitHub template combining Quarto **books**, the
-[citation extension](extension.qmd), and a CI workflow that gives every
-commit an immutable permalink, embeds that permalink in every chapter's
-HTML, posts PR previews via sticky comment, and deploys the book site
-to GitHub Pages.
+[`quartobot resolve` pre-render hook](cli.qmd#resolve), and a CI
+workflow that gives every commit an immutable permalink, embeds that
+permalink in every chapter's HTML, posts PR previews via sticky
+comment, and deploys the book site to GitHub Pages.
 
 If you're writing a single document (paper, preprint, technical
 report), see [the manuscript template](template.qmd) — same pattern,
@@ -29,9 +29,9 @@ doesn't work — read the source instead.
 - **PR previews** at `https://<owner>.github.io/<repo>/pr/<n>/`, with a
   sticky comment on the PR linking to the latest preview and the
   per-commit snapshots.
-- **Auto-resolved citations** through the extension. Cite by `@doi:`,
-  `@pmid:`, `@arxiv:`, `@isbn:`, etc. in any chapter; the resolver runs
-  once per render and caches metadata.
+- **Auto-resolved citations** through the pre-render hook. Cite by
+  `@doi:`, `@pmid:`, `@arxiv:`, `@isbn:`, etc. in any chapter; the
+  resolver runs once per render across the whole project.
 - **Multi-page HTML book site** — Quarto's book project type provides
   sidebar navigation, full-text search, per-chapter HTML pages, and a
   configurable theme.

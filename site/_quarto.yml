@@ -21,8 +21,6 @@ website:
         text: Getting started
       - href: install.qmd
         text: Install
-      - href: extension.qmd
-        text: Extension
       - text: Templates
         menu:
           - href: template.qmd
