@@ -1,22 +1,22 @@
 name: Set up quartobot toolchain
 description: |
-  Install Python, manubot (which provides pandoc-manubot-cite on PATH),
-  Quarto with TinyTeX, and the quarto-manubot-cite extension into a
-  Quarto project. Use this in any workflow that renders a Quarto project
-  using the manubot citation pattern.
+  Install Python, the `quartobot` CLI on PATH (so Quarto's pre-render
+  hook subprocess can invoke it), pandoc, Quarto, and TinyTeX. Use this
+  in any workflow that renders a Quarto project using the quartobot
+  pre-render hook for citation resolution.
 
 inputs:
   python-version:
     description: "Python version to install."
     required: false
     default: "3.12"
-  manubot-spec:
+  quartobot-spec:
     description: |
-      Pip spec for manubot. The default range keeps you on a tested 0.6.x;
-      override with a pinned version if you need reproducibility against a
-      specific Crossref/PubMed schema.
+      Pip spec for the `quartobot` CLI. Defaults to the published
+      git ref; override with a tag, a fork, or a workspace path for
+      testing against a specific build.
     required: false
-    default: "manubot>=0.6,<0.7"
+    default: "git+https://github.com/seandavi/quartobot"
   quarto-version:
     description: |
       Quarto version. `release` is the latest stable; `prerelease` and
@@ -30,17 +30,10 @@ inputs:
       and want a faster CI job.
     required: false
     default: "true"
-  extension-source:
-    description: >
-      Source for `quarto add`. Defaults to the published quartobot repo;
-      for testing against an in-tree copy pass the GitHub workspace path
-      (e.g., the value of `github.workspace`).
-    required: false
-    default: "seandavi/quartobot"
   project:
     description: |
-      Directory holding the `_quarto.yml` the extension will be installed
-      into. The `quarto add` step runs from here.
+      Directory holding the `_quarto.yml` that declares the
+      `quartobot resolve` pre-render hook. Defaults to the repo root.
     required: false
     default: "."
 
@@ -62,13 +55,13 @@ runs:
     - name: Set up pandoc
       uses: r-lib/actions/setup-pandoc@v2
 
-    - name: Install manubot (provides pandoc-manubot-cite)
+    - name: Install quartobot CLI
       shell: bash
       run: |
         python -m pip install --upgrade pip
-        pip install '${{ inputs.manubot-spec }}'
-        which pandoc-manubot-cite
-        pandoc-manubot-cite --help | head -5 || true
+        pip install '${{ inputs.quartobot-spec }}'
+        quartobot --version
+        quartobot --help | head -5
 
     - name: Set up Quarto
       uses: quarto-dev/quarto-actions/setup@v2
@@ -79,10 +72,3 @@ runs:
         # Authenticate the TinyTeX release lookup against the GitHub API
         # so we don't hit unauthenticated rate limits on hot CI hours.
         GITHUB_TOKEN: ${{ github.token }}
-
-    - name: Install quarto-manubot-cite extension
-      shell: bash
-      working-directory: ${{ inputs.project }}
-      run: |
-        quarto add '${{ inputs.extension-source }}' --no-prompt
-        quarto list extensions

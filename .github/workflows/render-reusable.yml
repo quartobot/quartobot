@@ -67,15 +67,18 @@ on:
       # should use `quartobot detach` (once that lands in #25) to copy
       # the full pipeline locally and edit it.
       python-version:
-        description: "Python version for the manubot install."
+        description: "Python version for the quartobot install."
         type: string
         required: false
         default: "3.12"
-      manubot-spec:
-        description: "Pip spec for manubot."
+      quartobot-spec:
+        description: |
+          Pip spec for the quartobot CLI. Defaults to the published git
+          ref; pin a tag (`@v0.1.0`), point at a fork, or use a
+          workspace path for in-tree testing.
         type: string
         required: false
-        default: "manubot>=0.6,<0.7"
+        default: "git+https://github.com/seandavi/quartobot"
       quarto-version:
         description: "Quarto version (empty = latest stable)."
         type: string
@@ -86,13 +89,6 @@ on:
         type: string
         required: false
         default: "true"
-      extension-source:
-        description: |
-          Source for `quarto add`. Use `seandavi/quartobot` in production;
-          override with a fork or workspace path for testing.
-        type: string
-        required: false
-        default: "seandavi/quartobot"
       project:
         description: |
           Directory holding `_quarto.yml`. Passed to both composite
@@ -129,10 +125,9 @@ jobs:
         uses: seandavi/quartobot/actions/setup-quartobot@main
         with:
           python-version: ${{ inputs.python-version }}
-          manubot-spec: ${{ inputs.manubot-spec }}
+          quartobot-spec: ${{ inputs.quartobot-spec }}
           quarto-version: ${{ inputs.quarto-version }}
           tinytex: ${{ inputs.tinytex }}
-          extension-source: ${{ inputs.extension-source }}
           project: ${{ inputs.project }}
 
       - name: Substitute version banner (push to main only)

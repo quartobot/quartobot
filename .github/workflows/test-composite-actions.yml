@@ -4,26 +4,27 @@ name: Test composite actions
 # end-to-end. Catches regressions in setup-quartobot or
 # render-manuscript before they ship to consumers. Two matrix entries:
 #
-#   - manuscript: renders examples/extension-minimal/ to HTML/PDF/DOCX
+#   - manuscript: renders examples/minimal/ to HTML/PDF/DOCX
 #   - book: renders examples/book-minimal/ to a Quarto book site
 #
-# Each entry checks that citations resolved end-to-end against the
-# in-tree extension.
+# Each entry checks that citations resolved end-to-end through the
+# `quartobot resolve` pre-render hook declared in each example's
+# `_quarto.yml`.
 
 on:
   push:
     branches: [main]
     paths:
       - "actions/**"
-      - "_extensions/**"
-      - "examples/extension-minimal/**"
+      - "src/**"
+      - "examples/minimal/**"
       - "examples/book-minimal/**"
       - ".github/workflows/test-composite-actions.yml"
   pull_request:
     paths:
       - "actions/**"
-      - "_extensions/**"
-      - "examples/extension-minimal/**"
+      - "src/**"
+      - "examples/minimal/**"
       - "examples/book-minimal/**"
       - ".github/workflows/test-composite-actions.yml"
   workflow_dispatch:
@@ -41,8 +42,8 @@ jobs:
       matrix:
         include:
           # Manuscript: HTML + PDF + DOCX, output files at project root.
-          - label: manuscript (examples/extension-minimal)
-            project: examples/extension-minimal
+          - label: manuscript (examples/minimal)
+            project: examples/minimal
             formats: html,pdf,docx
             tinytex: "true"
             assert-files: |
@@ -70,9 +71,9 @@ jobs:
       - name: Set up quartobot toolchain (against in-tree checkout)
         uses: ./actions/setup-quartobot
         with:
-          # Install the extension from the local checkout so this test
+          # Install the CLI from the local checkout so this test
           # validates THIS commit, not whatever's published upstream.
-          extension-source: ${{ github.workspace }}
+          quartobot-spec: ${{ github.workspace }}
           project: ${{ matrix.project }}
           tinytex: ${{ matrix.tinytex }}
 
@@ -100,6 +101,6 @@ jobs:
           if [ "$missing" -gt 0 ]; then
             exit 1
           fi
-          # Smoke check: the resolved manubot DOI made it into the
+          # Smoke check: the resolved DOI made it into the
           # bibliography for both project types.
           grep -q "10.1371/journal.pcbi.1007128" references.json
