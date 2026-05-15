@@ -199,6 +199,204 @@ def validate(project: Path) -> None:
         raise SystemExit(1)
 
 
+@main.group()
+def snapshots() -> None:
+    """Inspect and apply the gh-pages snapshot retention policy.
+
+    The retention policy controls which ``v/<sha>/`` directories on
+    gh-pages are kept, which are replaced with redirect stubs, and how
+    far gh-pages is allowed to grow before the workflow refuses to push.
+
+    Defaults apply when no ``quartobot.snapshots`` block is present in
+    ``_quarto.yml``. Pass ``--help`` to either subcommand for details.
+    """
+
+
+def _resolve_git_facts(
+    project: Path,
+    latest_sha: str | None,
+    tag_shas: str | None,
+) -> tuple[str, set[str]]:
+    """Fill in ``latest_sha`` and ``tag_shas`` from git when omitted.
+
+    The snapshots module is intentionally git-free; this helper bridges
+    it to the local repo so ``quartobot snapshots ...`` is ergonomic
+    for ad-hoc local runs without an explicit ``--latest-sha``.
+
+    Args:
+        project: Project directory, used as the git working dir.
+        latest_sha: User-supplied SHA, or ``None`` to resolve from
+            ``git rev-parse HEAD``.
+        tag_shas: User-supplied comma-separated SHA list, or ``None``
+            to resolve from ``git for-each-ref refs/tags/``.
+
+    Returns:
+        ``(resolved_latest_sha, resolved_tag_shas_set)``.
+
+    Raises:
+        click.ClickException: If git isn't available or the directory
+            isn't a git repository and the caller didn't supply
+            ``latest_sha`` explicitly.
+    """
+    import subprocess
+
+    if latest_sha is None:
+        try:
+            latest_sha = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=project,
+                stderr=subprocess.DEVNULL,
+                text=True,
+            ).strip()
+        except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+            raise click.ClickException(
+                "could not resolve --latest-sha from git; pass it explicitly"
+            ) from exc
+
+    if tag_shas is None:
+        try:
+            out = subprocess.check_output(
+                ["git", "for-each-ref", "--format=%(objectname)", "refs/tags/"],
+                cwd=project,
+                stderr=subprocess.DEVNULL,
+                text=True,
+            )
+            resolved_tags = {line.strip() for line in out.splitlines() if line.strip()}
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            resolved_tags = set()
+    else:
+        resolved_tags = {s.strip() for s in tag_shas.split(",") if s.strip()}
+
+    return latest_sha, resolved_tags
+
+
+_GH_PAGES_OPT = click.option(
+    "--gh-pages-dir",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    required=True,
+    help="Path to a checkout of the gh-pages branch.",
+)
+_PROJECT_OPT = click.option(
+    "--project",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    default=Path("."),
+    show_default=True,
+    help="Project directory containing _quarto.yml.",
+)
+_LATEST_SHA_OPT = click.option(
+    "--latest-sha",
+    type=str,
+    default=None,
+    help=(
+        "Full SHA of the build to treat as 'latest'. Defaults to "
+        "`git rev-parse HEAD` in the project directory."
+    ),
+)
+_TAG_SHAS_OPT = click.option(
+    "--tag-shas",
+    type=str,
+    default=None,
+    help=(
+        "Comma-separated full SHAs of tagged commits. Defaults to all "
+        "tag targets in the project's git repo."
+    ),
+)
+
+
+@snapshots.command("inventory")
+@_GH_PAGES_OPT
+@_PROJECT_OPT
+@_LATEST_SHA_OPT
+@_TAG_SHAS_OPT
+def snapshots_inventory(
+    gh_pages_dir: Path,
+    project: Path,
+    latest_sha: str | None,
+    tag_shas: str | None,
+) -> None:
+    """Echo the retention policy and current gh-pages inventory.
+
+    Read-only. Does not modify ``gh-pages-dir``. Use this on PR events
+    or for ad-hoc local inspection — it shows what *would* be pruned
+    on the next ``apply``.
+    """
+    from quartobot.snapshots import (
+        decide_retention,
+        format_log,
+        inventory,
+        load_policy,
+        project_post_prune_bytes,
+    )
+
+    load = load_policy(project)
+    inv = inventory(gh_pages_dir)
+    resolved_latest, resolved_tags = _resolve_git_facts(project, latest_sha, tag_shas)
+    decision = decide_retention(
+        inv, load.policy, latest_sha=resolved_latest, tagged_shas=resolved_tags
+    )
+    projected = project_post_prune_bytes(inv, decision, load.policy)
+    click.echo(format_log(load, inv, decision, projected))
+
+
+@snapshots.command("apply")
+@_GH_PAGES_OPT
+@_PROJECT_OPT
+@_LATEST_SHA_OPT
+@_TAG_SHAS_OPT
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Report what would change without modifying gh-pages-dir.",
+)
+def snapshots_apply(
+    gh_pages_dir: Path,
+    project: Path,
+    latest_sha: str | None,
+    tag_shas: str | None,
+    dry_run: bool,
+) -> None:
+    """Apply the retention policy: prune ``v/<sha>/`` and write stubs.
+
+    Mutates ``gh-pages-dir`` in place. The caller is responsible for
+    committing and pushing the result.
+
+    Exits 1 if the projected post-prune total still exceeds
+    ``size_budget_mb`` and ``on_over_budget`` is ``fail``.
+    """
+    from quartobot.snapshots import (
+        apply_decision,
+        decide_retention,
+        format_log,
+        inventory,
+        load_policy,
+        project_post_prune_bytes,
+    )
+
+    load = load_policy(project)
+    inv = inventory(gh_pages_dir)
+    resolved_latest, resolved_tags = _resolve_git_facts(project, latest_sha, tag_shas)
+    decision = decide_retention(
+        inv, load.policy, latest_sha=resolved_latest, tagged_shas=resolved_tags
+    )
+    projected = project_post_prune_bytes(inv, decision, load.policy)
+    click.echo(format_log(load, inv, decision, projected))
+
+    if not dry_run:
+        apply_decision(inv, decision, load.policy)
+        click.echo("")
+        click.echo(f"Applied: {len(decision.prune)} snapshots pruned in {gh_pages_dir}")
+
+    budget_bytes = load.policy.size_budget_mb * 1_000_000
+    if projected > budget_bytes:
+        message = (
+            f"projected post-prune size {projected / 1_000_000:.1f} MB exceeds "
+            f"budget {load.policy.size_budget_mb} MB"
+        )
+        if load.policy.on_over_budget == "fail":
+            raise click.ClickException(message)
+        click.echo(f"warning: {message}", err=True)
+
+
 @main.command()
 @click.argument(
     "project",

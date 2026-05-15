@@ -119,7 +119,11 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Check out source
+        # Fetch tags + history so the snapshot-retention step can read
+        # which commits carry tags (those snapshots are kept indefinitely).
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up quartobot toolchain
         uses: seandavi/quartobot/actions/setup-quartobot@main
@@ -168,6 +172,24 @@ jobs:
           formats: ${{ inputs.formats }}
 
       # ----------------------------------------------------------------
+      # Apply the snapshot retention policy to gh-pages BEFORE the
+      # render's deploy step. Pushes a single "prune" commit that
+      # replaces aged-out v/<sha>/ directories with redirect stubs;
+      # the deploy step then overlays the new render with
+      # `keep_files: true`. Net effect per run: gh-pages stays curated
+      # and inside the configured size budget.
+      #
+      # On pull_request, runs in echo-only mode (inventory + policy
+      # logged, no mutations) — PR builds shouldn't touch v/.
+      # ----------------------------------------------------------------
+      - name: Prune old snapshots
+        if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request'
+        uses: seandavi/quartobot/actions/prune-snapshots@main
+        with:
+          project: ${{ inputs.project }}
+          mode: ${{ github.event_name == 'pull_request' && 'echo' || 'apply' }}
+
+      # ----------------------------------------------------------------
       # Stage outputs for deployment.
       #
       # Layout on gh-pages (mirrors the manubot pattern):
@@ -177,8 +199,9 @@ jobs:
       #   /pr/<pr-number>/               live preview for an open PR
       #
       # `keep_files: true` on the deploy step preserves prior /v/* and
-      # /pr/* directories. Stale PR previews are cleaned up by a
-      # separate pr-closed workflow when a PR closes.
+      # /pr/* directories (less anything the prune step retired in the
+      # preceding step). Stale PR previews are cleaned up by a separate
+      # pr-closed workflow when a PR closes.
       # ----------------------------------------------------------------
       - name: Stage outputs
         # On `pull_request` events, GITHUB_SHA is the synthetic merge

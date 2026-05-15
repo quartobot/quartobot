@@ -1,0 +1,179 @@
+name: Prune gh-pages snapshots
+description: |
+  Apply the project's snapshot retention policy to the gh-pages branch.
+
+  Reads `quartobot.snapshots` from `_quarto.yml` (or bakes in defaults
+  when absent), inventories the current gh-pages tree, decides which
+  `v/<sha>/` directories to keep, and either echoes the decision (PR
+  builds) or applies it by replacing pruned directories with redirect
+  stubs and pushing the result to gh-pages (push builds).
+
+  Designed to run *before* the render's deploy step. Composes with
+  `peaceiris/actions-gh-pages@v4 keep_files: true` — this action handles
+  the pruning push, the render's deploy step then adds the new
+  `v/<new-sha>/` and updates root.
+
+inputs:
+  mode:
+    description: |
+      `apply` (default) prunes and pushes the result to gh-pages.
+      `echo` runs read-only — inventory + decision logged, no
+      mutations. Use `echo` on PR builds (PR builds shouldn't mutate
+      `v/`).
+    required: false
+    default: "apply"
+  project:
+    description: |
+      Directory containing `_quarto.yml`. Used to load
+      `quartobot.snapshots` configuration. Defaults to the repo root.
+    required: false
+    default: "."
+  gh-pages-branch:
+    description: "Name of the gh-pages branch."
+    required: false
+    default: "gh-pages"
+  latest-sha:
+    description: |
+      Full SHA of the build currently being deployed (the one served
+      at `/`). Defaults to the head SHA on PRs, otherwise
+      `github.sha`. Pruning preserves the directory matching this SHA
+      when retention.latest is `keep`.
+    required: false
+    default: ""
+
+outputs:
+  pruned-count:
+    description: "Number of v/<sha>/ directories pruned."
+    value: ${{ steps.run.outputs.pruned-count }}
+  over-budget:
+    description: |
+      `true` if projected post-prune size still exceeds
+      `size_budget_mb`; `false` otherwise. Honors `on_over_budget` in
+      config — when set to `fail`, the action fails before this output
+      is read.
+    value: ${{ steps.run.outputs.over-budget }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check for gh-pages branch
+      id: branch
+      shell: bash
+      env:
+        BRANCH: ${{ inputs.gh-pages-branch }}
+      run: |
+        # First-run repos have no gh-pages yet. Nothing to prune; skip
+        # cleanly instead of failing the fetch.
+        if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::gh-pages branch does not exist yet; nothing to prune"
+        fi
+
+    - name: Fetch gh-pages into worktree
+      if: steps.branch.outputs.exists == 'true'
+      shell: bash
+      env:
+        BRANCH: ${{ inputs.gh-pages-branch }}
+      run: |
+        set -euxo pipefail
+        # Use a worktree so we don't disturb the source checkout (the
+        # render step still needs the project's main-branch files).
+        git fetch --depth=1 origin "$BRANCH":"$BRANCH"
+        rm -rf "${RUNNER_TEMP}/gh-pages-prune"
+        git worktree add "${RUNNER_TEMP}/gh-pages-prune" "$BRANCH"
+
+    - name: Collect tag SHAs
+      if: steps.branch.outputs.exists == 'true'
+      id: tags
+      shell: bash
+      working-directory: ${{ inputs.project }}
+      run: |
+        # Unshallow tags so the prune sees milestone markers. The
+        # checkout step usually fetches with depth=1; tags may not be
+        # present.
+        git fetch --tags --quiet origin || true
+        TAG_SHAS=$(git for-each-ref --format='%(objectname)' refs/tags/ | paste -sd, -)
+        echo "tag-shas=${TAG_SHAS}" >> "$GITHUB_OUTPUT"
+
+    - name: Run quartobot snapshots
+      if: steps.branch.outputs.exists == 'true'
+      id: run
+      shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+        PROJECT: ${{ inputs.project }}
+        LATEST_SHA_INPUT: ${{ inputs.latest-sha }}
+        TAG_SHAS: ${{ steps.tags.outputs.tag-shas }}
+        DEFAULT_LATEST: ${{ github.event.pull_request.head.sha || github.sha }}
+      run: |
+        set -euo pipefail
+
+        LATEST="${LATEST_SHA_INPUT:-$DEFAULT_LATEST}"
+        GH_PAGES_DIR="${RUNNER_TEMP}/gh-pages-prune"
+
+        SUBCOMMAND=apply
+        if [ "$MODE" = "echo" ]; then
+          SUBCOMMAND=inventory
+        fi
+
+        ARGS=(
+          snapshots "$SUBCOMMAND"
+          --gh-pages-dir "$GH_PAGES_DIR"
+          --project "$PROJECT"
+          --latest-sha "$LATEST"
+        )
+        if [ -n "${TAG_SHAS}" ]; then
+          ARGS+=(--tag-shas "$TAG_SHAS")
+        fi
+
+        # The CLI writes the formatted policy + inventory + decision
+        # block to stdout. Capture it to a temp log we can both echo
+        # and parse, then append to the run's step summary.
+        LOG="${RUNNER_TEMP}/quartobot-snapshots.log"
+        quartobot "${ARGS[@]}" | tee "$LOG"
+        {
+          echo '```text'
+          cat "$LOG"
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        # `apply` writes a trailing "Applied: N snapshots pruned..."
+        # line. `inventory` does not. Treat absent => 0.
+        PRUNED=$(grep -oE "Applied: [0-9]+ snapshots" "$LOG" | awk '{print $2}' || true)
+        echo "pruned-count=${PRUNED:-0}" >> "$GITHUB_OUTPUT"
+
+        # The "Projected total ..." line carries the post-prune budget
+        # status. Fall back to the inventory line when projection is
+        # absent (echo mode renders just the inventory status).
+        if grep -qE "Projected total .* OVER BUDGET" "$LOG" \
+           || ( ! grep -q "Projected total" "$LOG" \
+                && grep -qE "total .* OVER BUDGET" "$LOG" ); then
+          echo "over-budget=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "over-budget=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Commit and push pruned gh-pages
+      if: steps.branch.outputs.exists == 'true' && inputs.mode == 'apply'
+      shell: bash
+      working-directory: ${{ runner.temp }}/gh-pages-prune
+      run: |
+        set -euo pipefail
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        if git diff --cached --quiet; then
+          echo "No retention changes to commit"
+          exit 0
+        fi
+        git commit -m "Prune old snapshots per retention policy"
+        git push origin HEAD:${{ inputs.gh-pages-branch }}
+
+    - name: Clean up worktree
+      if: always() && steps.branch.outputs.exists == 'true'
+      shell: bash
+      run: |
+        git worktree remove --force "${RUNNER_TEMP}/gh-pages-prune" 2>/dev/null || true
+        rm -rf "${RUNNER_TEMP}/gh-pages-prune"
