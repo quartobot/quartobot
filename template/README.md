@@ -117,11 +117,46 @@ The template is plain HTML/CSS.
   writes to the project root. The workflow's staging step copies them
   into `public/v/<sha>/` and `public/pr/<n>/` for deployment.
 - The workflow assumes GitHub Pages serves from `gh-pages` branch with
-  `keep_files: true`, so old snapshots and other open PRs are never
-  wiped.
+  `keep_files: true`, so old snapshots and other open PRs are preserved
+  across deploys.
 - Forks can't push to gh-pages with the default `GITHUB_TOKEN`. CI still
   validates the build on fork PRs but skips the deploy and the sticky
   comment.
+
+## Snapshot retention
+
+By default, `gh-pages` keeps the latest build, any commit carrying a
+git tag, and the 10 most recent untagged snapshots. Everything older
+becomes a ~1 KB redirect stub that forwards visitors to the latest
+version, so previously-cited URLs do not 404. Total `gh-pages` size is
+hard-capped at 800 MB — the workflow refuses to push past that and
+fails loudly, so you notice before GitHub starts emailing about your
+1 GB Pages quota.
+
+Tune the policy in `_quarto.yml`:
+
+```yaml
+quartobot:
+  snapshots:
+    latest: keep              # / is always the most recent build
+    tagged: keep              # any v/<sha> whose commit has a git tag survives
+    recent: 10                # rolling window: last N untagged builds
+    pruned_behavior: redirect # `redirect` (default) or `delete`
+    size_budget_mb: 800       # 80% of the 1 GB Pages soft limit
+    on_over_budget: fail      # `fail` (default) or `warn`
+```
+
+To mark a version as a milestone — preprint v1, journal submission,
+accepted — `git tag` its commit. Tagged snapshots are kept indefinitely
+regardless of how many newer builds accumulate:
+
+```bash
+git tag biorxiv-v1
+git push origin biorxiv-v1
+```
+
+The next render's prune step picks up the new tag and promotes that
+snapshot out of the rolling window.
 
 ## See also
 

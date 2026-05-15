@@ -115,6 +115,39 @@ The book template's banner omits `__VERSION_PDF__` (which the
 manuscript template uses) — book HTML output is a multi-page site,
 not a single PDF.
 
+## Snapshot retention
+
+By default, `gh-pages` keeps the latest build, any commit carrying a
+git tag, and the 10 most recent untagged snapshots. Older snapshots
+become ~1 KB redirect stubs that forward to the latest. Total
+`gh-pages` size is hard-capped at 800 MB — the workflow refuses to
+push past that, so you notice before GitHub starts emailing about your
+1 GB Pages quota. Book snapshots are larger than single-document
+manuscripts (the whole `_book/` site is copied per snapshot), so the
+default `recent: 10` is a useful starting point but worth tuning down
+to `recent: 5` for image-heavy books.
+
+Tune the policy in `_quarto.yml`:
+
+```yaml
+quartobot:
+  snapshots:
+    latest: keep              # / is always the most recent build
+    tagged: keep              # any v/<sha> whose commit has a git tag survives
+    recent: 10                # rolling window: last N untagged builds
+    pruned_behavior: redirect # `redirect` (default) or `delete`
+    size_budget_mb: 800       # 80% of the 1 GB Pages soft limit
+    on_over_budget: fail      # `fail` (default) or `warn`
+```
+
+Tag commits for milestones — chapter-draft, full-review, published —
+to retain those snapshots regardless of the rolling window:
+
+```bash
+git tag chapter-3-complete
+git push origin chapter-3-complete
+```
+
 ## Customizing the workflow
 
 `.github/workflows/render.yml` is ten lines plus comments. To change
