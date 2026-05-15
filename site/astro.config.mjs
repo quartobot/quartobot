@@ -19,7 +19,7 @@ export default defineConfig({
         },
       ],
       editLink: {
-        baseUrl: "https://github.com/seandavi/quartobot/edit/main/site-starlight/",
+        baseUrl: "https://github.com/seandavi/quartobot/edit/main/site/",
       },
       sidebar: [
         { label: "Home", link: "/" },
