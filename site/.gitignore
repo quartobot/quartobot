@@ -1,7 +1,4 @@
-_site/
-.quarto/
-*_files/
-*_cache/
-
-/.quarto/
-**/*.quarto_ipynb
+node_modules/
+dist/
+.astro/
+.DS_Store
