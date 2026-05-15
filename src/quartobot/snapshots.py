@@ -476,9 +476,7 @@ def apply_decision(inv: Inventory, decision: Decision, policy: RetentionPolicy) 
         _rmtree(version_dir)
         version_dir.mkdir(parents=True, exist_ok=True)
         stub = version_dir / "index.html"
-        stub.write_text(
-            REDIRECT_STUB_TEMPLATE.format(sha=sha, date_iso=now), encoding="utf-8"
-        )
+        stub.write_text(REDIRECT_STUB_TEMPLATE.format(sha=sha, date_iso=now), encoding="utf-8")
 
 
 def _rmtree(path: Path) -> None:
@@ -546,19 +544,13 @@ def format_log(
     lines.extend(pairs)
     lines.append("")
     lines.append("Inventory (current gh-pages):")
-    lines.append(
-        f"  v/   {len(inv.snapshots):>3} dirs  {_mb(inv.v_total_bytes):>8.1f} MB"
-    )
-    lines.append(
-        f"  pr/  {len(inv.pr_dirs):>3} dirs  {_mb(inv.pr_total_bytes):>8.1f} MB"
-    )
+    lines.append(f"  v/   {len(inv.snapshots):>3} dirs  {_mb(inv.v_total_bytes):>8.1f} MB")
+    lines.append(f"  pr/  {len(inv.pr_dirs):>3} dirs  {_mb(inv.pr_total_bytes):>8.1f} MB")
     lines.append(f"  root           {_mb(inv.root_bytes + inv.other_bytes):>8.1f} MB")
     budget_bytes = load.policy.size_budget_mb * 1_000_000
     over_now = inv.total_bytes > budget_bytes
     status_now = f"OVER BUDGET: {load.policy.size_budget_mb} MB" if over_now else "OK"
-    lines.append(
-        f"  total          {_mb(inv.total_bytes):>8.1f} MB    [{status_now}]"
-    )
+    lines.append(f"  total          {_mb(inv.total_bytes):>8.1f} MB    [{status_now}]")
 
     if decision is None:
         lines.append("")
@@ -573,20 +565,14 @@ def format_log(
     lines.append(f"  keep (recent x{load.policy.recent}): {recent_line}")
     behavior = load.policy.pruned_behavior
     arrow = "→ /" if behavior == "redirect" else "(deleted)"
-    lines.append(
-        f"  {behavior:<9}         {len(decision.prune)} older snapshots {arrow}"
-    )
+    lines.append(f"  {behavior:<9}         {len(decision.prune)} older snapshots {arrow}")
 
     if projected_post_prune_bytes is not None:
         over_after = projected_post_prune_bytes > budget_bytes
-        status_after = (
-            f"OVER BUDGET: {load.policy.size_budget_mb} MB" if over_after else "OK"
-        )
+        status_after = f"OVER BUDGET: {load.policy.size_budget_mb} MB" if over_after else "OK"
         lines.append("")
         projected_mb = _mb(projected_post_prune_bytes)
-        lines.append(
-            f"Projected total after prune: {projected_mb:.1f} MB    [{status_after}]"
-        )
+        lines.append(f"Projected total after prune: {projected_mb:.1f} MB    [{status_after}]")
     return "\n".join(lines)
 
 

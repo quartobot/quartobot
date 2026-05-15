@@ -64,25 +64,19 @@ class TestLoadPolicy:
         assert load.overrides == {}
 
     def test_quarto_yml_without_quartobot_block(self, tmp_path: Path) -> None:
-        (tmp_path / "_quarto.yml").write_text(
-            yaml.safe_dump({"project": {"type": "default"}})
-        )
+        (tmp_path / "_quarto.yml").write_text(yaml.safe_dump({"project": {"type": "default"}}))
         load = load_policy(tmp_path)
         assert load.policy == DEFAULT_POLICY
         assert "no quartobot.snapshots" in load.source
 
     def test_quarto_yml_with_empty_snapshots_block(self, tmp_path: Path) -> None:
-        (tmp_path / "_quarto.yml").write_text(
-            yaml.safe_dump({"quartobot": {"snapshots": {}}})
-        )
+        (tmp_path / "_quarto.yml").write_text(yaml.safe_dump({"quartobot": {"snapshots": {}}}))
         load = load_policy(tmp_path)
         assert load.policy == DEFAULT_POLICY
 
     def test_override_recent_and_budget(self, tmp_path: Path) -> None:
         (tmp_path / "_quarto.yml").write_text(
-            yaml.safe_dump(
-                {"quartobot": {"snapshots": {"recent": 25, "size_budget_mb": 500}}}
-            )
+            yaml.safe_dump({"quartobot": {"snapshots": {"recent": 25, "size_budget_mb": 500}}})
         )
         load = load_policy(tmp_path)
         assert load.policy.recent == 25
@@ -101,18 +95,14 @@ class TestLoadPolicy:
 
     def test_unknown_keys_ignored(self, tmp_path: Path) -> None:
         (tmp_path / "_quarto.yml").write_text(
-            yaml.safe_dump(
-                {"quartobot": {"snapshots": {"recent": 5, "future_knob": "x"}}}
-            )
+            yaml.safe_dump({"quartobot": {"snapshots": {"recent": 5, "future_knob": "x"}}})
         )
         load = load_policy(tmp_path)
         assert load.policy.recent == 5
 
     def test_invalid_enum_value_raises(self, tmp_path: Path) -> None:
         (tmp_path / "_quarto.yml").write_text(
-            yaml.safe_dump(
-                {"quartobot": {"snapshots": {"on_over_budget": "panic"}}}
-            )
+            yaml.safe_dump({"quartobot": {"snapshots": {"on_over_budget": "panic"}}})
         )
         with pytest.raises(ValueError, match="on_over_budget"):
             load_policy(tmp_path)
@@ -188,9 +178,7 @@ def _inv_with_snapshots(*shas_in_order: str, size_each: int = 1000) -> Inventory
 class TestDecideRetention:
     def test_keeps_latest(self) -> None:
         inv = _inv_with_snapshots("a", "b", "c")
-        d = decide_retention(
-            inv, RetentionPolicy(recent=0), latest_sha="c", tagged_shas=set()
-        )
+        d = decide_retention(inv, RetentionPolicy(recent=0), latest_sha="c", tagged_shas=set())
         assert d.keep_latest == ("c",)
         assert d.keep_recent == ()
         assert set(d.prune) == {"a", "b"}
@@ -209,9 +197,7 @@ class TestDecideRetention:
 
     def test_recent_window(self) -> None:
         inv = _inv_with_snapshots("a", "b", "c", "d", "e")  # mtime a<b<c<d<e
-        d = decide_retention(
-            inv, RetentionPolicy(recent=2), latest_sha="e", tagged_shas=set()
-        )
+        d = decide_retention(inv, RetentionPolicy(recent=2), latest_sha="e", tagged_shas=set())
         # latest=e; recent=2 most-recent among non-kept => d, c (newest first)
         assert d.keep_latest == ("e",)
         assert d.keep_recent == ("d", "c")
@@ -284,7 +270,7 @@ class TestApplyDecision:
         stub = tmp_path / "v" / sha / "index.html"
         assert stub.is_file()
         body = stub.read_text(encoding="utf-8")
-        assert "meta http-equiv=\"refresh\"" in body
+        assert 'meta http-equiv="refresh"' in body
         assert sha in body
         # Single file, much smaller than the original 5000-byte payload
         assert stub.stat().st_size < 2000
@@ -408,12 +394,8 @@ class TestSnapshotsCli:
         subprocess.check_call(["git", "config", "user.name", "t"], cwd=project)
         (project / "x.txt").write_text("x")
         subprocess.check_call(["git", "add", "."], cwd=project)
-        subprocess.check_call(
-            ["git", "commit", "-q", "-m", "init"], cwd=project
-        )
-        return subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=project, text=True
-        ).strip()
+        subprocess.check_call(["git", "commit", "-q", "-m", "init"], cwd=project)
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=project, text=True).strip()
 
     def test_inventory_command_reports(self, tmp_path: Path) -> None:
         project = tmp_path / "project"
