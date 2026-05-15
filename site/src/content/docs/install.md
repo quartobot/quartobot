@@ -1,5 +1,6 @@
 ---
-title: "Install"
+title: Install
+description: Every install method for the quartobot CLI, when to use which.
 ---
 
 Five ways to get `quartobot` on your machine, in roughly descending

@@ -1,17 +1,18 @@
 ---
-title: "The manuscript template"
+title: The manuscript template
+description: Quarto manuscript + pre-render hook + CI for permalinks, PR previews, and gh-pages deploy.
 ---
 
 A GitHub template combining Quarto, the
-[`quartobot resolve` pre-render hook](cli.qmd#resolve), and a CI
+[`quartobot resolve` pre-render hook](/cli/#quartobot-resolve), and a CI
 workflow that gives every commit an immutable permalink, embeds that
 permalink in the rendered HTML, posts PR previews via sticky comment,
 and deploys HTML + PDF + DOCX to GitHub Pages.
 
 If you're writing a longer work (textbook, review, edited volume, thesis),
-see [the book template](book.qmd) — same pattern, different project shape.
+see [the book template](/book/) — same pattern, different project shape.
 
-::: {.callout-warning}
+:::caution
 The template is currently scaffolded at
 [`template/`](https://github.com/seandavi/quartobot/tree/main/template)
 inside this repo. Promotion to its own template repo

@@ -1,8 +1,9 @@
 ---
-title: "Getting started"
+title: Getting started
+description: Three paths from zero to a quartobot project.
 ---
 
-::: {.callout-note}
+:::note
 quartobot is pre-v0.1. Install today is via the git URL below;
 PyPI publishing follows the v0.1 tag. Track progress on the
 [v0.1 milestone](https://github.com/seandavi/quartobot/milestone/1).
@@ -75,6 +76,6 @@ runs before pandoc on every render; pandoc-citeproc reads
 
 ## See also
 
-- [Install reference](install.qmd) — every install method, when to use which
-- [CLI reference](cli.qmd) — including the `quartobot resolve` pre-render hook
-- [Template walkthrough](template.qmd)
+- [Install reference](/install/) — every install method, when to use which
+- [CLI reference](/cli/) — including the `quartobot resolve` pre-render hook
+- [Template walkthrough](/template/)

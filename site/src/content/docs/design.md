@@ -1,5 +1,6 @@
 ---
-title: "Design"
+title: Design
+description: Index of architecture decisions, prior art, and publication plan.
 ---
 
 This page indexes the design material. The substantive documents live in
@@ -68,14 +69,12 @@ The roadmap lives in [GitHub issues](https://github.com/seandavi/quartobot/issue
 organized into three milestones:
 
 - [**v0.1 — first public release**](https://github.com/seandavi/quartobot/milestone/1):
-  extension + manuscript template + Python CLI + composite actions +
+  CLI + manuscript template + book template + composite actions +
   reusable workflow, with Zenodo DOI on tag.
 - [**v0.2 — JOSS-ready**](https://github.com/seandavi/quartobot/milestone/2):
-  documentation site complete, JOSS paper submitted, registered with the
-  Quarto extension registry.
+  documentation site complete, JOSS paper submitted.
 - [**v2 — beyond manuscripts**](https://github.com/seandavi/quartobot/milestone/3):
-  books template, Hypothes.is integration, and the iframe shell
-  architecture they imply.
+  Hypothes.is integration, and broader Quarto project types.
 
 ## How to contribute to the design
 

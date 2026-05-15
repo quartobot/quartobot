@@ -1,0 +1,115 @@
+---
+title: quartobot
+description: The manubot manuscript-as-software pattern, on Quarto.
+template: splash
+hero:
+  tagline: The manubot manuscript-as-software pattern, on Quarto.
+  image:
+    file: ../../assets/logo.svg
+  actions:
+    - text: Get started
+      link: /getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/seandavi/quartobot
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, Aside, LinkButton } from '@astrojs/starlight/components';
+
+<Aside type="note">
+**Status:** v0.1 scaffold in flight. The CLI installs today from git
+(`uv tool install git+https://github.com/seandavi/quartobot`); PyPI
+publication follows the v0.1 tag. Track
+[v0.1 on the milestone board](https://github.com/seandavi/quartobot/milestone/1).
+</Aside>
+
+Manubot has, for eight years, run scholarly manuscripts as a git
+repository that builds itself on every commit, resolves citations from
+DOIs and PubMed IDs automatically, hands out an immutable permalink per
+commit, and collaborates through pull requests. The pattern is
+[published](https://doi.org/10.1371/journal.pcbi.1007128) and used in
+hundreds of preprints.
+
+Quarto now covers more of scholarly publishing than manubot ever did —
+manuscripts, books, websites, slides, dashboards, courseware — but the
+manubot pattern does not exist there natively. quartobot closes that
+gap.
+
+## What ships
+
+Four artifacts, designed to work alone or together:
+
+<CardGrid>
+  <Card title="Python CLI" icon="seti:python">
+    `quartobot resolve` — invoked from Quarto's `project.pre-render:`
+    hook — plus `scan`, `validate`, and `init`. Authors write
+    `@doi:10.1371/journal.pcbi.1007128` in their prose; citations
+    resolve before pandoc runs.
+
+    [CLI reference →](/cli/)
+  </Card>
+  <Card title="Manuscript template" icon="document">
+    Quarto + the pre-render hook + a CI workflow that gives every
+    commit an immutable permalink at `/v/<sha>/`, embeds it in
+    rendered HTML, posts PR previews, and deploys HTML + PDF + DOCX
+    to GitHub Pages.
+
+    [Template walkthrough →](/template/)
+  </Card>
+  <Card title="Book template" icon="open-book">
+    For longer works — textbooks, reviews, edited volumes, theses.
+    Same pattern as the manuscript template, but Quarto's book
+    project type with sidebar navigation, full-text search, and
+    per-chapter HTML pages.
+
+    [Book walkthrough →](/book/)
+  </Card>
+  <Card title="Composite Actions" icon="github">
+    Reusable GitHub Actions + workflow so consumer-side CI is ten
+    lines, with upstream improvements flowing through version pins.
+  </Card>
+</CardGrid>
+
+## Origin
+
+[manubot/manubot#332](https://github.com/manubot/manubot/issues/332)
+("Quarto integration") was opened by Anthony Gitter in April 2022 after
+a conversation with Sean Davis. Four years later, no PR, no assignee —
+but `pandoc-manubot-cite` shipped inside the `manubot` package and Quarto
+Manuscripts shipped as a first-party project type. The integration is
+small once you stop trying to rebuild the resolver. This site documents
+the work to resolve that issue.
+
+## Working example
+
+[seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)
+runs the CI / permalink / banner half of the pattern on a live 25-author
+preprint from the Bioconductor Spatial Hackathon. The template repo is
+being lifted from it.
+
+## Where to go next
+
+<CardGrid>
+  <Card title="New here?" icon="rocket">
+    [Getting started](/getting-started/) has three install paths,
+    matching where you are: starting fresh, an existing Quarto project,
+    or just the citation pipeline.
+  </Card>
+  <Card title="Coming from manubot?" icon="random">
+    [Differences from manubot](/differences-from-manubot/) explains
+    what carries over and what changes;
+    [Migrating from manubot](/migrating-from-manubot/) is the
+    step-by-step translation.
+  </Card>
+  <Card title="Design rationale" icon="puzzle">
+    [Design](/design/) collects the architecture decisions and the
+    prior art — why pre-render hook, why CSL JSON, why the sticky PR
+    comment.
+  </Card>
+  <Card title="Contribute" icon="add-document">
+    See [CONTRIBUTING.md](https://github.com/seandavi/quartobot/blob/main/CONTRIBUTING.md)
+    and the [open issues](https://github.com/seandavi/quartobot/issues).
+  </Card>
+</CardGrid>

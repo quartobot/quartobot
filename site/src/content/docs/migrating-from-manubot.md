@@ -1,5 +1,6 @@
 ---
-title: "Migrating from manubot"
+title: Migrating from manubot
+description: Step-by-step translation from a rootstock manubot manuscript to a quartobot project.
 ---
 
 If you have an existing manubot manuscript built on
@@ -9,8 +10,8 @@ prose source in git, auto-resolved citations, per-commit permalinks,
 PR-reviewed prose. What you change is the build pipeline and a few
 filename conventions.
 
-::: {.callout-note}
-Read [Differences from manubot](differences-from-manubot.qmd) first if
+:::note
+Read [Differences from manubot](/differences-from-manubot/) first if
 you haven't yet — it's the context for the choices below.
 :::
 
@@ -38,7 +39,7 @@ quartobot --version
 
 Puts `quartobot` on your user PATH (`~/.local/bin/` typically).
 Quarto's pre-render subprocess needs to find it there. See
-[Install](install.qmd) for `uvx`, editable, and post-v0.1-tag
+[Install](/install/) for `uvx`, editable, and post-v0.1-tag
 `pip install` paths.
 
 ## Step 2 — Scaffold the Quarto project
@@ -291,10 +292,10 @@ Keep the gh-pages branch intact — it has your historical snapshots at
 
 ## See also
 
-- [Differences from manubot](differences-from-manubot.qmd) — what
+- [Differences from manubot](/differences-from-manubot/) — what
   carries over and what changes
-- [Getting started](getting-started.qmd) — for the abridged
+- [Getting started](/getting-started/) — for the abridged
   fresh-project version
-- [CLI reference](cli.qmd) — `init`, `scan`, `validate`, `resolve`
-- [Template walkthrough](template.qmd) — what the scaffolded
+- [CLI reference](/cli/) — `init`, `scan`, `validate`, `resolve`
+- [Template walkthrough](/template/) — what the scaffolded
   manuscript looks like

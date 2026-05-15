@@ -1,5 +1,6 @@
 ---
-title: "Differences from manubot"
+title: Differences from manubot
+description: What carries over, what changes, what Quarto adds.
 ---
 
 quartobot reuses `manubot.cite` (the resolver library) and adopts the
@@ -69,10 +70,9 @@ the same way for pure-prose files. Manubot markdown is a subset of
 pandoc markdown; Quarto markdown is a superset that adds
 cross-references (`@fig-`, `@tbl-`, `@sec-`, `@eq-`),
 format-conditional content (`::: {.content-visible when-format="…"}`),
-shortcodes (`{{</* include */>}}`, `{{</* meta */>}}`), and a richer set of
-fenced-div extensions. Your existing manubot prose will render
-through Quarto unchanged in the common case; the new affordances are
-opt-in.
+shortcodes, and a richer set of fenced-div extensions. Your existing
+manubot prose will render through Quarto unchanged in the common
+case; the new affordances are opt-in.
 
 **Code execution.** Manubot doesn't natively execute code — figures
 and tables go in as static files. Quarto runs R, Python, and Julia
@@ -126,14 +126,14 @@ narrow:
 
 - **Manubot's rootstock template integration.** Manubot ships a
   specific template repo with its own conventions; quartobot has
-  its own [manuscript template](template.qmd) and
-  [book template](book.qmd). Different conventions, same pattern.
+  its own [manuscript template](/template/) and
+  [book template](/book/). Different conventions, same pattern.
 - **Manubot-specific author / reviewer affiliations metadata.**
   Manubot's `metadata.yaml` has bespoke fields for author ORCIDs,
   reviewer credit, contribution statements. Quarto's YAML
   front-matter has analogous fields (`author:`, `affiliations:`)
   but the shape isn't a one-to-one match — see
-  [Migrating from manubot](migrating-from-manubot.qmd) for the
+  [Migrating from manubot](/migrating-from-manubot/) for the
   translation.
 - **manubot CLI commands beyond `cite`.** Manubot has a fuller CLI
   (`manubot process`, `manubot webpage`, etc.) that orchestrates
@@ -143,11 +143,11 @@ narrow:
 If you're using manubot for the resolver and the manuscript-as-software
 pattern, you're using exactly what quartobot keeps. If you're using
 manubot for the rootstock conventions specifically, see the
-[migration guide](migrating-from-manubot.qmd) for the translation.
+[migration guide](/migrating-from-manubot/) for the translation.
 
 ## See also
 
-- [Migrating from manubot](migrating-from-manubot.qmd) — concrete steps
+- [Migrating from manubot](/migrating-from-manubot/) — concrete steps
 - [`docs/citation-pipeline.md`](https://github.com/seandavi/quartobot/blob/main/docs/citation-pipeline.md) — why the pre-render hook, not a filter
 - [manubot](https://github.com/manubot/manubot) — the upstream
 - [Himmelstein et al. 2019](https://doi.org/10.1371/journal.pcbi.1007128) — the foundational paper

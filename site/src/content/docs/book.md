@@ -1,18 +1,19 @@
 ---
-title: "The book template"
+title: The book template
+description: Quarto book + pre-render hook + CI for chapter-shaped works.
 ---
 
 A GitHub template combining Quarto **books**, the
-[`quartobot resolve` pre-render hook](cli.qmd#resolve), and a CI
+[`quartobot resolve` pre-render hook](/cli/#quartobot-resolve), and a CI
 workflow that gives every commit an immutable permalink, embeds that
 permalink in every chapter's HTML, posts PR previews via sticky
 comment, and deploys the book site to GitHub Pages.
 
 If you're writing a single document (paper, preprint, technical
-report), see [the manuscript template](template.qmd) — same pattern,
+report), see [the manuscript template](/template/) — same pattern,
 single-document shape.
 
-::: {.callout-warning}
+:::caution
 The book template is currently scaffolded at
 [`template-book/`](https://github.com/seandavi/quartobot/tree/main/template-book)
 inside this repo. Promotion to its own template repo
@@ -80,6 +81,10 @@ push-to-main builds, CI substitutes four placeholders:
 PR builds keep the committed dev placeholder; the PR-specific URLs are
 posted in the sticky PR comment instead.
 
+The book template's banner omits `__VERSION_PDF__` (which the
+manuscript template uses) — book HTML output is a multi-page site,
+not a single PDF.
+
 ## Why books?
 
 Manubot was manuscript-shaped by design. Quarto books bring the same
@@ -95,6 +100,6 @@ Same pattern, broader artifact.
 ## See also
 
 - Template source: [`template-book/`](https://github.com/seandavi/quartobot/tree/main/template-book)
-- [Minimal book example](https://github.com/seandavi/quartobot/tree/main/examples/book-minimal) — the smallest book exercising the extension without the template's CI/banner machinery
-- [The manuscript template](template.qmd) — same pattern, single-document shape
+- [Minimal book example](https://github.com/seandavi/quartobot/tree/main/examples/book-minimal) — the smallest book exercising the pre-render hook without the template's CI/banner machinery
+- [The manuscript template](/template/) — same pattern, single-document shape
 - Roadmap: [v0.1 books support](https://github.com/seandavi/quartobot/issues/18)

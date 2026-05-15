@@ -1,26 +1,29 @@
 ---
 title: "The CLI: quartobot"
+description: Pre-render and out-of-render commands for citation pipelines on Quarto.
 ---
 
-A Python CLI for pre-render and out-of-render work that
-`pandoc-manubot-cite` doesn't do (or doesn't do ergonomically). Plus
-`usethis`-style scaffolding into existing Quarto projects.
+A Python CLI for pre-render and out-of-render work. `quartobot resolve`
+runs as a Quarto pre-render hook and calls `manubot.cite` directly to
+populate the bibliography before pandoc starts. `scan`, `validate`, and
+`init` round out the surface for CI-lint and scaffolding.
 
 ```bash
 uv tool install git+https://github.com/seandavi/quartobot
 ```
 
-`quartobot` depends on `manubot`, so this also puts `pandoc-manubot-cite`
-on `PATH`. See [Install](install.qmd) for `uvx`, editable, and
-post-v0.1-tag `pip install` paths.
+`quartobot` depends on `manubot` as a Python library. See
+[Install](/install/) for `uvx`, editable, and post-v0.1-tag
+`pip install` paths.
 
 ## Pre-render commands
 
-### `quartobot scan <path>` { #scan }
+### `quartobot scan`
 
-Walks `.qmd`/`.md` files under `<path>`, extracts every cite key, classifies
-each one (manubot prefix, bare DOI, or hand-curated), groups the results,
-and reports duplicates with file:line locations. Pure read. No network.
+Walks `.qmd`, `.md`, `.Rmd`, and `.ipynb` files under a path, extracts
+every cite key, classifies each one (manubot prefix, bare DOI, or
+hand-curated), groups the results, and reports duplicates with
+file:line locations. Pure read. No network.
 
 ```
 $ quartobot scan .
@@ -40,15 +43,22 @@ Duplicates:
   @doi:10.1371/journal.pcbi.1007128:
     intro.qmd:14
     methods.qmd:42
-    discussion.qmd:9
+    notebook.ipynb:cell3:9
 ```
 
 Prefixes are listed alphabetically; hand-curated keys appear last.
 
 The scan is heuristic — it strips YAML/TOML frontmatter, fenced code
-blocks (```/~~~), and inline code spans before searching, so decoys
-like `@fake:notacite` inside backticks won't surface. The
-authoritative parse happens at render time inside `pandoc-manubot-cite`.
+blocks (`` ``` `` / `~~~`), and inline code spans before searching, so
+decoys like `@fake:notacite` inside backticks won't surface. For
+`.ipynb` files, only markdown cells are scanned; cell index appears
+alongside line number (`paper.ipynb:cell3:9`). The authoritative
+parse happens at render time inside pandoc citeproc.
+
+Pass `--no-recursive` to scan only files directly under the given
+path. Render outputs and tool caches (`_site/`, `_book/`, `_freeze/`,
+`.quarto/`, `.git/`, `.ipynb_checkpoints/`, etc.) are skipped at any
+depth.
 
 Exit codes:
 
@@ -58,12 +68,16 @@ Exit codes:
 
 That makes it usable as a pre-commit hook.
 
-### `quartobot resolve [<keys>...]` { #resolve }
+### `quartobot resolve`
 
 Pre-fetch persistent-identifier citations via `manubot.cite` and write
-the resulting CSL JSON to disk. The point isn't to replace what manubot
-does at render — it's to do the network work on a developer's machine
-ahead of push, so CI never sees a Crossref or PubMed hiccup.
+the resulting CSL JSON to disk. Designed to run as a Quarto
+pre-render hook declared in `_quarto.yml`:
+
+```yaml
+project:
+  pre-render: quartobot resolve --from-scan . --output references.json --id-mode citation-key
+```
 
 ```
 $ quartobot resolve --from-scan . --output references.json
@@ -79,6 +93,12 @@ use `--from-scan PATH` to resolve every persistent-identifier key in a
 project. Hand-curated keys (no recognized prefix) are skipped — those
 live in `references.bib` and pandoc citeproc handles them.
 
+`--id-mode citation-key` writes the CSL `id` field as the user's
+prose key (`doi:10.1371/...`) so pandoc-citeproc matches `[@doi:...]`
+in the source directly. Without it, manubot's canonical short hash
+(`YuJbg3zO`) goes in `id` and pandoc-citeproc silently fails to match
+prose keys. The pre-render hook architecture depends on this flag.
+
 The `--cache` option defaults to `--output`, so re-runs are idempotent:
 the output file IS the cache. `--dry-run` reports what would be
 resolved without making any network calls.
@@ -89,7 +109,7 @@ Exit codes:
 - `1` — one or more keys failed (network error, Crossref 404, etc.).
 - `2` — bad arguments.
 
-### `quartobot validate <project>` { #validate }
+### `quartobot validate`
 
 Pre-flight / CI-lint surface. Static config checks against a Quarto
 project — no network. Run this in CI to catch the most common foot-guns
@@ -160,7 +180,7 @@ touching it. `.gitignore` is the one file modified in place
 `--project-type {auto,manuscript,book}` controls what gets written;
 `auto` detects from `_quarto.yml`, falling back to `manuscript`.
 
-::: {.callout-note}
+:::note
 Scaffolding's piecewise siblings — `quartobot use-render-workflow`,
 `use-banner`, `use-quarto-yml`, and `detach` — are scoped but not yet
 shipped. Tracked at [#25](https://github.com/seandavi/quartobot/issues/25).
