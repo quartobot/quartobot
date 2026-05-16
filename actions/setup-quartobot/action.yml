@@ -19,8 +19,8 @@ inputs:
     default: "git+https://github.com/seandavi/quartobot"
   quarto-version:
     description: |
-      Quarto version. `release` is the latest stable; `prerelease` and
-      `daily` are also valid. Pass a specific version like "1.5.57" for
+      Quarto version. `release` is the latest stable; `pre-release` is
+      also recognized. Pass a specific version like "1.5.57" for
       reproducible CI.
     required: false
     default: "release"
