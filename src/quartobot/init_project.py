@@ -1,10 +1,14 @@
-"""Scaffold the quartobot pattern into an existing Quarto project.
+"""Scaffold the citation-pipeline pieces of the quartobot pattern.
 
-`quartobot init` writes the files that make a vanilla Quarto project
-adopt the quartobot pattern: a `_quarto.yml` wired with the
-`quartobot resolve` pre-render hook, a seed `references.bib`, the
-version-banner HTML template, a `.gitignore` augment, and a ten-line
-GitHub Actions workflow that calls the upstream reusable workflow.
+`quartobot init` writes the minimum a vanilla Quarto project needs to
+adopt the citation pipeline: a `_quarto.yml` wired with the
+`quartobot resolve` pre-render hook + `bibliography:` list, a seed
+`references.bib`, and a `.gitignore` augment so `references.json`
+(regenerated each render) stays out of the repo.
+
+The GitHub Actions render workflow, version banner, and PR-preview
+cleanup live in `quartobot use github-ci` now — opt-in machinery, not
+part of the citation-pipeline minimum.
 
 Conservative by default:
 
@@ -15,9 +19,8 @@ Conservative by default:
   should merge in manually.
 - `.gitignore` gets new lines appended (idempotent).
 
-The flow is intentionally pre-`usethis`: no interactive prompts, no
-auto-merge. Once the CLI matures we can add `--force` for overwrites
-and a `quartobot use-<thing>` family for piecewise scaffolding.
+No interactive prompts, no auto-merge. Re-running is safe and a no-op
+once everything's in place.
 """
 
 from __future__ import annotations
@@ -49,8 +52,6 @@ format:
   html:
     toc: true
     embed-resources: true
-    include-before-body:
-      - _version-banner.html
   pdf:
     documentclass: article
     keep-tex: true
@@ -79,117 +80,12 @@ format:
   html:
     theme: cosmo
     toc: true
-    include-before-body:
-      - _version-banner.html
 """
 
 _REFERENCES_BIB = """\
 % Hand-curated entries live here. Auto-resolved entries written by
 % `quartobot resolve` land in references.json (regenerated each render,
 % ignored by git).
-"""
-
-# Embedded HTML banners. Lines are long because CSS is inlined for
-# users who want to drop the file into a fresh project without
-# wrangling a separate stylesheet. Lint exceptions tagged per-line.
-# fmt: off
-_VERSION_BANNER_TEMPLATE = (
-    '<div class="version-banner" style="background:#fff7e0;border-bottom:2px solid #f0b400;padding:0.55rem 1rem;font-family:system-ui,-apple-system,\'Segoe UI\',sans-serif;font-size:0.92rem;text-align:center;color:#3a2c00;">\n'  # noqa: E501
-    "  <strong>This version:</strong>\n"
-    '  <a href="__VERSION_URL__" style="color:#3a2c00;text-decoration:underline;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">__VERSION_SHA__</a>\n'  # noqa: E501
-    "  &nbsp;&middot;&nbsp;\n"
-    '  <a href="__VERSION_LATEST__" style="color:#3a2c00;">latest&nbsp;HTML</a>\n'
-    "  &nbsp;&middot;&nbsp;\n"
-    '  <a href="__VERSION_GH__" style="color:#3a2c00;">GitHub</a>\n'
-    "</div>\n"
-)
-
-_VERSION_BANNER_DEV = (
-    '<div class="version-banner" style="background:#eef2ff;border-bottom:2px solid #6366f1;padding:0.55rem 1rem;font-family:system-ui,-apple-system,\'Segoe UI\',sans-serif;font-size:0.92rem;text-align:center;color:#1e1b4b;">\n'  # noqa: E501
-    "  <strong>Development build</strong> &middot; permalink set by CI on push to <code>main</code>\n"  # noqa: E501
-    "</div>\n"
-)
-# fmt: on
-
-
-def _render_workflow(project_type: str) -> str:
-    """Return the ten-line workflow caller for the given project type."""
-    return f"""\
-# Renders on every push and PR via the upstream reusable workflow.
-# Override inputs in the `with:` block below; see
-#   https://github.com/quartobot/quartobot/blob/main/.github/workflows/render-reusable.yml
-# for the full list.
-
-name: Render
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
-
-jobs:
-  render:
-    uses: quartobot/quartobot/.github/workflows/render-reusable.yml@main
-    permissions:
-      contents: write
-      pull-requests: write
-    with:
-      project-type: {project_type}
-"""
-
-
-_PR_CLOSED_WORKFLOW = """\
-name: Clean up PR preview
-
-on:
-  pull_request:
-    types: [closed]
-
-permissions:
-  contents: write
-
-concurrency:
-  group: gh-pages-deploy
-  cancel-in-progress: false
-
-jobs:
-  cleanup:
-    runs-on: ubuntu-latest
-    if: github.event.pull_request.head.repo.full_name == github.repository
-    steps:
-      - name: Check whether gh-pages branch exists
-        id: branch
-        run: |
-          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Check out gh-pages
-        if: steps.branch.outputs.exists == 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          fetch-depth: 1
-
-      - name: Remove PR preview directory
-        if: steps.branch.outputs.exists == 'true'
-        run: |
-          pr="${{ github.event.pull_request.number }}"
-          [ -d "pr/${pr}" ] && rm -rf "pr/${pr}" || exit 0
-
-      - name: Commit and push
-        if: steps.branch.outputs.exists == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "Clean up preview for PR #${{ github.event.pull_request.number }}"
-          git push
 """
 
 
@@ -212,7 +108,7 @@ ActionStatus = Literal["written", "skipped-exists", "appended", "manual-merge"]
 
 @dataclass(frozen=True)
 class Action:
-    """One file write (or non-write) the init flow attempted."""
+    """One file write (or non-write) attempted by an init or use run."""
 
     path: Path
     status: ActionStatus
@@ -252,7 +148,13 @@ def detect_project_type(project: Path) -> str:
     return "manuscript"
 
 
-def _write_if_missing(path: Path, content: str) -> Action:
+def write_if_missing(path: Path, content: str) -> Action:
+    """Write `content` at `path` only if the file isn't already there.
+
+    Returns an Action with `written` or `skipped-exists`. Public so
+    other scaffolders (`quartobot use ...`) can share the same
+    never-clobber convention without depending on a private helper.
+    """
     if path.exists():
         return Action(path=path, status="skipped-exists")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -287,7 +189,7 @@ def init_project(
     *,
     project_type: str = "auto",
 ) -> InitOutcome:
-    """Scaffold quartobot files into `project`.
+    """Scaffold the citation-pipeline pieces into `project`.
 
     Args:
         project: Path to an existing Quarto project root (or empty dir).
@@ -320,31 +222,12 @@ def init_project(
         outcome.manual_merge_snippet = _quarto_yml_snippet_for_manual_merge()
     else:
         content = _QUARTO_YML_BOOK if ptype == "book" else _QUARTO_YML_MANUSCRIPT
-        outcome.actions.append(_write_if_missing(yml_path, content))
+        outcome.actions.append(write_if_missing(yml_path, content))
 
-    # Other files — write only if missing.
-    outcome.actions.append(_write_if_missing(project / "references.bib", _REFERENCES_BIB))
-    outcome.actions.append(
-        _write_if_missing(
-            project / "_version-banner.html.template",
-            _VERSION_BANNER_TEMPLATE,
-        )
-    )
-    outcome.actions.append(_write_if_missing(project / "_version-banner.html", _VERSION_BANNER_DEV))
-    outcome.actions.append(
-        _write_if_missing(
-            project / ".github" / "workflows" / "render.yml",
-            _render_workflow(ptype),
-        )
-    )
-    outcome.actions.append(
-        _write_if_missing(
-            project / ".github" / "workflows" / "pr-closed.yml",
-            _PR_CLOSED_WORKFLOW,
-        )
-    )
+    # The seed bibliography is the only other file init writes.
+    outcome.actions.append(write_if_missing(project / "references.bib", _REFERENCES_BIB))
 
-    # .gitignore is the only file where we modify-in-place.
+    # .gitignore is the one file modified in place (idempotent append).
     outcome.actions.append(_ensure_gitignore(project))
 
     return outcome
@@ -362,11 +245,6 @@ project:
 bibliography:
   - references.bib
   - references.json
-
-format:
-  html:
-    include-before-body:
-      - _version-banner.html
 """
 
 
@@ -399,13 +277,19 @@ def format_outcome(outcome: InitOutcome, *, project: Path) -> str:
     lines.append("     (install with `uv tool install git+https://github.com/quartobot/quartobot`)")
     lines.append("  2. Add citations to your prose: @doi:..., @pmid:..., etc.")
     lines.append("  3. quarto render")
+    lines.append("")
+    lines.append(
+        "To add the version banner + GitHub Actions CI, run `quartobot use github-ci` after this."
+    )
     return "\n".join(lines)
 
 
 __all__: Sequence[str] = (
     "Action",
     "InitOutcome",
+    "_ensure_gitignore",
     "detect_project_type",
     "format_outcome",
     "init_project",
+    "write_if_missing",
 )

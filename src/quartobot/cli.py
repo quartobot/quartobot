@@ -476,20 +476,67 @@ def snapshots_apply(
     ),
 )
 def init(project: Path, project_type: str) -> None:
-    """Scaffold the quartobot pattern into an existing Quarto project.
+    """Scaffold the citation pipeline into an existing Quarto project.
 
-    Writes the files that make a vanilla Quarto project adopt the
-    quartobot pattern: `_quarto.yml` (when absent), `references.bib`,
-    the version banner template + dev placeholder, a ten-line GitHub
-    Actions workflow that calls the upstream reusable workflow, the
-    PR-cleanup workflow, and `.gitignore` augments.
+    Writes only what the citation pipeline needs: `_quarto.yml` (when
+    absent) wired with the `quartobot resolve` pre-render hook and a
+    `bibliography:` list, a seed `references.bib`, and `.gitignore`
+    augments so `references.json` stays out of the repo.
 
     Conservative — never overwrites existing files. If `_quarto.yml`
     already exists, prints a YAML snippet to merge in manually.
+
+    The GitHub Actions render workflow, version banner, and PR-preview
+    cleanup live in `quartobot use github-ci`. Run that after `init`
+    if you want them.
     """
     from quartobot.init_project import format_outcome, init_project
 
     outcome = init_project(project, project_type=project_type)
+    click.echo(format_outcome(outcome, project=project))
+
+
+@main.group()
+def use() -> None:
+    """Wire optional capabilities into a quartobot project.
+
+    Each subcommand is opinionated about one thing and is idempotent
+    — re-running is safe; files already on disk are left alone. The
+    list will grow over time; today `github-ci` is the first
+    inhabitant.
+    """
+
+
+@use.command("github-ci")
+@click.argument(
+    "project",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True, path_type=Path),
+    default=".",
+)
+@click.option(
+    "--project-type",
+    type=click.Choice(["auto", "manuscript", "book"]),
+    default="auto",
+    show_default=True,
+    help=(
+        "Quarto project shape. `auto` detects from an existing _quarto.yml "
+        "and falls back to manuscript when there's nothing to detect from."
+    ),
+)
+def use_github_ci(project: Path, project_type: str) -> None:
+    """Scaffold the GitHub Actions render workflow + version banner.
+
+    Writes `.github/workflows/render.yml` (a thin caller of the
+    upstream reusable workflow), the PR-preview cleanup workflow,
+    and the version-banner Quarto include (template + dev
+    placeholder). If `_quarto.yml` exists but doesn't declare the
+    banner include, prints a YAML snippet to merge in manually.
+
+    Idempotent. Files already present are reported as skipped.
+    """
+    from quartobot.use_github_ci import apply_github_ci, format_outcome
+
+    outcome = apply_github_ci(project, project_type=project_type)
     click.echo(format_outcome(outcome, project=project))
 
 

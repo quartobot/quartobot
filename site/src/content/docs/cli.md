@@ -5,8 +5,8 @@ description: Pre-render and out-of-render commands for citation pipelines on Qua
 
 A Python CLI for pre-render and out-of-render work. `quartobot resolve`
 runs as a Quarto pre-render hook and calls `manubot.cite` directly to
-populate the bibliography before pandoc starts. `scan`, `validate`, and
-`init` round out the surface for CI-lint and scaffolding.
+populate the bibliography before pandoc starts. `scan`, `validate`,
+`init`, and `use` round out the surface for CI-lint and scaffolding.
 
 ```bash
 uv tool install git+https://github.com/quartobot/quartobot
@@ -170,7 +170,7 @@ Exit codes: `0` if every check passes, `1` on any failure.
 
 ### `quartobot init`
 
-Scaffold the quartobot pattern into an existing (or empty) Quarto
+Scaffold the citation pipeline into an existing (or empty) Quarto
 project:
 
 ```
@@ -179,18 +179,22 @@ Project type: manuscript
 
   + _quarto.yml  [written]
   + references.bib  [written]
-  + _version-banner.html.template  [written]
-  + _version-banner.html  [written]
-  + .github/workflows/render.yml  [written]
-  + .github/workflows/pr-closed.yml  [written]
-  ~ .gitignore  [appended] — added 6 line(s)
+  ~ .gitignore  [appended] — added 7 line(s)
 
 Next steps:
   1. Confirm `quartobot` is on PATH: `quartobot --version`
      (install with `uv tool install git+https://github.com/quartobot/quartobot`)
   2. Add citations to your prose: @doi:..., @pmid:..., etc.
   3. quarto render
+
+To add the version banner + GitHub Actions CI, run `quartobot use github-ci` after this.
 ```
+
+`init` writes only what the citation pipeline needs: `_quarto.yml`
+wired with the `quartobot resolve` pre-render hook and a
+`bibliography:` list, a seed `references.bib`, and a `.gitignore`
+augment so `references.json` (regenerated each render) stays out of
+the repo. Three files, nothing else.
 
 Conservative — never overwrites existing files. If `_quarto.yml`
 already exists, prints a YAML snippet to merge in manually instead of
@@ -200,11 +204,46 @@ touching it. `.gitignore` is the one file modified in place
 `--project-type {auto,manuscript,book}` controls what gets written;
 `auto` detects from `_quarto.yml`, falling back to `manuscript`.
 
-:::note
-Scaffolding's piecewise siblings — `quartobot use-render-workflow`,
-`use-banner`, `use-quarto-yml`, and `detach` — are scoped but not yet
-shipped. Tracked at [#25](https://github.com/quartobot/quartobot/issues/25).
-:::
+### `quartobot use github-ci`
+
+Scaffold the GitHub Actions render workflow, version banner, and
+PR-preview cleanup — the manuscript-as-software CI machinery that used
+to ride along with `init`. Opt-in, idempotent, scoped to one job.
+
+```
+$ quartobot use github-ci
+Project type: manuscript
+
+  + _version-banner.html.template  [written]
+  + _version-banner.html  [written]
+  + .github/workflows/render.yml  [written]
+  + .github/workflows/pr-closed.yml  [written]
+
+# Add to your existing _quarto.yml so the version banner renders at
+# the top of the HTML output. PDF/DOCX outputs skip the include
+# automatically.
+
+format:
+  html:
+    include-before-body:
+      - _version-banner.html
+
+Next steps:
+  1. Commit the new files and push to GitHub.
+  2. The render workflow fires on push to main and on PRs.
+  3. After the first push, CI swaps the dev banner for a
+     per-commit permalink + 'latest' link.
+```
+
+When `_quarto.yml` already declares the banner include, the
+manual-merge snippet is suppressed. Re-running is safe: files
+already on disk are left alone and report as `skipped-exists`.
+
+`use` is a click group, designed to grow. `github-ci` is the first
+inhabitant; future siblings (`use jupyter-notebooks`, `use pre-commit`,
+`use mcp`, `use joss-paper`) are scoped but not yet shipped. The
+naming convention follows R's `usethis` package: one verb (`use`),
+one role per subcommand.
 
 ## Philosophy
 
@@ -216,7 +255,7 @@ reliable) or out-of-render (`init`, `scan`, `validate` — work that
 doesn't touch render at all).
 
 Opaque-by-default for the CI surface: a consumer's `.github/workflows/render.yml`
-is ten lines pointing at the upstream reusable workflow. `quartobot
+is a thin caller pointing at the upstream reusable workflow. `quartobot
 detach` (when it ships) is the escape hatch when consumers want to
 fork the pipeline. The opposite of `r-lib/actions`, which copies 150
 lines into every consumer repo. quartobot's default is friendlier; the

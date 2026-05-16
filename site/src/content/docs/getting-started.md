@@ -16,10 +16,14 @@ cd my-paper
 quartobot init
 ```
 
+Optional: `quartobot use github-ci` to scaffold the GitHub Actions
+render workflow + version banner + permalink CI.
+
 `quarto create project` lays out a manuscript-shaped Quarto project
 (`index.qmd`, `_quarto.yml`, the directory layout pandoc expects);
-`quartobot init` layers the citation-resolution pre-render hook, the
-version-banner Quarto include, and a ten-line render workflow on top.
+`quartobot init` layers the citation-resolution pre-render hook and a
+seed `references.bib` on top. `use github-ci` is the opt-in
+manuscript-as-software CI on top of that.
 
 Same pattern for books and websites — substitute `book` or `website`
 for `manuscript` in the `quarto create` line.
@@ -29,14 +33,16 @@ for `manuscript` in the `quarto create` line.
 ```bash
 uv tool install quartobot
 quartobot init
-git add . && git commit -m "Adopt the quartobot pattern"
+git add . && git commit -m "Adopt the quartobot citation pipeline"
 git push
 ```
 
 `quartobot init` wires the `quartobot resolve` pre-render hook into
-`_quarto.yml`, seeds a `references.bib`, drops in the version banner
-template, and writes a ten-line `render.yml` that calls the upstream
-reusable workflow. Idempotent — run it again and nothing breaks.
+`_quarto.yml`, declares `references.bib` + `references.json` under
+`bibliography:`, and seeds an empty `references.bib`. Three files,
+idempotent — run it again and nothing breaks. For the GitHub Actions
+render workflow + version banner, follow up with
+`quartobot use github-ci`.
 
 ### I just want auto-resolved citations
 

@@ -40,28 +40,33 @@ def test_detect_broken_yml(tmp_path):
     assert detect_project_type(tmp_path) == "unknown"
 
 
-def test_init_empty_project_creates_files(tmp_path):
+def test_init_empty_project_writes_only_pipeline_files(tmp_path):
     outcome = init_project(tmp_path)
     assert outcome.project_type == "manuscript"
     must_exist = [
         "_quarto.yml",
         "references.bib",
-        "_version-banner.html.template",
-        "_version-banner.html",
-        ".github/workflows/render.yml",
-        ".github/workflows/pr-closed.yml",
         ".gitignore",
     ]
     for rel in must_exist:
         assert (tmp_path / rel).exists(), f"{rel} not created"
-    render = (tmp_path / ".github/workflows/render.yml").read_text()
-    assert "project-type: manuscript" in render
-    # The scaffolded _quarto.yml wires the pre-render hook, not a filter.
+    # The CI machinery now belongs to `quartobot use github-ci`.
+    must_not_exist = [
+        "_version-banner.html.template",
+        "_version-banner.html",
+        ".github/workflows/render.yml",
+        ".github/workflows/pr-closed.yml",
+    ]
+    for rel in must_not_exist:
+        assert not (tmp_path / rel).exists(), f"{rel} should not be written by init"
+    # The scaffolded _quarto.yml wires the pre-render hook, not a filter,
+    # and no longer pulls in the banner include.
     yml = (tmp_path / "_quarto.yml").read_text()
     assert "quartobot resolve" in yml
     assert "--id-mode citation-key" in yml
     assert "filters:" not in yml
     assert "manubot-" not in yml
+    assert "_version-banner.html" not in yml
 
 
 def test_init_book_project_writes_book_quarto_yml(tmp_path):
@@ -69,8 +74,8 @@ def test_init_book_project_writes_book_quarto_yml(tmp_path):
     assert outcome.project_type == "book"
     cfg = yaml.safe_load((tmp_path / "_quarto.yml").read_text())
     assert cfg["project"]["type"] == "book"
-    render = (tmp_path / ".github/workflows/render.yml").read_text()
-    assert "project-type: book" in render
+    # Book yml also drops the banner include.
+    assert "_version-banner.html" not in (tmp_path / "_quarto.yml").read_text()
 
 
 def test_init_auto_detects_book(tmp_path):
@@ -79,16 +84,15 @@ def test_init_auto_detects_book(tmp_path):
     assert outcome.project_type == "book"
     assert outcome.manual_merge_snippet is not None
     assert any(a.status == "manual-merge" and a.path.name == "_quarto.yml" for a in outcome.actions)
+    # The snippet for manual merge no longer mentions the banner include —
+    # that's `use github-ci`'s job.
+    assert "_version-banner.html" not in outcome.manual_merge_snippet
 
 
 def test_init_does_not_overwrite_existing_files(tmp_path):
     files = {
         "_quarto.yml": "original yml\n",
         "references.bib": "@misc{orig, title={Original}}\n",
-        "_version-banner.html.template": "original template\n",
-        "_version-banner.html": "original banner\n",
-        ".github/workflows/render.yml": "original workflow\n",
-        ".github/workflows/pr-closed.yml": "original pr-closed\n",
     }
     for rel, content in files.items():
         p = tmp_path / rel
@@ -107,11 +111,9 @@ def test_init_is_idempotent(tmp_path):
         assert p.read_text() == content, f"{p} changed on re-init"
 
 
-def test_init_writes_pr_closed_workflow(tmp_path):
+def test_init_skips_github_workflows(tmp_path):
     init_project(tmp_path)
-    pr_closed = (tmp_path / ".github/workflows/pr-closed.yml").read_text()
-    assert "Clean up PR preview" in pr_closed
-    assert "types: [closed]" in pr_closed
+    assert not (tmp_path / ".github").exists()
 
 
 def test_gitignore_created_when_absent(tmp_path):
@@ -154,6 +156,8 @@ def test_format_emits_expected_glyphs(tmp_path):
     assert "· references.bib" in out
     assert "manuscript" in out
     assert "uv tool install" in out
+    # Hint pointing at the follow-up command.
+    assert "quartobot use github-ci" in out
 
 
 def test_format_includes_manual_merge_snippet(tmp_path):
@@ -174,6 +178,7 @@ def test_cli_init_in_empty_dir(tmp_path):
     assert result.exit_code == 0, result.output
     assert "Next steps:" in result.output
     assert (tmp_path / "_quarto.yml").exists()
+    assert not (tmp_path / ".github").exists()
 
 
 def test_cli_init_book_flag(tmp_path):
