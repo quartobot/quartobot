@@ -39,6 +39,7 @@ export default defineConfig({
           items: [
             { label: "Resolve a single citation", link: "/resolve-single-citation/" },
             { label: "Use a Quarto website", link: "/quarto-websites/" },
+            { label: "Use a Quarto book", link: "/quarto-books/" },
             { label: "Use Jupyter notebooks", link: "/jupyter-notebooks/" },
             { label: "MCP server", link: "/mcp/" },
             { label: "Migrate from manubot", link: "/migrating-from-manubot/" },
