@@ -4,6 +4,7 @@
 
 ### Added
 
+- Docs: "How to validate a manuscript" how-to (check-by-check walk-through, worked failure cases, pre-commit / CI wiring). Closes #81.
 - Docs: "How to resolve a single citation" how-to (CLI stdout mode + MCP tool). Closes #80.
 - Docs: "First manuscript in 15 minutes" end-to-end tutorial under
   Tutorials in the sidebar. Walks an author from `quarto create

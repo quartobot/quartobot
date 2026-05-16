@@ -1,0 +1,170 @@
+---
+title: "How to validate a manuscript"
+description: Run quartobot's static checks against your project before pushing. What each check asserts, what failures mean, how to wire it into pre-commit / CI.
+---
+
+```bash
+quartobot validate .
+```
+
+Runs a battery of static pre-flight checks against `_quarto.yml` and
+the project tree — pure static, no network, fast. Exit 0 if everything
+passes, 1 if any check fails.
+
+That's the whole command. The rest of this page is what each check
+means and what to do when one fails.
+
+## What each check asserts
+
+The checks are intentionally narrow. They catch the foot-guns that
+silently produce broken output — where `quarto render` succeeds but
+the rendered document is wrong.
+
+### `_quarto.yml exists`
+
+Asserts the project root has a `_quarto.yml`. If it doesn't, this
+isn't a Quarto project and the rest of the checks would be noise.
+Most common cause: you ran `quartobot validate` from a parent
+directory. `quartobot validate .` wants the project root.
+
+### `_quarto.yml parses as YAML`
+
+Asserts the file is valid YAML, only if the file exists. Most common
+cause: a stray tab, an unquoted colon in a `title:` string, or a list
+item indented by one space instead of two. Open the file in an
+editor with YAML linting and the line jumps out.
+
+### `bibliography declared`
+
+Asserts `_quarto.yml` declares a `bibliography:` key. Without it,
+citeproc has nowhere to read CSL entries from and citations don't
+render. Most common cause: a new project scaffolded outside
+`quartobot init`. Add the key at the top level — `init` writes
+`references.bib` and `references.json` by default.
+
+### `pre-render hook`
+
+Asserts `project.pre-render` invokes `quartobot resolve --id-mode
+citation-key`. The flag is load-bearing. Without it, manubot's
+canonical short hashes (`YuJbg3zO`) end up as CSL `id`s instead of
+your prose keys (`doi:10.1371/...`), and pandoc-citeproc silently
+fails to match any cite. Most common cause: the line was edited by
+hand and the flag got dropped.
+
+### `references.json in bibliography`
+
+Asserts the pre-render hook's output file (`references.json` by
+default) is listed under `bibliography:`. This is the check that
+bites everyone at least once. The pre-render hook writes the file
+regardless; if citeproc isn't told to read it, the resolved entries
+don't reach the rendered document. Most common cause: someone
+removed `references.json` from `bibliography:` thinking it was an
+auto-generated artifact that didn't belong in config. It is
+auto-generated, but citeproc still needs to be told where to read it.
+
+### `no duplicate cite keys`
+
+Asserts no cite key appears in more than one file. Same-key-twice
+in the same file is the normal academic-writing case and is not
+flagged. The check is narrow on purpose: cross-file duplication is
+the pattern chunked content can produce by accident; same-file
+repetition is intent. Most common cause: you copied a paragraph
+across chapters and the cite came along with it.
+
+## Worked failure cases
+
+### Missing `references.json` in `bibliography:`
+
+```
+$ quartobot validate .
+  ✓ _quarto.yml exists
+  ✓ bibliography declared — 1 file(s): references.bib
+  ✓ pre-render hook — `quartobot resolve --id-mode citation-key` declared
+  ✗ references.json in bibliography — `references.json` is not in `bibliography:` (['references.bib']). Citeproc won't read the resolved entries the pre-render hook writes there.
+  ✓ no duplicate cite keys — 5 unique key(s) in 1 file(s)
+
+1 of 5 check(s) failed. Exit 1.
+```
+
+Fix it with a one-line edit to `_quarto.yml`:
+
+```yaml
+bibliography:
+  - references.bib    # hand-curated
+  - references.json   # auto-resolved by `quartobot resolve`
+```
+
+Why it matters: pandoc-citeproc reads every file in the
+`bibliography:` list and builds one combined database. The pre-render
+hook writes resolved entries to `references.json` whether or not
+citeproc reads them. Drop the file from the list and the render
+succeeds with every `@doi:` cite landing as `[Unresolved citation]` —
+the silent-failure mode this check exists to prevent.
+
+### Cross-file duplicate cite key
+
+```
+$ quartobot validate .
+  ✓ _quarto.yml exists
+  ✓ bibliography declared — 2 file(s): references.bib, references.json
+  ✓ pre-render hook — `quartobot resolve --id-mode citation-key` declared
+  ✓ references.json in bibliography — `references.json` listed in `bibliography:`
+  ✗ no duplicate cite keys — 1 key(s) appear across multiple files (e.g. @doi:10.1371/journal.pone.0123456 (2 files))
+
+1 of 5 check(s) failed. Exit 1.
+```
+
+The message names the offending key and the file count. Walk
+through: if it's an accident — paragraph copy-pasted across
+chapters, cite dragged along — pick the chapter that owns the claim
+and remove the cite from the other. If both chapters legitimately
+need the cite, move it to one canonical mention and reference the
+other chapter prose-style ("as discussed in Chapter 3").
+
+Same-file repetition (the same `@doi:` key twice in `paper.qmd`) is
+explicitly not a failure. That's normal academic writing — one
+source backing two claims in different paragraphs — and the check
+is deliberately narrow to leave it alone.
+
+## Running validate in pre-commit / CI
+
+As a git pre-commit hook, in `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: local
+    hooks:
+      - id: quartobot-validate
+        name: quartobot validate
+        entry: quartobot validate .
+        language: system
+        pass_filenames: false
+```
+
+Fast enough for every commit — no network, just YAML parsing and a
+scan of the prose files.
+
+As a CI step, the reusable render workflow already runs `quartobot
+validate` before render. `quartobot use github-ci` wires that
+workflow into your repo, so any validate failure blocks the deploy
+with nothing else to set up.
+
+If you don't use the render workflow and want validate on its own:
+
+```yaml
+name: validate
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - run: uv tool install git+https://github.com/quartobot/quartobot
+      - run: quartobot validate .
+```
+
+## See also
+
+- [CLI reference: `validate`](../cli/#quartobot-validate) — the flag surface and exit codes.
+- [`quartobot use github-ci`](../cli/#quartobot-use-github-ci) — wire validate into the render workflow.
