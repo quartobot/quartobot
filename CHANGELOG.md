@@ -4,6 +4,7 @@
 
 ### Added
 
+- Docs: "How to validate a manuscript" how-to (check-by-check walk-through, worked failure cases, pre-commit / CI wiring). Closes #81.
 - Docs: "How to resolve a single citation" how-to (CLI stdout mode + MCP tool). Closes #80.
 - Docs: "First manuscript in 15 minutes" end-to-end tutorial under
   Tutorials in the sidebar. Walks an author from `quarto create
@@ -11,6 +12,7 @@
   render`, `gh repo create`, and the PR-preview round trip. Closes
   #82.
 - Docs: "MCP + Claude Desktop" tutorial — agent grounds citations against quartobot's resolver via the MCP server. Closes #83.
+- Docs: "How to use quartobot in a Quarto website" how-to. Closes #78.
 - Docs: "Shell-tool agents grounding citations" tutorial — the non-MCP companion to the Claude Desktop tutorial. Closes #84.
 
 ### Changed
