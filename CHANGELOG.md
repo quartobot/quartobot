@@ -5,7 +5,9 @@
 ### Added
 
 - Docs: "How to validate a manuscript" how-to (check-by-check walk-through, worked failure cases, pre-commit / CI wiring). Closes #81.
+- Docs: "How to use quartobot in a Quarto book" how-to. Closes #79.
 - Docs: "How to resolve a single citation" how-to (CLI stdout mode + MCP tool). Closes #80.
+- Docs: "How to use quartobot in a Jupyter notebook manuscript" how-to. Closes #77.
 - Docs: "First manuscript in 15 minutes" end-to-end tutorial under
   Tutorials in the sidebar. Walks an author from `quarto create
   project manuscript` through `init`, `use github-ci`, `quarto
