@@ -236,9 +236,8 @@ Next steps:
 ```
 
 When `_quarto.yml` already declares the banner include, the
-manual-merge snippet is suppressed. Re-running picks up updated
-templates without clobbering local changes — files already on disk
-report as `skipped-exists`.
+manual-merge snippet is suppressed. Re-running is safe: files
+already on disk are left alone and report as `skipped-exists`.
 
 `use` is a click group, designed to grow. `github-ci` is the first
 inhabitant; future siblings (`use jupyter-notebooks`, `use pre-commit`,
@@ -256,7 +255,7 @@ reliable) or out-of-render (`init`, `scan`, `validate` — work that
 doesn't touch render at all).
 
 Opaque-by-default for the CI surface: a consumer's `.github/workflows/render.yml`
-is ten lines pointing at the upstream reusable workflow. `quartobot
+is a thin caller pointing at the upstream reusable workflow. `quartobot
 detach` (when it ships) is the escape hatch when consumers want to
 fork the pipeline. The opposite of `r-lib/actions`, which copies 150
 lines into every consumer repo. quartobot's default is friendlier; the

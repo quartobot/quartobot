@@ -23,3 +23,9 @@ _output/
 _freeze/
 .quarto/
 *_files/
+
+# Claude Code session artifacts (worktrees, plans, etc.)
+.claude/
+
+# graphify knowledge-graph output cache
+graphify-out/

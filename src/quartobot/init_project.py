@@ -148,7 +148,13 @@ def detect_project_type(project: Path) -> str:
     return "manuscript"
 
 
-def _write_if_missing(path: Path, content: str) -> Action:
+def write_if_missing(path: Path, content: str) -> Action:
+    """Write `content` at `path` only if the file isn't already there.
+
+    Returns an Action with `written` or `skipped-exists`. Public so
+    other scaffolders (`quartobot use ...`) can share the same
+    never-clobber convention without depending on a private helper.
+    """
     if path.exists():
         return Action(path=path, status="skipped-exists")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -216,10 +222,10 @@ def init_project(
         outcome.manual_merge_snippet = _quarto_yml_snippet_for_manual_merge()
     else:
         content = _QUARTO_YML_BOOK if ptype == "book" else _QUARTO_YML_MANUSCRIPT
-        outcome.actions.append(_write_if_missing(yml_path, content))
+        outcome.actions.append(write_if_missing(yml_path, content))
 
     # The seed bibliography is the only other file init writes.
-    outcome.actions.append(_write_if_missing(project / "references.bib", _REFERENCES_BIB))
+    outcome.actions.append(write_if_missing(project / "references.bib", _REFERENCES_BIB))
 
     # .gitignore is the one file modified in place (idempotent append).
     outcome.actions.append(_ensure_gitignore(project))
@@ -282,8 +288,8 @@ __all__: Sequence[str] = (
     "Action",
     "InitOutcome",
     "_ensure_gitignore",
-    "_write_if_missing",
     "detect_project_type",
     "format_outcome",
     "init_project",
+    "write_if_missing",
 )

@@ -500,10 +500,10 @@ def init(project: Path, project_type: str) -> None:
 def use() -> None:
     """Wire optional capabilities into a quartobot project.
 
-    Each subcommand is opinionated about one thing and is idempotent —
-    running again picks up updated templates without clobbering local
-    changes. The list will grow over time; today `github-ci` is the
-    first inhabitant.
+    Each subcommand is opinionated about one thing and is idempotent
+    — re-running is safe; files already on disk are left alone. The
+    list will grow over time; today `github-ci` is the first
+    inhabitant.
     """
 
 
@@ -526,11 +526,11 @@ def use() -> None:
 def use_github_ci(project: Path, project_type: str) -> None:
     """Scaffold the GitHub Actions render workflow + version banner.
 
-    Writes `.github/workflows/render.yml` (ten lines pointing at the
-    upstream reusable workflow), the PR-preview cleanup workflow, and
-    the version-banner Quarto include (template + dev placeholder).
-    If `_quarto.yml` exists but doesn't declare the banner include,
-    prints a YAML snippet to merge in manually.
+    Writes `.github/workflows/render.yml` (a thin caller of the
+    upstream reusable workflow), the PR-preview cleanup workflow,
+    and the version-banner Quarto include (template + dev
+    placeholder). If `_quarto.yml` exists but doesn't declare the
+    banner include, prints a YAML snippet to merge in manually.
 
     Idempotent. Files already present are reported as skipped.
     """

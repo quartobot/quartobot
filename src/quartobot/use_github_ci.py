@@ -1,7 +1,7 @@
 """Scaffold the GitHub Actions render workflow + version banner.
 
 `quartobot use github-ci` writes the manuscript-as-software machinery
-that used to ride along with `quartobot init`: a ten-line
+that used to ride along with `quartobot init`: a thin
 `.github/workflows/render.yml` that calls the upstream reusable
 workflow, the version-banner Quarto include (template + dev
 placeholder), and a PR-preview cleanup workflow.
@@ -22,8 +22,8 @@ import yaml
 
 from quartobot.init_project import (
     Action,
-    _write_if_missing,
     detect_project_type,
+    write_if_missing,
 )
 
 # ---------------------------------------------------------------- templates
@@ -53,7 +53,12 @@ _VERSION_BANNER_DEV = (
 
 
 def _render_workflow(project_type: str) -> str:
-    """Return the ten-line workflow caller for the given project type."""
+    """Return the render-workflow caller for the given project type.
+
+    Thin wrapper around the upstream reusable workflow; the consumer
+    side is just the trigger config plus the `uses:` line and a
+    handful of inputs.
+    """
     return f"""\
 # Renders on every push and PR via the upstream reusable workflow.
 # Override inputs in the `with:` block below; see
@@ -102,7 +107,8 @@ jobs:
       - name: Check whether gh-pages branch exists
         id: branch
         run: |
-          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+          REPO_URL="https://github.com/${{ github.repository }}.git"
+          if git ls-remote --exit-code --heads "$REPO_URL" gh-pages >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -163,11 +169,13 @@ class UseOutcome:
 def _banner_already_included(project: Path) -> bool:
     """True if `_quarto.yml` already declares the banner include.
 
-    A loose YAML walk — anywhere `_version-banner.html` shows up under
-    an `include-before-body` (or `include-in-header`) list counts. If
-    the file is missing or unparsable, returns False so the snippet
-    still gets printed (or, when `_quarto.yml` is absent, suppressed
-    by the caller).
+    Walks `format` -> (each html-like format) -> `include-in-header`
+    and `include-before-body` and checks for `_version-banner.html`.
+    A bare `format: html` string can't carry includes, so it's a no.
+    Anything else (a missing file, a YAML parse error, a `format`
+    that's the wrong shape) returns False so the caller still prints
+    the snippet — false-negative is conservative; the user merges
+    something that may already be there, which is harmless.
     """
     yml = project / "_quarto.yml"
     if not yml.exists():
@@ -179,16 +187,22 @@ def _banner_already_included(project: Path) -> bool:
     if not isinstance(loaded, dict):
         return False
 
-    def _walk(node: object) -> bool:
-        if isinstance(node, dict):
-            return any(_walk(v) for v in node.values())
-        if isinstance(node, list):
-            return any(_walk(item) for item in node)
-        if isinstance(node, str):
-            return "_version-banner.html" in node
+    formats = loaded.get("format")
+    if not isinstance(formats, dict):
         return False
 
-    return _walk(loaded)
+    include_keys = ("include-in-header", "include-before-body")
+    for fmt_value in formats.values():
+        if not isinstance(fmt_value, dict):
+            continue
+        for key in include_keys:
+            target = fmt_value.get(key)
+            if isinstance(target, str) and "_version-banner.html" in target:
+                return True
+            if isinstance(target, list):
+                if any(isinstance(x, str) and "_version-banner.html" in x for x in target):
+                    return True
+    return False
 
 
 # ---------------------------------------------------------------- top-level
@@ -219,20 +233,20 @@ def apply_github_ci(
     outcome = UseOutcome(project_type=ptype)
 
     outcome.actions.append(
-        _write_if_missing(
+        write_if_missing(
             project / "_version-banner.html.template",
             _VERSION_BANNER_TEMPLATE,
         )
     )
-    outcome.actions.append(_write_if_missing(project / "_version-banner.html", _VERSION_BANNER_DEV))
+    outcome.actions.append(write_if_missing(project / "_version-banner.html", _VERSION_BANNER_DEV))
     outcome.actions.append(
-        _write_if_missing(
+        write_if_missing(
             project / ".github" / "workflows" / "render.yml",
             _render_workflow(ptype),
         )
     )
     outcome.actions.append(
-        _write_if_missing(
+        write_if_missing(
             project / ".github" / "workflows" / "pr-closed.yml",
             _PR_CLOSED_WORKFLOW,
         )
