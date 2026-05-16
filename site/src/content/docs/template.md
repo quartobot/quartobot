@@ -14,10 +14,10 @@ see [the book template](/book/) — same pattern, different project shape.
 
 :::caution
 The template is currently scaffolded at
-[`template/`](https://github.com/seandavi/quartobot/tree/main/template)
+[`template/`](https://github.com/quartobot/quartobot/tree/main/template)
 inside this repo. Promotion to its own template repo
-(`seandavi/quartobot-manuscript`) is tracked at
-[#13](https://github.com/seandavi/quartobot/issues/13). Until then,
+(`quartobot/quartobot-manuscript`) is tracked at
+[#13](https://github.com/quartobot/quartobot/issues/13). Until then,
 `gh repo create --template` doesn't work — read the source instead.
 :::
 
@@ -36,12 +36,12 @@ inside this repo. Promotion to its own template repo
 ## CI architecture
 
 `template/.github/workflows/render.yml` is a ten-line caller of the
-[upstream reusable workflow](https://github.com/seandavi/quartobot/blob/main/.github/workflows/render-reusable.yml).
+[upstream reusable workflow](https://github.com/quartobot/quartobot/blob/main/.github/workflows/render-reusable.yml).
 Bug fixes to the upstream workflow flow to every consumer pinned at
 `@v0.1` automatically.
 
 Detach to fully copied-out workflows with `quartobot detach` (tracked at
-[#25](https://github.com/seandavi/quartobot/issues/25)) when that ships,
+[#25](https://github.com/quartobot/quartobot/issues/25)) when that ships,
 or manually copy the reusable workflow into your repo as a starting
 point for a forked pipeline.
 
@@ -65,9 +65,9 @@ entirely.
 
 ## See also
 
-- Template source: [`template/`](https://github.com/seandavi/quartobot/tree/main/template)
+- Template source: [`template/`](https://github.com/quartobot/quartobot/tree/main/template)
 - [Working example](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)
   — a 25-author preprint that has been running the CI half of this pattern
   in production.
-- [Extend vs fork Quarto Manuscripts template](https://github.com/seandavi/quartobot/issues/3)
+- [Extend vs fork Quarto Manuscripts template](https://github.com/quartobot/quartobot/issues/3)
   — open question.

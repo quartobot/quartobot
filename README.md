@@ -7,7 +7,7 @@ The manubot manuscript-as-software pattern, on Quarto.
 
 > **Status:** v0.1 in flight. The CLI ships and is on PATH today via
 > `uv tool install`. PyPI publishing follows the v0.1 tag. Watch the
-> [v0.1 milestone](https://github.com/seandavi/quartobot/milestone/1).
+> [v0.1 milestone](https://github.com/quartobot/quartobot/milestone/1).
 > Architecture: pre-render hook calling the CLI directly, settled
 > 2026-05-14 — see [`docs/citation-pipeline.md`](docs/citation-pipeline.md).
 
@@ -38,7 +38,7 @@ The shipping surface is a Python CLI and (optionally) a GitHub template:
    their prose, and citations resolve.
 
    ```bash
-   uv tool install git+https://github.com/seandavi/quartobot
+   uv tool install git+https://github.com/quartobot/quartobot
    ```
 
 2. **`quartobot-manuscript`** — a GitHub template that combines Quarto
@@ -48,7 +48,7 @@ The shipping surface is a Python CLI and (optionally) a GitHub template:
    comment, and deploys HTML + PDF + DOCX to GitHub Pages.
 
    ```bash
-   gh repo create my-paper --template seandavi/quartobot-manuscript
+   gh repo create my-paper --template quartobot/quartobot-manuscript
    ```
 
 PyPI publishing and the standalone template repo are part of the v0.1

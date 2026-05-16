@@ -22,7 +22,7 @@ keywords:
 # Introduction
 
 This template combines [Quarto](https://quarto.org), the
-[`quartobot`](https://github.com/seandavi/quartobot) CLI wired as a
+[`quartobot`](https://github.com/quartobot/quartobot) CLI wired as a
 Quarto pre-render hook for citation resolution, and a CI workflow that
 gives every commit an immutable permalink at `/v/<sha>/`, deploys HTML
 and PDF to GitHub Pages, and posts PR previews through a sticky
@@ -76,9 +76,9 @@ Manubot's prefix syntax, available as-is:
   in the HTML version banner.
 - Open a PR. CI posts a sticky comment with the preview URL.
 
-The full design is in [DESIGN.md](https://github.com/seandavi/quartobot/blob/main/DESIGN.md);
+The full design is in [DESIGN.md](https://github.com/quartobot/quartobot/blob/main/DESIGN.md);
 the citation pipeline (pre-render hook over filter) is documented in
-[`docs/citation-pipeline.md`](https://github.com/seandavi/quartobot/blob/main/docs/citation-pipeline.md).
+[`docs/citation-pipeline.md`](https://github.com/quartobot/quartobot/blob/main/docs/citation-pipeline.md).
 
 # References {.unnumbered}
 

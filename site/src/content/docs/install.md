@@ -9,7 +9,7 @@ order of how often you'll want each.
 ## Recommended: `uv tool install` from GitHub
 
 ```bash
-uv tool install git+https://github.com/seandavi/quartobot
+uv tool install git+https://github.com/quartobot/quartobot
 ```
 
 This puts `quartobot` on your user `PATH` (typically `~/.local/bin` or
@@ -24,7 +24,7 @@ need to maintain a virtualenv yourself.
 Pin a specific ref:
 
 ```bash
-uv tool install git+https://github.com/seandavi/quartobot@<branch-or-tag-or-sha>
+uv tool install git+https://github.com/quartobot/quartobot@<branch-or-tag-or-sha>
 ```
 
 Upgrade later:
@@ -46,8 +46,8 @@ it out, scripted one-off jobs, or pinning a specific version in CI
 without polluting the host install.
 
 ```bash
-uvx --from git+https://github.com/seandavi/quartobot quartobot --help
-uvx --from git+https://github.com/seandavi/quartobot quartobot resolve --from-scan .
+uvx --from git+https://github.com/quartobot/quartobot quartobot --help
+uvx --from git+https://github.com/quartobot/quartobot quartobot resolve --from-scan .
 ```
 
 The `--from` flag is required because the package name and the command
@@ -73,7 +73,7 @@ or install into a project venv with `uv pip install quartobot`.
 Clone and install editable:
 
 ```bash
-git clone https://github.com/seandavi/quartobot.git
+git clone https://github.com/quartobot/quartobot.git
 cd quartobot
 uv pip install -e .
 ```

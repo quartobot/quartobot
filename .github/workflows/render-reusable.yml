@@ -13,7 +13,7 @@ name: Render quartobot manuscript (reusable)
 #     workflow_dispatch:
 #   jobs:
 #     render:
-#       uses: seandavi/quartobot/.github/workflows/render-reusable.yml@v0.1
+#       uses: quartobot/quartobot/.github/workflows/render-reusable.yml@v0.1
 #       permissions:
 #         contents: write
 #         pull-requests: write
@@ -78,7 +78,7 @@ on:
           workspace path for in-tree testing.
         type: string
         required: false
-        default: "git+https://github.com/seandavi/quartobot"
+        default: "git+https://github.com/quartobot/quartobot"
       quarto-version:
         description: "Quarto version (empty = latest stable)."
         type: string
@@ -126,7 +126,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up quartobot toolchain
-        uses: seandavi/quartobot/actions/setup-quartobot@main
+        uses: quartobot/quartobot/actions/setup-quartobot@main
         with:
           python-version: ${{ inputs.python-version }}
           quartobot-spec: ${{ inputs.quartobot-spec }}
@@ -166,7 +166,7 @@ jobs:
           cat "${BANNER_OUTPUT}"
 
       - name: Render manuscript
-        uses: seandavi/quartobot/actions/render-manuscript@main
+        uses: quartobot/quartobot/actions/render-manuscript@main
         with:
           project: ${{ inputs.project }}
           formats: ${{ inputs.formats }}
@@ -184,7 +184,7 @@ jobs:
       # ----------------------------------------------------------------
       - name: Prune old snapshots
         if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request'
-        uses: seandavi/quartobot/actions/prune-snapshots@main
+        uses: quartobot/quartobot/actions/prune-snapshots@main
         with:
           project: ${{ inputs.project }}
           mode: ${{ github.event_name == 'pull_request' && 'echo' || 'apply' }}

@@ -117,7 +117,7 @@ def _render_workflow(project_type: str) -> str:
     return f"""\
 # Renders on every push and PR via the upstream reusable workflow.
 # Override inputs in the `with:` block below; see
-#   https://github.com/seandavi/quartobot/blob/main/.github/workflows/render-reusable.yml
+#   https://github.com/quartobot/quartobot/blob/main/.github/workflows/render-reusable.yml
 # for the full list.
 
 name: Render
@@ -131,7 +131,7 @@ on:
 
 jobs:
   render:
-    uses: seandavi/quartobot/.github/workflows/render-reusable.yml@main
+    uses: quartobot/quartobot/.github/workflows/render-reusable.yml@main
     permissions:
       contents: write
       pull-requests: write
@@ -396,7 +396,7 @@ def format_outcome(outcome: InitOutcome, *, project: Path) -> str:
         lines.append(outcome.manual_merge_snippet)
     lines.append("Next steps:")
     lines.append("  1. Confirm `quartobot` is on PATH: `quartobot --version`")
-    lines.append("     (install with `uv tool install git+https://github.com/seandavi/quartobot`)")
+    lines.append("     (install with `uv tool install git+https://github.com/quartobot/quartobot`)")
     lines.append("  2. Add citations to your prose: @doi:..., @pmid:..., etc.")
     lines.append("  3. quarto render")
     return "\n".join(lines)

@@ -103,7 +103,7 @@ The CLI is the load-bearing artifact. Four commands today:
   wired in, seeds `references.bib`, drops in the version-banner
   template, adds a ten-line workflow.
 
-Install: `uv tool install git+https://github.com/seandavi/quartobot`
+Install: `uv tool install git+https://github.com/quartobot/quartobot`
 (or `uv pip install -e .` from a clone for repo dev). ~1k lines of
 Python plus tests.
 
@@ -121,7 +121,7 @@ A GitHub template that combines:
 - A README walking a new author through the three steps from
   "use this template" to "click the rendered URL."
 
-Adoption is `gh repo create my-paper --template seandavi/quartobot-manuscript`.
+Adoption is `gh repo create my-paper --template quartobot/quartobot-manuscript`.
 
 A book variant of the same template (`template-book/` in this repo)
 exercises the pattern on Quarto's book project type. Posters, slides,
@@ -201,7 +201,7 @@ our baseline:
 **Annotation, comments, search**
 
 - **Hypothes.is** annotations are a single config line:
-  `format.html.comments.hypothesis: true`. (See [#6](https://github.com/seandavi/quartobot/issues/6)
+  `format.html.comments.hypothesis: true`. (See [#6](https://github.com/quartobot/quartobot/issues/6)
   for why this dropped the iframe-shell idea.)
 - Full-text search built-in for book and website project types.
 

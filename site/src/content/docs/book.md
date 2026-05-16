@@ -15,9 +15,9 @@ single-document shape.
 
 :::caution
 The book template is currently scaffolded at
-[`template-book/`](https://github.com/seandavi/quartobot/tree/main/template-book)
+[`template-book/`](https://github.com/quartobot/quartobot/tree/main/template-book)
 inside this repo. Promotion to its own template repo
-(`seandavi/quartobot-book`) happens alongside the manuscript template
+(`quartobot/quartobot-book`) happens alongside the manuscript template
 promotion at v0.1 release time. Until then, `gh repo create --template`
 doesn't work — read the source instead.
 :::
@@ -60,7 +60,7 @@ doesn't work — read the source instead.
 ## CI architecture
 
 `template-book/.github/workflows/render.yml` is a thin caller of the
-[upstream reusable workflow](https://github.com/seandavi/quartobot/blob/main/.github/workflows/render-reusable.yml)
+[upstream reusable workflow](https://github.com/quartobot/quartobot/blob/main/.github/workflows/render-reusable.yml)
 with `project-type: book`. The reusable workflow handles the
 book-specific staging (whole `_book/` directory copy) and adapts the
 sticky PR comment to omit the PDF column.
@@ -99,7 +99,7 @@ Same pattern, broader artifact.
 
 ## See also
 
-- Template source: [`template-book/`](https://github.com/seandavi/quartobot/tree/main/template-book)
-- [Minimal book example](https://github.com/seandavi/quartobot/tree/main/examples/book-minimal) — the smallest book exercising the pre-render hook without the template's CI/banner machinery
+- Template source: [`template-book/`](https://github.com/quartobot/quartobot/tree/main/template-book)
+- [Minimal book example](https://github.com/quartobot/quartobot/tree/main/examples/book-minimal) — the smallest book exercising the pre-render hook without the template's CI/banner machinery
 - [The manuscript template](/template/) — same pattern, single-document shape
-- Roadmap: [v0.1 books support](https://github.com/seandavi/quartobot/issues/18)
+- Roadmap: [v0.1 books support](https://github.com/quartobot/quartobot/issues/18)

@@ -9,7 +9,7 @@ populate the bibliography before pandoc starts. `scan`, `validate`, and
 `init` round out the surface for CI-lint and scaffolding.
 
 ```bash
-uv tool install git+https://github.com/seandavi/quartobot
+uv tool install git+https://github.com/quartobot/quartobot
 ```
 
 `quartobot` depends on `manubot` as a Python library. See
@@ -167,7 +167,7 @@ Project type: manuscript
 
 Next steps:
   1. Confirm `quartobot` is on PATH: `quartobot --version`
-     (install with `uv tool install git+https://github.com/seandavi/quartobot`)
+     (install with `uv tool install git+https://github.com/quartobot/quartobot`)
   2. Add citations to your prose: @doi:..., @pmid:..., etc.
   3. quarto render
 ```
@@ -183,7 +183,7 @@ touching it. `.gitignore` is the one file modified in place
 :::note
 Scaffolding's piecewise siblings — `quartobot use-render-workflow`,
 `use-banner`, `use-quarto-yml`, and `detach` — are scoped but not yet
-shipped. Tracked at [#25](https://github.com/seandavi/quartobot/issues/25).
+shipped. Tracked at [#25](https://github.com/quartobot/quartobot/issues/25).
 :::
 
 ## Philosophy
