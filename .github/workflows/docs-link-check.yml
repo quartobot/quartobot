@@ -20,6 +20,7 @@ on:
     branches: [main]
     paths:
       - "site/**"
+      - ".github/workflows/docs-link-check.yml"
   workflow_dispatch:
 
 permissions:
@@ -67,9 +68,11 @@ jobs:
       - name: Crawl internal links
         # linkinator exits non-zero on any broken link. The skip
         # pattern drops every non-localhost http(s) target so we
-        # don't fail on a flaky external host.
+        # don't fail on a flaky external host. Version is pinned via
+        # site/package-lock.json (devDependency) so CI doesn't drift
+        # when a new linkinator ships.
         run: |
-          npx --yes linkinator http://127.0.0.1:4321/quartobot/ \
+          npx linkinator http://127.0.0.1:4321/quartobot/ \
             --recurse \
             --skip "^https?://(?!127\\.0\\.0\\.1)" \
             --verbosity error
