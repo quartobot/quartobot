@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## v0.2.0 — 2026-05-16
+
+The accumulated work since v0.1.0: a real docs site under
+`quartobot.github.io/quartobot/`, an MCP server for agentic authoring,
+snapshot retention for `gh-pages`, Jupyter notebook scanning, the org
+move to `quartobot/`, and a pile of correctness fixes around citation
+keys, the validate gate, and the render-CI defaults.
+
 ### Added
 
 - `quartobot mcp` — an MCP (Model Context Protocol) server exposing
@@ -18,26 +26,50 @@
   human-readable summary moves to stderr in stdout mode, and no cache
   write happens; cache reads still work when `--cache <path>` is set
   explicitly. Closes #73.
+- `quartobot snapshots` — CLI subcommand and retention-policy module
+  for the per-commit permalink directories on `gh-pages`. Ships with
+  a composite action wired into the reusable render workflow so old
+  snapshots are pruned automatically.
+- Starlight docs site at `quartobot.github.io/quartobot/`. CI gates
+  on a built-site link-check via `linkinator` so internal references
+  don't ship broken.
+- `scan` reads Jupyter notebooks (`.ipynb`) — markdown cells are
+  walked, cite keys reported with `file:cellN:line` for the
+  duplicate-locations view. Crawl knobs: `--no-recursive` keeps the
+  walk shallow, render outputs and tool caches (`_site/`, `_book/`,
+  `_freeze/`, `.quarto/`, `.git/`, `.ipynb_checkpoints/`,
+  `node_modules/`, etc.) skipped at any depth.
+
+### Changed
+
+- Repo moved to the `quartobot` GitHub org; docs Pages URL is now
+  `quartobot.github.io/quartobot/`. Closes #55, #62.
+- `quartobot validate` no longer fails on a key cited several times in
+  the same file — only cross-file duplicates count, and the failure
+  message reports the actual file count per key. `quartobot scan`
+  exits 0 in every case; duplicates are reported, not gated. Closes
+  #63.
 
 ### Fixed
 
+- `scan` and `resolve` strip a trailing `/` (and other pandoc-terminator
+  punctuation) from `@url:` cite keys so the resolver-side `id` matches
+  what pandoc-citeproc looks up. Previously `references.json` carried
+  `url:.../path/` while citeproc looked up `url:.../path` and silently
+  degraded the citation to `[?]`. Closes #61.
 - `render-reusable.yml`: `quarto-version` default is now `release` (was
   `""`). A freshly-init'd workflow that omits or passes an empty
   `quarto-version` installs the latest stable Quarto instead of 404ing
   on `…/releases/download/v/quarto--linux-amd64.deb`. The
   `setup-quartobot` composite action also normalizes empty input to
   `release` defensively so any consumer still pinned to a pre-fix tag
-  recovers. (#60)
-- `quartobot validate` no longer fails on a key cited several times in the
-  same file — only cross-file duplicates count, and the failure message
-  now reports the actual file count per key. `quartobot scan` exits 0 in
-  every case; duplicates are reported, not gated. ([#63](https://github.com/quartobot/quartobot/issues/63))
-- `scan` and `resolve` now strip a trailing `/` from `@url:` cite keys
-  to match pandoc's cite-key parser, which treats it as terminator
-  punctuation. Without this, the resolver wrote `id: url:.../path/`
-  into `references.json` while pandoc-citeproc looked up
-  `url:.../path` and silently degraded the citation to `[?]`. Closes
-  #61.
+  recovers. Closes #60.
+- Docs internal links use relative paths so the Astro `base` resolves
+  them correctly under `/quartobot/` instead of 404ing at site root.
+  Closes #69.
+- Install docs cover users without `uv` (pipx parallel path, "install
+  uv first" guidance, PATH troubleshooting for Quarto pre-render
+  subprocess). Closes #64.
 
 ### Architecture
 
