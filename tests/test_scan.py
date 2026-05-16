@@ -636,17 +636,8 @@ def test_strip_pandoc_trailing_handles_bare_url_form():
     # a URL key and strip its trailing slash.
     from quartobot.scan import strip_pandoc_trailing
 
-    assert (
-        strip_pandoc_trailing("url:https://example.com/path/")
-        == "url:https://example.com/path"
-    )
+    assert strip_pandoc_trailing("url:https://example.com/path/") == "url:https://example.com/path"
     # Sentence-ending punctuation still strips too.
-    assert (
-        strip_pandoc_trailing("url:https://example.com/path/.")
-        == "url:https://example.com/path"
-    )
+    assert strip_pandoc_trailing("url:https://example.com/path/.") == "url:https://example.com/path"
     # No-op stays no-op.
-    assert (
-        strip_pandoc_trailing("url:https://example.com/path")
-        == "url:https://example.com/path"
-    )
+    assert strip_pandoc_trailing("url:https://example.com/path") == "url:https://example.com/path"
