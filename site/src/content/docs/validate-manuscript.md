@@ -27,12 +27,10 @@ isn't a Quarto project and the rest of the checks would be noise.
 Most common cause: you ran `quartobot validate` from a parent
 directory. `quartobot validate .` wants the project root.
 
-### `_quarto.yml parses as YAML`
-
-Asserts the file is valid YAML, only if the file exists. Most common
-cause: a stray tab, an unquoted colon in a `title:` string, or a list
-item indented by one space instead of two. Open the file in an
-editor with YAML linting and the line jumps out.
+This check also fails if the file exists but doesn't parse as YAML
+(stray tab, unquoted colon in a `title:` string, list item indented
+by one space instead of two). Open the file in an editor with YAML
+linting and the offending line jumps out.
 
 ### `bibliography declared`
 
