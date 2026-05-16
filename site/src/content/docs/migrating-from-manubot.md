@@ -296,6 +296,4 @@ Keep the gh-pages branch intact — it has your historical snapshots at
   carries over and what changes
 - [Getting started](../getting-started/) — for the abridged
   fresh-project version
-- [CLI reference](../cli/) — `init`, `scan`, `validate`, `resolve`
-- [Template walkthrough](../template/) — what the scaffolded
-  manuscript looks like
+- [CLI reference](../cli/) — `init`, `scan`, `validate`, `resolve`, `mcp`

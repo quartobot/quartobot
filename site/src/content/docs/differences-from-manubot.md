@@ -130,9 +130,11 @@ load-bearing pieces. The list of things you'd lose moving over is
 narrow:
 
 - **Manubot's rootstock template integration.** Manubot ships a
-  specific template repo with its own conventions; quartobot has
-  its own [manuscript template](../template/) and
-  [book template](../book/). Different conventions, same pattern.
+  specific template repo with its own conventions. quartobot deliberately
+  doesn't: Quarto already ships `quarto create project manuscript`
+  (and `book`, and `website`), and `quartobot init` layers the
+  citation-resolution + CI machinery on top. Different shape, same
+  outcome.
 - **Manubot-specific author / reviewer affiliations metadata.**
   Manubot's `metadata.yaml` has bespoke fields for author ORCIDs,
   reviewer credit, contribution statements. Quarto's YAML

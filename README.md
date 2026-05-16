@@ -35,28 +35,33 @@ no live Crossref / PubMed / arXiv hit per render. CI gets the same
 behavior the author saw locally, and a network blip mid-render is no
 longer a build failure.
 
-Around that resolution step, the project ships:
+Around that resolution step, quartobot ships a Python CLI:
 
-1. **The Python CLI** — `scan`, `validate`, `resolve`, `init`, and
-   `mcp`. `resolve` is the pre-render hook itself; `scan` and
-   `validate` are CI-lint surfaces (cite-key inventory, static
-   `_quarto.yml` checks); `init` scaffolds the pattern into an
-   existing project; `mcp` starts a stdio MCP server so an agent in
-   Claude Desktop, Codex, or Gemini Code Assist can call the same
-   resolver as part of a drafting workflow.
+- **`resolve`** is the pre-render hook itself — invoked by Quarto from
+  `_quarto.yml`'s `project.pre-render:` line.
+- **`scan`** and **`validate`** are CI-lint surfaces: cite-key inventory
+  and static `_quarto.yml` checks.
+- **`init`** scaffolds the pattern into an existing Quarto project —
+  the pre-render hook wiring, the version-banner Quarto include, and
+  a ten-line render workflow. Pairs with `quarto create project
+  manuscript|book|website` for new projects.
+- **`mcp`** starts a stdio MCP server so an agent in Claude Desktop,
+  Codex, or Gemini Code Assist can call the same resolver as part of
+  a drafting workflow.
 
-2. **A GitHub template, `quartobot-manuscript`** — Quarto Manuscripts
-   plus the pre-render hook plus a CI workflow that gives every
-   commit an immutable permalink at `/v/<sha>/`, embeds it in the
-   rendered HTML, posts PR previews via sticky comment, and deploys
-   HTML + PDF + DOCX to GitHub Pages.
+Starting a new manuscript looks like:
 
-   ```bash
-   gh repo create my-paper --template quartobot/quartobot-manuscript
-   ```
+```bash
+uv tool install quartobot
+quarto create project manuscript my-paper
+cd my-paper && quartobot init
+```
 
-The book variant (`quartobot-book`) covers longer works on Quarto's
-book project type.
+quartobot deliberately does not ship its own GitHub template repo —
+Quarto's own `quarto create project` scaffolders cover the project
+shape, and `quartobot init` layers the citation-resolution + CI on
+top. The `template/` and `template-book/` directories in this repo
+are worked-example references, not GitHub templates.
 
 ## Supported cite-key prefixes
 

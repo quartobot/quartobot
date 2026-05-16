@@ -9,7 +9,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "quartobot",
-      description: "The manubot manuscript-as-software pattern, on Quarto.",
+      description: "Citation resolution and manuscript-as-software CI for Quarto.",
       logo: { src: "./src/assets/logo.svg", replacesTitle: false },
       social: [
         {
@@ -21,27 +21,38 @@ export default defineConfig({
       editLink: {
         baseUrl: "https://github.com/quartobot/quartobot/edit/main/site/",
       },
+      // Sidebar grouped by Diataxis quadrant — Tutorials (learning),
+      // How-to guides (doing), Reference (information), Explanation
+      // (understanding). Reader intent up front; topic comes second.
       sidebar: [
         { label: "Home", link: "/" },
-        { label: "Getting started", link: "/getting-started/" },
-        { label: "Install", link: "/install/" },
         {
-          label: "Templates",
+          label: "Tutorials",
           items: [
-            { label: "Manuscript", link: "/template/" },
-            { label: "Book", link: "/book/" },
+            { label: "Getting started", link: "/getting-started/" },
           ],
         },
-        { label: "CLI", link: "/cli/" },
-        { label: "MCP server", link: "/mcp/" },
         {
-          label: "From manubot",
+          label: "How-to guides",
           items: [
-            { label: "Differences", link: "/differences-from-manubot/" },
-            { label: "Migration", link: "/migrating-from-manubot/" },
+            { label: "MCP server", link: "/mcp/" },
+            { label: "Migrate from manubot", link: "/migrating-from-manubot/" },
           ],
         },
-        { label: "Design", link: "/design/" },
+        {
+          label: "Reference",
+          items: [
+            { label: "Install", link: "/install/" },
+            { label: "CLI", link: "/cli/" },
+          ],
+        },
+        {
+          label: "Explanation",
+          items: [
+            { label: "Design", link: "/design/" },
+            { label: "Differences from manubot", link: "/differences-from-manubot/" },
+          ],
+        },
       ],
     }),
   ],

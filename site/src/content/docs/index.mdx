@@ -39,32 +39,30 @@ gap.
 
 ## What ships
 
-Four artifacts, designed to work alone or together:
-
 <CardGrid>
   <Card title="Python CLI" icon="seti:python">
     `quartobot resolve` — invoked from Quarto's `project.pre-render:`
-    hook — plus `scan`, `validate`, and `init`. Authors write
+    hook — plus `scan`, `validate`, `init`, and `mcp`. Authors write
     `@doi:10.1371/journal.pcbi.1007128` in their prose; citations
     resolve before pandoc runs.
 
     [CLI reference →](./cli/)
   </Card>
-  <Card title="Manuscript template" icon="document">
-    Quarto + the pre-render hook + a CI workflow that gives every
-    commit an immutable permalink at `/v/<sha>/`, embeds it in
-    rendered HTML, posts PR previews, and deploys HTML + PDF + DOCX
-    to GitHub Pages.
+  <Card title="`quartobot init`" icon="rocket">
+    Scaffolds the pre-render hook, the version-banner Quarto
+    includes, and the GitHub Actions render workflow into an existing
+    Quarto project — manuscript, book, or website. Pairs with
+    `quarto create project <type>` for new projects.
 
-    [Template walkthrough →](./template/)
+    [CLI reference →](./cli/#quartobot-init)
   </Card>
-  <Card title="Book template" icon="open-book">
-    For longer works — textbooks, reviews, edited volumes, theses.
-    Same pattern as the manuscript template, but Quarto's book
-    project type with sidebar navigation, full-text search, and
-    per-chapter HTML pages.
+  <Card title="MCP server" icon="puzzle">
+    `quartobot mcp` exposes citation resolution as MCP tools so an
+    agent in Claude Desktop, Codex, or Gemini Code Assist can ground
+    citations against the same resolver the pre-render hook uses.
+    Opt-in via the `[mcp]` extra.
 
-    [Book walkthrough →](./book/)
+    [MCP server →](./mcp/)
   </Card>
   <Card title="Composite Actions" icon="github">
     Reusable GitHub Actions + workflow so consumer-side CI is ten
@@ -86,8 +84,8 @@ the work to resolve that issue.
 
 [seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)
 runs the CI / permalink / banner half of the pattern on a live 25-author
-preprint from the Bioconductor Spatial Hackathon. The template repo is
-being lifted from it.
+preprint from the Bioconductor Spatial Hackathon. The CI machinery
+`quartobot init` scaffolds is being lifted from there.
 
 ## Where to go next
 
