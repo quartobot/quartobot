@@ -12,6 +12,12 @@
   Stdio transport only; no write tools. Ships as an opt-in extra so
   the base install is unchanged: `uv tool install 'quartobot[mcp]'`.
   Closes #71.
+- `quartobot resolve --output -` streams CSL JSON to stdout instead of
+  writing a file. The one-shot lookup shape for shell-tool agents and
+  scripts (`quartobot resolve --output - doi:… | jq '.[0].title'`). The
+  human-readable summary moves to stderr in stdout mode, and no cache
+  write happens; cache reads still work when `--cache <path>` is set
+  explicitly. Closes #73.
 
 ### Fixed
 

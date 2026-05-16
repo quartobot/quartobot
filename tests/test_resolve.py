@@ -512,3 +512,103 @@ def test_cli_id_mode_rejects_invalid_value():
     result = runner.invoke(main, ["resolve", "--id-mode", "nonsense"])
     assert result.exit_code != 0
     assert "Invalid value" in result.output or "Invalid choice" in result.output
+
+
+# ----------------------------------------------------------- --output -
+
+
+def test_cli_output_dash_streams_json_to_stdout():
+    """`resolve --output -` writes valid CSL JSON to stdout and nothing else."""
+    with (
+        patch("manubot.cite.citekey.CiteKey", _FakeCiteKey),
+        patch("manubot.cite.citekey.citekey_to_csl_item", _fake_csl_item),
+    ):
+        runner = CliRunner()
+        result = runner.invoke(main, ["resolve", "--output", "-", "doi:10.1/x"])
+    assert result.exit_code == 0, (result.stdout, result.stderr)
+    # stdout is the JSON payload — must parse and contain our fixture.
+    data = json.loads(result.stdout)
+    assert isinstance(data, list)
+    assert any(item.get("title") == "Stub for doi:10.1/x" for item in data)
+    # The human-readable summary is on stderr, not stdout.
+    assert "resolved" in result.stderr
+    assert "resolved" not in result.stdout
+
+
+def test_cli_output_dash_no_cache_write(tmp_path):
+    """Stdout mode without --cache writes nothing to disk."""
+    with (
+        patch("manubot.cite.citekey.CiteKey", _FakeCiteKey),
+        patch("manubot.cite.citekey.citekey_to_csl_item", _fake_csl_item),
+    ):
+        runner = CliRunner()
+        with runner.isolated_filesystem(temp_dir=tmp_path) as iso:
+            result = runner.invoke(main, ["resolve", "--output", "-", "doi:10.1/x"])
+            # The CLI runs with the isolated fs as cwd; that's where any
+            # accidental default-cache write would land.
+            iso_dir = Path(iso)
+            stray = list(iso_dir.iterdir())
+    assert result.exit_code == 0, (result.stdout, result.stderr)
+    assert not (iso_dir / "references.json").exists()
+    assert stray == [], f"stdout mode left files behind: {stray}"
+
+
+def test_cli_output_dash_honors_explicit_cache(tmp_path):
+    """`--output -` with explicit `--cache <path>` still reads the cache."""
+    cache = tmp_path / "cached.json"
+    cache.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "SHORT_101x",
+                    "title": "Cached title",
+                    "type": "article-journal",
+                    "note": "standard_id: doi:10.1/x",
+                }
+            ]
+        )
+    )
+    calls: list[str] = []
+
+    def _track(citekey, **_):
+        calls.append(citekey.standard_id)
+        return _fake_csl_item(citekey)
+
+    with (
+        patch("manubot.cite.citekey.CiteKey", _FakeCiteKey),
+        patch("manubot.cite.citekey.citekey_to_csl_item", _track),
+    ):
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["resolve", "--output", "-", "--cache", str(cache), "doi:10.1/x"],
+        )
+    assert result.exit_code == 0, (result.stdout, result.stderr)
+    # Cache hit — manubot's resolver was never invoked.
+    assert calls == []
+    data = json.loads(result.stdout)
+    assert any(item.get("title") == "Cached title" for item in data)
+
+
+def test_cli_output_dash_no_keys_message_on_stderr():
+    """Empty resolve in stdout mode keeps stdout empty for clean pipes."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["resolve", "--output", "-"])
+    assert result.exit_code == 0
+    assert result.stdout == ""
+    assert "No persistent-identifier" in result.stderr
+
+
+def test_resolve_keys_stdout_mode_writes_to_sys_stdout(capsys):
+    """Library-level: `output_path="-"` writes JSON to sys.stdout."""
+    with (
+        patch("manubot.cite.citekey.CiteKey", _FakeCiteKey),
+        patch("manubot.cite.citekey.citekey_to_csl_item", _fake_csl_item),
+    ):
+        outcome = resolve_keys(["doi:10.1/x"], output_path="-")
+    captured = capsys.readouterr()
+    data = json.loads(captured.out)
+    assert outcome.wrote_stdout is True
+    assert outcome.output_path is None
+    assert outcome.entries_written == 1
+    assert data[0]["title"] == "Stub for doi:10.1/x"

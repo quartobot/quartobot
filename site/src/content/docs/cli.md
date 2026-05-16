@@ -106,6 +106,19 @@ The `--cache` option defaults to `--output`, so re-runs are idempotent:
 the output file IS the cache. `--dry-run` reports what would be
 resolved without making any network calls.
 
+Pass `--output -` to stream the CSL JSON to stdout instead of a file —
+the one-shot lookup shape for shell-tool agents and scripts that pipe
+through `jq`:
+
+```
+$ quartobot resolve --output - doi:10.1371/journal.pcbi.1007128 | jq '.[0].title'
+"Open collaborative writing with Manubot"
+```
+
+In stdout mode the summary line goes to stderr and no cache write
+happens. Cache reads still work when `--cache <path>` is set
+explicitly.
+
 Exit codes:
 
 - `0` — every key resolved (cache hits count as success).
