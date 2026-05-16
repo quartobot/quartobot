@@ -1,0 +1,268 @@
+---
+title: "Tutorial: shell-tool agents grounding citations"
+description: An agent harness with a shell tool — Codex CLI, a custom Anthropic SDK harness, Cline, in-house automation — calling quartobot's CLI to resolve and validate citations during drafting.
+---
+
+The MCP path covers authoring clients that natively speak MCP — Claude
+Desktop, Codex, Gemini Code Assist, Cursor. The other half of the
+agentic-authoring world is harnesses without MCP support, where the
+agent has a `bash` or `run_command` tool and reaches the resolver by
+shelling out. This tutorial walks that path.
+
+## What's different from the MCP path
+
+The same `manubot.cite.citekey_to_csl_item` sits underneath both.
+MCP gives the agent a typed tool call; the shell path is the same
+call wrapped in `quartobot resolve --output - | jq`. Pick by where
+your agent lives.
+
+If you're using Claude Desktop, the MCP path is simpler — see the
+[MCP + Claude Desktop tutorial](../mcp-claude-desktop/). If you're
+using a harness with shell access and no MCP support, this is the path.
+
+## Before you start
+
+You need:
+
+- **`quartobot` installed** — `uv tool install quartobot`. The base
+  install is enough; the `[mcp]` extra is only for the MCP-server
+  path. Available from PyPI as of v0.2.0.
+- **An agent harness with a shell tool** — Codex CLI's bash tool, a
+  custom Anthropic SDK harness with tool use, Cline, an in-house
+  automation script with subprocess access. Anything that lets the
+  agent invoke a shell command and read stdout.
+- **`jq`** — most examples below pipe through it. Not strictly required
+  (the agent can parse CSL JSON directly), but the shell trace reads
+  more cleanly with it.
+
+That's it. No MCP SDK, no JSON config files, no Claude Desktop.
+
+## Building blocks
+
+Three calls the agent will make. Each is a single shell command;
+output goes to stdout for the agent to read back.
+
+### `quartobot resolve --output - <key>`
+
+Resolves one cite key to stdout. The simplest building block:
+
+```bash
+quartobot resolve --output - doi:10.1371/journal.pcbi.1007128 | jq '.[0].title'
+```
+
+```
+"Open collaborative writing with Manubot"
+```
+
+Output is CSL JSON — an array with one element per resolved key. The
+human-readable summary line goes to stderr and stays out of the agent's
+parsing path. Exit is non-zero if any key fails to resolve, so a `set -e`
+or shell-tool error path picks the failure up automatically.
+
+A slightly fuller pipeline pulling title and first author:
+
+```bash
+quartobot resolve --output - doi:10.1371/journal.pcbi.1007128 \
+  | jq '.[0] | {title, author: .author[0].family}'
+```
+
+```json
+{
+  "title": "Open collaborative writing with Manubot",
+  "author": "Himmelstein"
+}
+```
+
+The agent reads that back, ties title and author to the prose key, and
+drops a verified `@doi:...` into the draft.
+
+### `quartobot resolve --output - --from-scan <path>`
+
+Resolves every persistent-identifier cite key in a project tree to
+stdout in one call. Useful when the agent's task is "show me everything
+that's cited" or "give me the bibliography I'll be working with":
+
+```bash
+quartobot resolve --output - --from-scan . | jq 'length'
+```
+
+```
+12
+```
+
+The same array shape, just longer. The agent can pipe through `jq` to
+filter, group by prefix, or extract titles for a survey reply.
+
+### `quartobot validate <path>`
+
+Runs pre-flight checks on a Quarto project. Non-zero exit on failure.
+The agent gates "should I commit this?" on it:
+
+```bash
+quartobot validate .
+```
+
+```
+  ✓ _quarto.yml exists
+  ✓ bibliography declared — 2 file(s): references.bib, references.json
+  ✓ pre-render hook — `quartobot resolve` invoked with --id-mode citation-key
+  ✓ references.json in bibliography — listed under `bibliography:`
+  ✓ no duplicate cite keys — 5 unique key(s) in 3 file(s)
+
+5 of 5 checks passed.
+```
+
+Static checks only — no network. The full check list lives in
+[CLI reference: `quartobot validate`](../cli/#quartobot-validate).
+
+Cross-reference: see [How to resolve a single citation](../resolve-single-citation/)
+for the CLI side in isolation. The rest of this tutorial assumes that's
+already familiar.
+
+## Worked scenario
+
+The premise: the agent receives a draft paragraph from the user with
+`@doi:...` and `@pmid:...` cite keys. The user asks the agent to
+"verify these citations and report back."
+
+The trace, in pseudocode form — what the agent shells out, what it
+reads back, what it tells the user:
+
+```
+user → "Verify the citations in this paragraph:
+Open collaborative writing of scholarly manuscripts
+[@doi:10.1371/journal.pcbi.1007128] has parallels in
+large-scale collaborative data projects: the Genotype-Tissue
+Expression Consortium's pilot analysis [@pmid:23685459] was
+authored by 168 contributors and gave us our first systematic look
+at tissue-specific gene expression."
+
+agent thinking → "I'll grep cite keys, resolve each, report findings."
+
+agent shells →
+  $ echo "<paragraph>" | grep -oE '@(doi|pmid|arxiv|isbn|url|wikidata|pmc):[^][:space:],]+' | sort -u
+  @doi:10.1371/journal.pcbi.1007128
+  @pmid:23685459
+
+  $ quartobot resolve --output - doi:10.1371/journal.pcbi.1007128 \
+      | jq '.[0] | {title, author: .author[0].family, year: .issued."date-parts"[0][0]}'
+  {
+    "title": "Open collaborative writing with Manubot",
+    "author": "Himmelstein",
+    "year": 2019
+  }
+
+  $ quartobot resolve --output - pmid:23685459 \
+      | jq '.[0] | {title, author: .author[0].family, year: .issued."date-parts"[0][0]}'
+  {
+    "title": "The Genotype-Tissue Expression (GTEx) project",
+    "author": "Lonsdale",
+    "year": 2013
+  }
+
+agent → "Both citations resolve. doi:10.1371/journal.pcbi.1007128 is
+Himmelstein et al., 'Open collaborative writing with Manubot' (PLOS
+Comp Bio, 2019). pmid:23685459 is Lonsdale et al., 'The
+Genotype-Tissue Expression (GTEx) project' (Nature Genetics, 2013).
+Both check out — the paragraph is ready to drop into your
+manuscript."
+```
+
+Two things worth flagging about that trace. The `grep` regex covers
+manubot's full prefix set (`doi`, `pmid`, `arxiv`, `isbn`, `url`,
+`wikidata`, `pmc`); anything not matching is a hand-curated
+`references.bib` entry that doesn't need resolving. And the `jq`
+filters pull only what the agent needs (title, author, year), keeping
+the response inside the context budget on long drafts. If a `resolve`
+call had returned a non-zero exit, the agent reports the failure and
+refuses to commit to an unverified key.
+
+## Gating commits on validate
+
+A follow-up scenario. The user asks the agent to add a new paragraph
+to `methods.qmd`. After writing the edit, the agent runs
+`quartobot validate .` before suggesting the commit:
+
+```
+agent shells →
+  $ quartobot validate .
+  ✓ _quarto.yml exists
+  ✓ bibliography declared — 2 file(s): references.bib, references.json
+  ✓ pre-render hook — `quartobot resolve` invoked with --id-mode citation-key
+  ✓ references.json in bibliography
+  ✗ no duplicate cite keys — @doi:10.1371/journal.pcbi.1007128 appears in 2 file(s):
+      intro.qmd:14
+      methods.qmd:42
+
+  4 of 5 checks passed. Exit 1.
+  $ echo $?
+  1
+
+agent → "validate failed: doi:10.1371/journal.pcbi.1007128 now appears
+in both intro.qmd and methods.qmd. Cross-file duplicates surface as a
+warning in CI. Want me to reuse the existing intro.qmd citation by
+referring back to that section, or to factor the shared claim out?"
+```
+
+The point is structural. The agent doesn't decide whether the edit is
+clean; `validate` decides. The agent just respects the exit code. A
+non-zero exit means "report the failure to the user; don't suggest the
+commit." A zero exit means the edit clears the pre-flight checks the
+human reviewer would also be running.
+
+This generalizes. Anywhere your harness has a "should I take this
+action?" decision point, `quartobot validate` is a cheap pre-condition
+to check. No network, fast enough to run on every turn.
+
+## Wiring this into a harness
+
+Two things to wire:
+
+1. **Shell access** — the agent needs a tool that can execute
+   `quartobot resolve --output -` and `quartobot validate`, and pipe
+   stdout through `jq`. Most harnesses already have this:
+
+    - **Codex CLI** ships a bash tool by default; nothing to add.
+    - **Anthropic SDK custom harnesses** use the tool-use API with a
+      `bash` or `run_command` tool of your definition. See
+      [the Anthropic tool use docs](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)
+      for the schema.
+    - **Cline** uses a built-in shell-execution capability that's
+      enabled per-workspace.
+    - **In-house automation** typically already shells out; the
+      `quartobot` calls slot in alongside whatever else the harness
+      runs.
+
+2. **System-prompt guidance** — tell the agent to use these as the
+   citation-resolution path. Something like:
+
+    > When the user asks you to verify, resolve, or draft citations,
+    > use `quartobot resolve --output - <key> | jq` to fetch metadata
+    > from the project's resolver rather than relying on your training
+    > data. Before suggesting a commit that touches `.qmd` or
+    > `references.bib`, run `quartobot validate .` and only proceed on
+    > exit 0. Cite-key prefixes the resolver accepts: `doi`, `pmid`,
+    > `arxiv`, `isbn`, `url`, `wikidata`, `pmc`. Hand-curated keys
+    > (anything without one of those prefixes) live in
+    > `references.bib`; the resolver skips them.
+
+The exact wording lives in your harness's system prompt; the canonical
+docs for that prompt slot are the agent platform's, not this tutorial's.
+
+## What you have
+
+- An agent that grounds citations against the same
+  `manubot.cite.citekey_to_csl_item` your manuscript renderer uses —
+  no metadata drift between draft and render.
+- A pre-flight gate on commits, via `quartobot validate`, that the
+  agent respects on exit code without needing to reason about the
+  check list.
+- One install (`uv tool install quartobot`), one binary, no SDK, no
+  MCP config, no per-client wiring.
+
+## See also
+
+- [MCP + Claude Desktop](../mcp-claude-desktop/) — the same end, via
+  MCP instead of shell.
+- [How to resolve a single citation](../resolve-single-citation/) —
+  the CLI building block in isolation.
