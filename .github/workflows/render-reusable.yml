@@ -80,10 +80,14 @@ on:
         required: false
         default: "git+https://github.com/seandavi/quartobot"
       quarto-version:
-        description: "Quarto version (empty = latest stable)."
+        description: |
+          Quarto version. `release` (the default) installs the latest
+          stable; `prerelease` and `daily` are also valid. Pass a
+          specific version like "1.5.57" for reproducible CI. Empty
+          string is normalized to `release` so it doesn't 404.
         type: string
         required: false
-        default: ""
+        default: "release"
       tinytex:
         description: "Install TinyTeX (required for PDF render)."
         type: string

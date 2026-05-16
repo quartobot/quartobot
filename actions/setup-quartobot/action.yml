@@ -63,11 +63,31 @@ runs:
         quartobot --version
         quartobot --help | head -5
 
+    # Belt-and-suspenders: the input default is `release`, but a consumer
+    # workflow that explicitly passes `quarto-version: ""` would otherwise
+    # fall through the upstream `quarto-dev/quarto-actions/setup` bash
+    # dispatcher's else branch and 404 on
+    # `…/releases/download/v/quarto--linux-amd64.deb`. Normalize empty
+    # here so any caller — including older reusable-workflow consumers
+    # still pinned to a pre-fix tag — gets the latest stable install.
+    - name: Resolve quarto-version
+      id: quarto-version
+      shell: bash
+      env:
+        REQUESTED: ${{ inputs.quarto-version }}
+      run: |
+        if [ -z "${REQUESTED}" ]; then
+          echo "::warning::empty quarto-version; installing latest stable"
+          echo "version=release" >> "$GITHUB_OUTPUT"
+        else
+          echo "version=${REQUESTED}" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Set up Quarto
       uses: quarto-dev/quarto-actions/setup@v2
       with:
         tinytex: ${{ inputs.tinytex }}
-        version: ${{ inputs.quarto-version }}
+        version: ${{ steps.quarto-version.outputs.version }}
       env:
         # Authenticate the TinyTeX release lookup against the GitHub API
         # so we don't hit unauthenticated rate limits on hot CI hours.
