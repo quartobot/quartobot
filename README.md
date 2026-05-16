@@ -5,6 +5,10 @@
 
 The manubot manuscript-as-software pattern, on Quarto.
 
+```bash
+uv tool install git+https://github.com/seandavi/quartobot
+```
+
 > **Status:** v0.1 in flight. The CLI ships and is on PATH today via
 > `uv tool install`. PyPI publishing follows the v0.1 tag. Watch the
 > [v0.1 milestone](https://github.com/seandavi/quartobot/milestone/1).
