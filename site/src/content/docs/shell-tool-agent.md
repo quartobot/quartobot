@@ -11,9 +11,10 @@ shelling out. This tutorial walks that path.
 
 ## What's different from the MCP path
 
-The same `manubot.cite.citekey_to_csl_item` underneath both. MCP gives
-the agent a typed tool call; the shell path is the same call wrapped
-in `quartobot resolve --output - | jq`. Pick by where your agent lives.
+The same `manubot.cite.citekey_to_csl_item` sits underneath both.
+MCP gives the agent a typed tool call; the shell path is the same
+call wrapped in `quartobot resolve --output - | jq`. Pick by where
+your agent lives.
 
 If you're using Claude Desktop, the MCP path is simpler — see the
 [MCP + Claude Desktop tutorial](../mcp-claude-desktop/). If you're
@@ -105,7 +106,7 @@ quartobot validate .
   ✓ _quarto.yml exists
   ✓ bibliography declared — 2 file(s): references.bib, references.json
   ✓ pre-render hook — `quartobot resolve` invoked with --id-mode citation-key
-  ✓ references.json in bibliography — references.json listed in bibliography:
+  ✓ references.json in bibliography — listed under `bibliography:`
   ✓ no duplicate cite keys — 5 unique key(s) in 3 file(s)
 
 5 of 5 checks passed.
@@ -129,10 +130,12 @@ reads back, what it tells the user:
 
 ```
 user → "Verify the citations in this paragraph:
-The pattern from [@doi:10.1371/journal.pcbi.1007128] runs scholarly
-manuscripts as git repositories that build themselves on every commit,
-resolves citations from persistent identifiers, and shipped its
-reference implementation [@pmid:23685459]."
+Open collaborative writing of scholarly manuscripts
+[@doi:10.1371/journal.pcbi.1007128] has parallels in
+large-scale collaborative data projects: the Genotype-Tissue
+Expression Consortium's pilot analysis [@pmid:23685459] was
+authored by 168 contributors and gave us our first systematic look
+at tissue-specific gene expression."
 
 agent thinking → "I'll grep cite keys, resolve each, report findings."
 
@@ -161,7 +164,8 @@ agent → "Both citations resolve. doi:10.1371/journal.pcbi.1007128 is
 Himmelstein et al., 'Open collaborative writing with Manubot' (PLOS
 Comp Bio, 2019). pmid:23685459 is Lonsdale et al., 'The
 Genotype-Tissue Expression (GTEx) project' (Nature Genetics, 2013).
-The paragraph is ready to drop into your manuscript."
+Both check out — the paragraph is ready to drop into your
+manuscript."
 ```
 
 Two things worth flagging about that trace. The `grep` regex covers
