@@ -628,3 +628,25 @@ def test_scan_path_non_recursive_skips_subdirs(tmp_path):
     keys = result.unique_keys
     assert "@doi:10.1/top" in keys
     assert "@doi:10.1/deeper" not in keys
+
+
+def test_strip_pandoc_trailing_handles_bare_url_form():
+    # cli.py's explicit-key path strips the leading `@` before
+    # normalization, so the helper has to recognize `url:` (no @) as
+    # a URL key and strip its trailing slash.
+    from quartobot.scan import strip_pandoc_trailing
+
+    assert (
+        strip_pandoc_trailing("url:https://example.com/path/")
+        == "url:https://example.com/path"
+    )
+    # Sentence-ending punctuation still strips too.
+    assert (
+        strip_pandoc_trailing("url:https://example.com/path/.")
+        == "url:https://example.com/path"
+    )
+    # No-op stays no-op.
+    assert (
+        strip_pandoc_trailing("url:https://example.com/path")
+        == "url:https://example.com/path"
+    )

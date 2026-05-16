@@ -137,11 +137,15 @@ def resolve(
     Exits 1 if any keys fail to resolve, 0 otherwise.
     """
     from quartobot.resolve import collect_resolvable_keys, format_outcome, resolve_keys
+    from quartobot.scan import strip_pandoc_trailing
 
     collected: list[str] = []
     for k in keys:
         # Allow either `@doi:10.x/y` or `doi:10.x/y` — strip leading @.
-        collected.append(k.lstrip("@"))
+        # Apply the same pandoc-trailing normalization the scan path
+        # does, so explicit `@url:…/` keys agree with what citeproc
+        # looks up.
+        collected.append(strip_pandoc_trailing(k.lstrip("@")))
 
     if from_scan is not None:
         collected.extend(collect_resolvable_keys(from_scan, recursive=recursive))

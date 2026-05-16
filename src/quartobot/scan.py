@@ -92,10 +92,10 @@ _TRAILING_PUNCT = ".,;:!?)"
 # `/` from `@url:` keys at the scan boundary so the resolver-side and
 # the consumer-side agree. Manubot's resolver doesn't care — both forms
 # resolve to the same metadata. See issue #61.
-_URL_PREFIX_RE = re.compile(r"^@url:", re.IGNORECASE)
+_URL_PREFIX_RE = re.compile(r"^@?url:", re.IGNORECASE)
 
 
-def _strip_pandoc_trailing(key: str) -> str:
+def strip_pandoc_trailing(key: str) -> str:
     """Strip trailing punctuation that pandoc's cite-key parser drops.
 
     Pandoc strips trailing `.,;:!?` (and `/`) from cite keys during
@@ -227,7 +227,7 @@ def find_cite_keys(text: str) -> Iterator[tuple[str, int]]:
         cleaned = _INLINE_CODE_RE.sub("", line)
 
         for match in _CITE_KEY_RE.finditer(cleaned):
-            key = _strip_pandoc_trailing(match.group(0))
+            key = strip_pandoc_trailing(match.group(0))
             # Defensive: if stripping somehow ate the whole key, skip.
             if len(key) > 1:
                 yield key, lineno
@@ -411,6 +411,7 @@ __all__: Sequence[str] = (
     "collect_files",
     "find_cite_keys",
     "find_cite_keys_in_notebook",
+    "strip_pandoc_trailing",
     "format_scan_result",
     "scan_path",
 )
