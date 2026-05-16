@@ -15,12 +15,16 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from quartobot.scan import scan_path
+
+STDOUT_SENTINEL = "-"
+"""Output sentinel for streaming CSL JSON to stdout instead of a file."""
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +58,8 @@ class ResolveOutcome:
     output_path: Path | None = None
     entries_written: int = 0
     cache_hits: int = 0
+    wrote_stdout: bool = False
+    """True when the resolved CSL JSON was streamed to stdout."""
 
     @property
     def failures(self) -> list[Resolution]:
@@ -134,7 +140,7 @@ def resolve_keys(
     keys: Iterable[str],
     *,
     cache_path: Path | None = None,
-    output_path: Path | None = None,
+    output_path: Path | str | None = None,
     dry_run: bool = False,
     log_level: str = "WARNING",
     id_mode: str = "short-hash",
@@ -145,8 +151,9 @@ def resolve_keys(
         keys: Cite keys in `prefix:identifier` form (no leading `@`).
         cache_path: Optional path to read previously-resolved entries
             from. Cache hits skip the network call.
-        output_path: Optional path to merge cache + new resolutions
-            into. Same shape as cache_path (CSL JSON list).
+        output_path: Where to write the merged CSL JSON. A `Path` writes
+            to that file. The string `"-"` writes to stdout (no file
+            side effect). `None` skips writing entirely.
         dry_run: If True, don't make network calls — report what would
             be resolved.
         log_level: Manubot's logging verbosity for resolver failures.
@@ -161,7 +168,11 @@ def resolve_keys(
         A `ResolveOutcome` describing what happened.
     """
     keys = list(keys)
-    outcome = ResolveOutcome(output_path=output_path)
+    stdout_mode = output_path == STDOUT_SENTINEL
+    file_output: Path | None = (
+        output_path if isinstance(output_path, Path) and not stdout_mode else None
+    )
+    outcome = ResolveOutcome(output_path=file_output)
 
     if dry_run:
         for k in keys:
@@ -246,8 +257,7 @@ def resolve_keys(
             )
         )
 
-    if output_path is not None and not dry_run:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+    if (file_output is not None or stdout_mode) and not dry_run:
         merged = list(new_items.values())
         if id_mode == "citation-key":
             # Re-key each item to the citation key as it appears in the
@@ -268,10 +278,15 @@ def resolve_keys(
                     item["id"] = key_by_sid.get(sid, sid)
         # Sort by id for deterministic diffs.
         merged.sort(key=lambda d: d.get("id", ""))
-        output_path.write_text(
-            json.dumps(merged, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
+        serialized = json.dumps(merged, indent=2, ensure_ascii=False) + "\n"
+        if stdout_mode:
+            sys.stdout.write(serialized)
+            sys.stdout.flush()
+            outcome.wrote_stdout = True
+        else:
+            assert file_output is not None  # narrowed by branch condition
+            file_output.parent.mkdir(parents=True, exist_ok=True)
+            file_output.write_text(serialized, encoding="utf-8")
         outcome.entries_written = len(merged)
 
     return outcome
@@ -298,7 +313,9 @@ def format_outcome(outcome: ResolveOutcome) -> str:
         summary += f" ({outcome.cache_hits} from cache)"
     if n_fail:
         summary += f", {n_fail} failed"
-    if outcome.output_path is not None:
+    if outcome.wrote_stdout:
+        summary += f". Wrote {outcome.entries_written} entries to stdout."
+    elif outcome.output_path is not None:
         summary += f". Wrote {outcome.entries_written} entries to {outcome.output_path}."
     lines.append(summary)
     return "\n".join(lines)

@@ -79,10 +79,16 @@ def scan(path: Path, recursive: bool) -> None:
 )
 @click.option(
     "--output",
-    type=click.Path(file_okay=True, dir_okay=False, path_type=Path),
+    # Plain `str` so `-` (stdout sentinel) passes validation; we coerce
+    # to Path in the body when it's a real filesystem target.
+    type=str,
     default="references.json",
     show_default=True,
-    help="Path to write the resolved CSL JSON bibliography to.",
+    help=(
+        "Path to write the resolved CSL JSON bibliography to. Pass `-` "
+        "to stream JSON to stdout instead (no cache write happens in "
+        "stdout mode; the summary line goes to stderr)."
+    ),
 )
 @click.option(
     "--cache",
@@ -90,8 +96,10 @@ def scan(path: Path, recursive: bool) -> None:
     default=None,
     help=(
         "Optional path to read cached entries from. Cache hits skip the "
-        "network call. Defaults to the value of --output, so resolve is "
-        "idempotent against its own previous output."
+        "network call. Defaults to the value of --output for file output, "
+        "so resolve is idempotent against its own previous output. In "
+        "stdout mode (`--output -`), cache reads only happen when this "
+        "flag is set explicitly."
     ),
 )
 @click.option(
@@ -115,7 +123,7 @@ def scan(path: Path, recursive: bool) -> None:
 def resolve(
     keys: tuple[str, ...],
     from_scan: Path | None,
-    output: Path,
+    output: str,
     cache: Path | None,
     dry_run: bool,
     id_mode: str,
@@ -124,10 +132,12 @@ def resolve(
     """Pre-fetch citations and write CSL JSON to disk.
 
     Resolves persistent-identifier cite keys via manubot.cite and writes
-    the resulting CSL JSON to --output (default `references.json`). The
-    point isn't to replace what manubot does at render — it's to do the
-    network work on a developer's machine ahead of push, so CI never
-    sees a Crossref or PubMed hiccup.
+    the resulting CSL JSON to --output (default `references.json`), or
+    to stdout when --output is `-`. The point isn't to replace what
+    manubot does at render — it's to do the network work on a
+    developer's machine ahead of push, so CI never sees a Crossref or
+    PubMed hiccup. Stdout mode is for one-shot lookups — agents and
+    scripts that want to pipe the JSON straight into `jq`.
 
     Pass keys as arguments (`@doi:10.x/y pmid:12345`) or use --from-scan
     to resolve every persistent-identifier cite found in a project.
@@ -136,7 +146,12 @@ def resolve(
 
     Exits 1 if any keys fail to resolve, 0 otherwise.
     """
-    from quartobot.resolve import collect_resolvable_keys, format_outcome, resolve_keys
+    from quartobot.resolve import (
+        STDOUT_SENTINEL,
+        collect_resolvable_keys,
+        format_outcome,
+        resolve_keys,
+    )
     from quartobot.scan import strip_pandoc_trailing
 
     collected: list[str] = []
@@ -158,19 +173,37 @@ def resolve(
             seen.add(k)
             unique.append(k)
 
+    stdout_mode = output == STDOUT_SENTINEL
+    output_target: Path | str = output if stdout_mode else Path(output)
+
     if not unique:
-        click.echo("No persistent-identifier cite keys to resolve.")
+        # Friendly message goes to stderr in stdout mode so the caller's
+        # pipe stays empty (a downstream `jq` should see no input, not
+        # a stray English sentence).
+        click.echo("No persistent-identifier cite keys to resolve.", err=stdout_mode)
         return
 
-    cache_path = cache if cache is not None else output
+    # Cache resolution:
+    #   - explicit --cache always honored.
+    #   - file output: default cache to output (existing behavior).
+    #   - stdout mode without explicit --cache: skip the cache entirely.
+    if cache is not None:
+        cache_path: Path | None = cache
+    elif stdout_mode:
+        cache_path = None
+    else:
+        cache_path = Path(output)
+
     outcome = resolve_keys(
         unique,
         cache_path=cache_path,
-        output_path=output,
+        output_path=output_target,
         dry_run=dry_run,
         id_mode=id_mode,
     )
-    click.echo(format_outcome(outcome))
+    # In stdout mode the human-readable summary goes to stderr so stdout
+    # stays valid JSON for the next pipe stage.
+    click.echo(format_outcome(outcome), err=stdout_mode)
     if outcome.failures:
         raise SystemExit(1)
 

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- `quartobot resolve --output -` streams CSL JSON to stdout instead of
+  writing a file. The one-shot lookup shape for shell-tool agents and
+  scripts (`quartobot resolve --output - doi:… | jq '.[0].title'`). The
+  human-readable summary moves to stderr in stdout mode, and no cache
+  write happens; cache reads still work when `--cache <path>` is set
+  explicitly. Closes #73.
+
 ### Fixed
 
 - `render-reusable.yml`: `quarto-version` default is now `release` (was
