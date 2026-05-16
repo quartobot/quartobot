@@ -66,11 +66,16 @@ Layer the citation pipeline on top:
 quartobot init
 ```
 
-`init` adds three things and only three things: a pre-render hook
-line in `_quarto.yml` (so `quartobot resolve` runs before pandoc on
-every render), a seed `references.bib` you can hand-curate any
-references that aren't on a registrar, and `.gitignore` entries for
-Quarto outputs and the generated `references.json`.
+`init` adds two new files and modifies `.gitignore`: a seed
+`references.bib` you can hand-curate any non-registrar references
+into, plus `.gitignore` lines for `_book/`, `_freeze/`, `.quarto/`,
+`*_files/`, `**/*.quarto_ipynb`, and `references.json`. Because
+`quarto create project` already wrote a `_quarto.yml`, `init`
+won't touch it; instead it prints a YAML snippet to paste in
+yourself. Copy the snippet and merge it into your `_quarto.yml`
+under the existing `project:` block — it adds the
+`pre-render:` line plus a `bibliography:` list with both
+`references.bib` and `references.json`.
 
 That's the minimum. If all you want is citations resolved from
 `@doi:` and friends, stop here.
@@ -200,9 +205,9 @@ its own `/v/<sha>/` permalink alongside the latest.
 ## Where to next
 
 - [CLI reference](../cli/) — every command, every flag.
-- [MCP server](../mcp/) — wire `quartobot resolve_citation` into
-  Claude Desktop, Codex, or Gemini Code Assist so an agent can
-  resolve citations while you draft.
+- [MCP server](../mcp/) — point Claude Desktop, Codex, or Gemini
+  Code Assist at `quartobot mcp` so an agent can call the
+  `resolve_citation` tool while you draft.
 - [Migrating from manubot](../migrating-from-manubot/) — if you have
   a manubot manuscript and want to translate the layout.
 - [Design](../design/) — the architecture decisions and prior art.
