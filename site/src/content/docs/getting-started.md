@@ -82,5 +82,6 @@ runs before pandoc on every render; pandoc-citeproc reads
 
 ## See also
 
-- [Install reference](../install/) — every install method, when to use which
-- [CLI reference](../cli/) — including the `quartobot resolve` pre-render hook
+- [First manuscript (15 min)](../first-manuscript/) — the same flow as a guided end-to-end walk-through if you'd rather follow one path than pick between three.
+- [Install reference](../install/) — every install method, when to use which.
+- [CLI reference](../cli/) — including the `quartobot resolve` pre-render hook.
