@@ -22,8 +22,10 @@ uv tool install git+https://github.com/seandavi/quartobot
 
 Walks `.qmd`, `.md`, `.Rmd`, and `.ipynb` files under a path, extracts
 every cite key, classifies each one (manubot prefix, bare DOI, or
-hand-curated), groups the results, and reports duplicates with
-file:line locations. Pure read. No network.
+hand-curated), groups the results, and reports repetition counts and
+cross-file duplicates with file:line locations. Pure read. No network.
+Pure reporter, too — `scan` always exits 0 once it finishes; gating
+lives in `validate`.
 
 ```
 $ quartobot scan .
@@ -62,11 +64,12 @@ depth.
 
 Exit codes:
 
-- `0` — clean scan, no duplicates.
-- `1` — one or more cite keys appear more than once.
+- `0` — scan completed. Always. Repeated keys show up in the listing
+  (`(Nx)` next to the identifier, plus a "Duplicates:" section when a
+  key crosses file boundaries) but they don't gate the exit.
 - `2` — bad arguments.
 
-That makes it usable as a pre-commit hook.
+Wire `validate` into pre-commit / CI when you want a gate.
 
 ### `quartobot resolve`
 
@@ -138,7 +141,11 @@ Checks run:
   silent failure under the pre-render hook architecture, since
   without it pandoc citeproc never reads what `quartobot resolve`
   wrote.
-- No duplicate cite keys across files.
+- No cite key appears in more than one file. Same-key-twice in the
+  same file is the normal academic-writing case (one source, several
+  claims) and is not flagged. The check is intentionally narrow:
+  cross-file duplication is the case the chunked-content pattern can
+  produce by accident; same-file repetition is intent.
 
 Citation-resolution checks ("does this DOI actually resolve at
 Crossref?") are out of scope here — they need network. Run

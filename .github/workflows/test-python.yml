@@ -76,18 +76,9 @@ jobs:
           enable-cache: true
       - run: uv sync --extra dev
       - name: scan tests/fixtures/sample.qmd
-        # Exits 1 because the fixture deliberately contains duplicates.
-        # That's the right exit code for a duplicates-found scan; this
-        # step asserts on that.
-        run: |
-          set +e
-          uv run quartobot scan tests/fixtures/sample.qmd
-          status=$?
-          set -e
-          if [ "$status" -ne 1 ]; then
-            echo "::error::Expected scan to exit 1 (duplicates found); got $status"
-            exit 1
-          fi
+        # scan is a reporter, not a gate — it exits 0 even when keys
+        # repeat. validate is the gate, and only flags cross-file
+        # duplicates. The fixture's repetitions are all same-file.
+        run: uv run quartobot scan tests/fixtures/sample.qmd
       - name: scan examples/minimal
-        # Clean exit expected.
         run: uv run quartobot scan examples/minimal

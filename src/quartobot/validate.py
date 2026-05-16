@@ -8,8 +8,10 @@
   prose keys against the resolved CSL JSON).
 - `references.json` is listed under `bibliography:`. Otherwise the
   pre-render hook writes a CSL JSON file that citeproc never reads.
-- The project's cite keys don't have duplicates that would break
-  pre-commit hooks (delegates to `scan`).
+- No cite key appears in more than one file (same-file repetition is
+  the normal academic-writing case and is not flagged; cross-file
+  duplication is the case the chunked-content pattern can produce by
+  accident).
 
 Citation-resolution checks (do all `@doi:` keys actually resolve at
 Crossref?) are deliberately out of scope for v0.1 — they'd require
@@ -198,23 +200,34 @@ def _check_references_json_in_bibliography(config: dict[str, Any]) -> Check:
 
 
 def _check_no_duplicate_cites(project: Path) -> Check:
-    """Cite keys appearing in multiple files break pre-commit-hook flow."""
+    """Cite keys appearing across multiple files break pre-commit-hook flow.
+
+    Same-key-twice-in-one-file is the normal academic-writing case (one
+    source backing claims in two paragraphs) and is not flagged. Only
+    cross-file occurrences trip this check.
+    """
     result = scan_path(project)
-    dup_count = len(result.duplicates)
-    if dup_count == 0:
+    duplicates = result.duplicates
+    if not duplicates:
         return Check(
             name="no duplicate cite keys",
             passed=True,
             detail=f"{len(result.unique_keys)} unique key(s) in {result.files_scanned} file(s)",
         )
-    examples = list(result.duplicates.keys())[:3]
+    # Build "@key (N files)" examples so the message names actual files
+    # and counts, not vague pluralization.
+    items = sorted(duplicates.items(), key=lambda kv: kv[0])
+    examples = []
+    for key, occs in items[:3]:
+        n_files = len({occ.file for occ in occs})
+        examples.append(f"{key} ({n_files} files)")
     suffix = f" (e.g. {', '.join(examples)})"
-    if dup_count > 3:
-        suffix += f" — {dup_count - 3} more"
+    if len(items) > 3:
+        suffix += f" — {len(items) - 3} more"
     return Check(
         name="no duplicate cite keys",
         passed=False,
-        detail=f"{dup_count} key(s) appear in multiple files{suffix}",
+        detail=f"{len(duplicates)} key(s) appear across multiple files{suffix}",
     )
 
 

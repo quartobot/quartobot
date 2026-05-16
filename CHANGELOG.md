@@ -11,6 +11,10 @@
   `setup-quartobot` composite action also normalizes empty input to
   `release` defensively so any consumer still pinned to a pre-fix tag
   recovers. (#60)
+- `quartobot validate` no longer fails on a key cited several times in the
+  same file — only cross-file duplicates count, and the failure message
+  now reports the actual file count per key. `quartobot scan` exits 0 in
+  every case; duplicates are reported, not gated. ([#63](https://github.com/quartobot/quartobot/issues/63))
 - `scan` and `resolve` now strip a trailing `/` from `@url:` cite keys
   to match pandoc's cite-key parser, which treats it as terminator
   punctuation. Without this, the resolver wrote `id: url:.../path/`
