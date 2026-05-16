@@ -170,12 +170,40 @@ def test_no_dup_cites_clean(tmp_path):
     assert c.passed
 
 
-def test_duplicate_cites_flagged(tmp_path):
+def test_duplicate_cites_flagged_cross_file(tmp_path):
     p = _make_project(tmp_path, qmd_content="See @doi:10.1/x.\n")
     (p / "other.qmd").write_text("Also @doi:10.1/x.\n")
     c = _check_no_duplicate_cites(p)
     assert not c.passed
-    assert "appear in multiple" in (c.detail or "")
+    # Message names files, not vague "multiple", and the count is true.
+    assert "across multiple files" in (c.detail or "")
+    assert "2 files" in (c.detail or "")
+
+
+def test_same_file_repetition_does_not_fail_validate(tmp_path):
+    # Issue #63: same key cited multiple times in one file is normal
+    # academic writing (one source, several claims). Must not fail.
+    p = _make_project(
+        tmp_path,
+        qmd_content=(
+            "The GTEx paper [@doi:10.1038/ng.2653] established the result.\n"
+            "Later, [@doi:10.1038/ng.2653] is cited again for emphasis.\n"
+        ),
+    )
+    c = _check_no_duplicate_cites(p)
+    assert c.passed, c.detail
+
+
+def test_cross_file_duplicate_message_names_real_counts(tmp_path):
+    # The pre-fix message said "appear in multiple files" even when all
+    # occurrences were in one file. Make sure the new message reports
+    # the real per-key file count.
+    p = _make_project(tmp_path, qmd_content="See @doi:10.1/x.\n")
+    (p / "two.qmd").write_text("Also @doi:10.1/x.\n")
+    (p / "three.qmd").write_text("Once more @doi:10.1/x.\n")
+    c = _check_no_duplicate_cites(p)
+    assert not c.passed
+    assert "3 files" in (c.detail or "")
 
 
 def test_validate_happy_path(tmp_path):

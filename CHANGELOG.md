@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fixed
+
+- `quartobot validate` no longer fails on a key cited several times in the
+  same file — only cross-file duplicates count, and the failure message
+  now reports the actual file count per key. `quartobot scan` exits 0 in
+  every case; duplicates are reported, not gated. ([#63](https://github.com/seandavi/quartobot/issues/63))
+
 ### Architecture
 
 - Settled on the `quartobot resolve` pre-render hook as the citation
