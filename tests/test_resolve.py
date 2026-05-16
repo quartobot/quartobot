@@ -537,17 +537,20 @@ def test_cli_output_dash_streams_json_to_stdout():
 
 def test_cli_output_dash_no_cache_write(tmp_path):
     """Stdout mode without --cache writes nothing to disk."""
-    # Pretend the default cache file exists — it should not be touched.
-    default_cache = tmp_path / "references.json"
     with (
         patch("manubot.cite.citekey.CiteKey", _FakeCiteKey),
         patch("manubot.cite.citekey.citekey_to_csl_item", _fake_csl_item),
     ):
         runner = CliRunner()
-        with runner.isolated_filesystem(temp_dir=tmp_path):
+        with runner.isolated_filesystem(temp_dir=tmp_path) as iso:
             result = runner.invoke(main, ["resolve", "--output", "-", "doi:10.1/x"])
+            # The CLI runs with the isolated fs as cwd; that's where any
+            # accidental default-cache write would land.
+            iso_dir = Path(iso)
+            stray = list(iso_dir.iterdir())
     assert result.exit_code == 0, (result.stdout, result.stderr)
-    assert not default_cache.exists()
+    assert not (iso_dir / "references.json").exists()
+    assert stray == [], f"stdout mode left files behind: {stray}"
 
 
 def test_cli_output_dash_honors_explicit_cache(tmp_path):

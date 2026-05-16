@@ -169,9 +169,17 @@ def resolve_keys(
     """
     keys = list(keys)
     stdout_mode = output_path == STDOUT_SENTINEL
-    file_output: Path | None = (
-        output_path if isinstance(output_path, Path) and not stdout_mode else None
-    )
+    # Anything that isn't the stdout sentinel or `None` is treated as a
+    # filesystem path. Callers passing a plain string like "out.json"
+    # used to silently no-op; coerce to Path so they get the write they
+    # asked for.
+    file_output: Path | None
+    if stdout_mode or output_path is None:
+        file_output = None
+    elif isinstance(output_path, Path):
+        file_output = output_path
+    else:
+        file_output = Path(output_path)
     outcome = ResolveOutcome(output_path=file_output)
 
     if dry_run:
