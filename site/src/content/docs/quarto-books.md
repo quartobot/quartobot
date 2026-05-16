@@ -61,19 +61,27 @@ key the whole book cites.
 
 Quarto books write to `_book/` (configurable via
 `project.output-dir:`). The reusable CI workflow that
-`quartobot use github-ci` scaffolds detects the project type and
-copies the right directory into the gh-pages permalink tree
-(`/v/<sha>/` for books, same as manuscripts).
+`quartobot use github-ci` scaffolds copies `_book/` into the
+gh-pages permalink tree (`/v/<sha>/` for books, same as manuscripts).
+
+If you override `project.output-dir:` to something other than
+`_book/`, also pass the new path to the reusable workflow's
+`book-output-dir` input — the CI side doesn't auto-detect.
+Alternatively, detach the workflow and run your own. The
+[`render.yml`](https://github.com/quartobot/quartobot/blob/main/.github/workflows/render-reusable.yml)
+documents the full input list.
 
 ## Version banner per chapter
 
-`quartobot use github-ci` writes a `_version-banner.html` include.
-When `_quarto.yml` declares the banner include under
-`format.html.include-in-header`, every rendered chapter gets the
-banner at the top. That's usually what you want — every chapter says
-which commit it came from. If you want the banner only on the title
-page, scope the include via a `_metadata.yml` in that chapter's
-directory rather than at the project level.
+`quartobot use github-ci` writes a `_version-banner.html` include
+and prints a YAML snippet to paste into `_quarto.yml` so it actually
+renders. The snippet uses `format.html.include-before-body`, which
+lands the banner above the chapter's content (the same key `use
+github-ci`'s manual-merge output declares). Every rendered chapter
+then carries the banner — usually what you want, since every chapter
+says which commit it came from. If you want the banner only on the
+title page, scope the include via a `_metadata.yml` in that
+chapter's directory rather than at the project level.
 
 ## Worked example
 
@@ -135,16 +143,21 @@ Scan from the project root:
 ```
 $ quartobot scan .
 doi:
-  - 10.1371/journal.pcbi.1007128
-    chapters/methods.qmd:3
-    chapters/results.qmd:4
+  10.1371/journal.pcbi.1007128 (2x)
 pmid:
-  - 23685459
-    chapters/results.qmd:3
-2 unique cite keys, 3 total references.
+  23685459
+
+2 unique key(s), 3 total occurrence(s) across 3 file(s).
 ```
 
-`scan` reports both chapter paths for the DOI cited in two files.
+`scan` groups by prefix and tags repeated keys with `(Nx)` so you
+can see at a glance which references the book leans on most. The
+DOI shows up twice — once in `methods.qmd`, once in `results.qmd`.
+That's a same-key-cited-in-multiple-files case; if the duplicate
+crosses chapter boundaries by accident (you wanted to remove one),
+`quartobot validate` will surface it under "Duplicates:" as a CI
+gate (informational here in `scan`, gate in `validate`).
+
 Then render:
 
 ```bash
