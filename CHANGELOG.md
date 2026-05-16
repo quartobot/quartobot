@@ -44,7 +44,7 @@ on the PyPI side is complete.
 
 ### Quarto extension
 
-- `quarto add quartobot/quartobot` installs `quarto-manubot-cite`,
+- `quarto add quartobot/quartobot@v0.1.0` installs `quarto-manubot-cite`,
   wiring `pandoc-manubot-cite` as a pandoc filter.
 
 ### CI building blocks
