@@ -411,7 +411,7 @@ __all__: Sequence[str] = (
     "collect_files",
     "find_cite_keys",
     "find_cite_keys_in_notebook",
-    "strip_pandoc_trailing",
     "format_scan_result",
     "scan_path",
+    "strip_pandoc_trailing",
 )

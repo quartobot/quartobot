@@ -76,10 +76,12 @@ def test_resolve_normalizes_url_trailing_slash_on_explicit_keys(monkeypatch):
         captured["keys"] = list(keys)
         captured["kwargs"] = kwargs
 
+        from typing import ClassVar
+
         class _Outcome:
             ok_count = len(keys)
             err_count = 0
-            failures: list = []
+            failures: ClassVar[list] = []
 
         return _Outcome()
 
