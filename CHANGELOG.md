@@ -4,6 +4,7 @@
 
 ### Added
 
+- Docs: "How to use quartobot in a Quarto book" how-to. Closes #79.
 - Docs: "How to resolve a single citation" how-to (CLI stdout mode + MCP tool). Closes #80.
 - Docs: "First manuscript in 15 minutes" end-to-end tutorial under
   Tutorials in the sidebar. Walks an author from `quarto create
