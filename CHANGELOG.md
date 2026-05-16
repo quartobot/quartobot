@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+
+- `scan` now strips a trailing `/` from `@url:` cite keys to match
+  pandoc's cite-key parser, which treats it as terminator punctuation.
+  Without this, the resolver wrote `id: url:.../path/` into
+  `references.json` while pandoc-citeproc looked up `url:.../path` and
+  silently degraded the citation to `[?]`. Closes #61.
+
 ### Architecture
 
 - Settled on the `quartobot resolve` pre-render hook as the citation
