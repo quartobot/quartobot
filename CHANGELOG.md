@@ -26,7 +26,7 @@
   directly. See `docs/citation-pipeline.md` for the rationale.
 - **Breaking:** `_extensions/seandavi/quarto-manubot-cite/` removed.
   There is no extension to `quarto add`. The on-ramp is
-  `uv tool install git+https://github.com/seandavi/quartobot`.
+  `uv tool install git+https://github.com/quartobot/quartobot`.
 - `examples/extension-minimal/` renamed to `examples/minimal/`.
 - `quartobot validate`: dropped `extension installed`,
   `manubot-bibliography-cache`, `manubot-output-bibliography` checks;
@@ -40,7 +40,7 @@
 ## v0.1.0 — 2026-05-14
 
 First useful release. Installs cleanly from git
-(`uv tool install git+https://github.com/seandavi/quartobot`) and
+(`uv tool install git+https://github.com/quartobot/quartobot`) and
 will publish to PyPI on this tag once the trusted-publisher setup
 on the PyPI side is complete.
 
@@ -58,7 +58,7 @@ on the PyPI side is complete.
 
 ### Quarto extension
 
-- `quarto add seandavi/quartobot` installs `quarto-manubot-cite`,
+- `quarto add quartobot/quartobot@v0.1.0` installs `quarto-manubot-cite`,
   wiring `pandoc-manubot-cite` as a pandoc filter.
 
 ### CI building blocks

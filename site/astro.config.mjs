@@ -4,7 +4,7 @@ import starlight from "@astrojs/starlight";
 
 // https://astro.build/config
 export default defineConfig({
-  site: "https://seandavi.github.io",
+  site: "https://quartobot.github.io",
   base: "/quartobot",
   integrations: [
     starlight({
@@ -15,11 +15,11 @@ export default defineConfig({
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/seandavi/quartobot",
+          href: "https://github.com/quartobot/quartobot",
         },
       ],
       editLink: {
-        baseUrl: "https://github.com/seandavi/quartobot/edit/main/site/",
+        baseUrl: "https://github.com/quartobot/quartobot/edit/main/site/",
       },
       sidebar: [
         { label: "Home", link: "/" },

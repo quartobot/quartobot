@@ -1,12 +1,12 @@
 # quartobot-manuscript
 
-Manuscript template for the [quartobot](https://github.com/seandavi/quartobot)
+Manuscript template for the [quartobot](https://github.com/quartobot/quartobot)
 pattern: Quarto for the writing, `quartobot resolve` as a pre-render
 hook for the citations, GitHub Actions for the build, GitHub Pages for
 hosting.
 
 > **Status:** scaffold from
-> [seandavi/quartobot](https://github.com/seandavi/quartobot). Not yet
+> [quartobot/quartobot](https://github.com/quartobot/quartobot). Not yet
 > available via `gh repo create --template`. Once the quartobot scaffold
 > stabilizes, this directory is promoted to its own template repo.
 
@@ -30,11 +30,11 @@ hosting.
 ## Quick start
 
 ```bash
-gh repo create my-paper --template seandavi/quartobot-manuscript
+gh repo create my-paper --template quartobot/quartobot-manuscript
 cd my-paper
 
 # Local render needs Quarto and quartobot on PATH.
-uv tool install git+https://github.com/seandavi/quartobot
+uv tool install git+https://github.com/quartobot/quartobot
 quarto render index.qmd
 
 # Push to GitHub. CI deploys to gh-pages on the first push to main.
@@ -160,12 +160,12 @@ snapshot out of the rolling window.
 
 ## See also
 
-- [quartobot DESIGN doc](https://github.com/seandavi/quartobot/blob/main/DESIGN.md) — the architecture and why.
-- [Citation pipeline](https://github.com/seandavi/quartobot/blob/main/docs/citation-pipeline.md) — why pre-render hook, not a pandoc filter.
+- [quartobot DESIGN doc](https://github.com/quartobot/quartobot/blob/main/DESIGN.md) — the architecture and why.
+- [Citation pipeline](https://github.com/quartobot/quartobot/blob/main/docs/citation-pipeline.md) — why pre-render hook, not a pandoc filter.
 - [Venice 2026 manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript) — a 25-author preprint that's been running the CI half of this pattern in production.
 - [manubot](https://github.com/manubot/manubot) — the upstream Python library that does the citation resolution.
 - [Himmelstein et al. 2019](https://doi.org/10.1371/journal.pcbi.1007128) — the foundational manubot paper.
 
 ## License
 
-[MIT](https://github.com/seandavi/quartobot/blob/main/LICENSE).
+[MIT](https://github.com/quartobot/quartobot/blob/main/LICENSE).

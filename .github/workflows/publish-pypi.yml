@@ -10,7 +10,7 @@ name: Publish to PyPI
 #      the name through the PyPI UI).
 #   2. In the project's "Publishing" settings on PyPI, add a trusted
 #      publisher:
-#        - Owner:           seandavi
+#        - Owner:           quartobot
 #        - Repository name: quartobot
 #        - Workflow name:   publish-pypi.yml
 #        - Environment:     pypi
