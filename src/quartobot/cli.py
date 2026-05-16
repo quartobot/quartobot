@@ -48,16 +48,16 @@ def scan(path: Path, recursive: bool) -> None:
     `.quarto/`, `.git/`, `.ipynb_checkpoints/`, `node_modules/`, etc.)
     are skipped at any depth.
 
-    Exits 1 if any duplicates are found (so it works as a pre-commit
-    hook), 0 otherwise.
+    Pure reporter: always exits 0 once it finishes scanning. Repeated
+    keys (same-file or cross-file) show up in the listing with `(Nx)`
+    counts and a "Duplicates:" section, but they don't gate the exit
+    code. `quartobot validate` is the gating step.
     """
     from quartobot.scan import format_scan_result, scan_path
 
     result = scan_path(path, recursive=recursive)
     relative_to = path if path.is_dir() else path.parent
     click.echo(format_scan_result(result, relative_to=relative_to))
-    if result.duplicates:
-        raise SystemExit(1)
 
 
 @main.command()

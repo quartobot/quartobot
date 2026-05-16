@@ -129,12 +129,32 @@ class ScanResult:
         return out
 
     @property
-    def duplicates(self) -> dict[str, list[CiteOccurrence]]:
-        """Return cite keys that appear in more than one place."""
+    def repetitions(self) -> dict[str, list[CiteOccurrence]]:
+        """Return cite keys that appear more than once anywhere in the project.
+
+        Includes both same-file repetitions (the normal academic-writing
+        case where one source backs several claims) and cross-file
+        duplicates. Used for the informational `(Nx)` listing in `scan`
+        output; not a failure signal on its own.
+        """
         seen: dict[str, list[CiteOccurrence]] = {}
         for occ in self.occurrences:
             seen.setdefault(occ.key, []).append(occ)
         return {key: occs for key, occs in seen.items() if len(occs) > 1}
+
+    @property
+    def duplicates(self) -> dict[str, list[CiteOccurrence]]:
+        """Return cite keys that appear in more than one file.
+
+        Same-key-twice-in-one-file is the normal academic-writing case
+        and is deliberately excluded here. A key is a "duplicate" only
+        when it crosses file boundaries — that's the case the chunked-
+        content pattern can produce by accident.
+        """
+        seen: dict[str, list[CiteOccurrence]] = {}
+        for occ in self.occurrences:
+            seen.setdefault(occ.key, []).append(occ)
+        return {key: occs for key, occs in seen.items() if len({occ.file for occ in occs}) > 1}
 
 
 def classify(key: str) -> tuple[str | None, str]:

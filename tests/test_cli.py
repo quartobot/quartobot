@@ -43,13 +43,30 @@ def test_scan_no_recursive_stays_at_top(tmp_path):
     assert "10.1/deeper" not in result.output
 
 
-def test_scan_exits_one_on_duplicates(tmp_path):
+def test_scan_exits_zero_on_cross_file_duplicates(tmp_path):
+    # `scan` is a reporter, not a gate. Cross-file duplicates show up in
+    # the "Duplicates:" section but don't change the exit code.
+    # `validate` is the gating step (see test_validate.py).
     (tmp_path / "a.qmd").write_text("See @doi:10.1371/journal.pcbi.1007128.\n")
     (tmp_path / "b.qmd").write_text("Also @doi:10.1371/journal.pcbi.1007128.\n")
     runner = CliRunner()
     result = runner.invoke(main, ["scan", str(tmp_path)])
-    assert result.exit_code == 1
+    assert result.exit_code == 0
     assert "Duplicates:" in result.output
+
+
+def test_scan_exits_zero_on_same_file_repetition(tmp_path):
+    # Same key cited twice in one file is the normal academic case —
+    # shows up with `(2x)` next to the identifier but exits 0.
+    (tmp_path / "paper.qmd").write_text(
+        "First: @doi:10.1038/ng.2653.\nAgain: @doi:10.1038/ng.2653.\n"
+    )
+    runner = CliRunner()
+    result = runner.invoke(main, ["scan", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "(2x)" in result.output
+    # Same-file repetition is NOT a cross-file duplicate.
+    assert "Duplicates:" not in result.output
 
 
 def test_resolve_no_args_exits_zero():

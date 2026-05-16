@@ -266,13 +266,43 @@ def test_scan_skips_fixture_decoys():
     assert not any("references" in k.lower() for k in keys)
 
 
-def test_scan_detects_fixture_duplicate():
+def test_scan_detects_fixture_repetition():
     result = scan_path(FIXTURE)
     # The manubot paper DOI appears in prose AND in the bracket group AND
-    # in the negated cite — three occurrences.
-    dup = result.duplicates
-    assert "@doi:10.1371/journal.pcbi.1007128" in dup
-    assert len(dup["@doi:10.1371/journal.pcbi.1007128"]) >= 3
+    # in the negated cite — three occurrences, all in the same file.
+    # That's expected academic-writing usage, so it shows up in
+    # `repetitions` (informational) but NOT in `duplicates` (cross-file).
+    reps = result.repetitions
+    assert "@doi:10.1371/journal.pcbi.1007128" in reps
+    assert len(reps["@doi:10.1371/journal.pcbi.1007128"]) >= 3
+    assert result.duplicates == {}
+
+
+def test_same_file_repetition_not_a_duplicate(tmp_path):
+    # Same key cited twice in the same file is the normal academic case
+    # — not a duplicate. It still appears in `repetitions` so `scan`
+    # can show `(2x)` next to the identifier.
+    f = tmp_path / "paper.qmd"
+    f.write_text(
+        "First mention: @doi:10.1038/ng.2653 establishes the result.\n"
+        "Later: as noted in @doi:10.1038/ng.2653, the effect is robust.\n"
+    )
+    result = scan_path(tmp_path)
+    assert result.duplicates == {}
+    assert "@doi:10.1038/ng.2653" in result.repetitions
+    assert len(result.repetitions["@doi:10.1038/ng.2653"]) == 2
+
+
+def test_cross_file_duplicate_is_a_duplicate(tmp_path):
+    # Same key in two different files IS a duplicate under the new
+    # semantics. The chunked-content pattern can accidentally produce
+    # this when authors don't see the whole picture.
+    (tmp_path / "intro.qmd").write_text("See @doi:10.1038/ng.2653.\n")
+    (tmp_path / "methods.qmd").write_text("Also @doi:10.1038/ng.2653.\n")
+    result = scan_path(tmp_path)
+    assert "@doi:10.1038/ng.2653" in result.duplicates
+    occs = result.duplicates["@doi:10.1038/ng.2653"]
+    assert len({occ.file for occ in occs}) == 2
 
 
 def test_scan_groups_by_prefix():
