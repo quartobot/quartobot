@@ -71,26 +71,6 @@ keys, the validate gate, and the render-CI defaults.
   uv first" guidance, PATH troubleshooting for Quarto pre-render
   subprocess). Closes #64.
 
-### Fixed
-
-- `render-reusable.yml`: `quarto-version` default is now `release` (was
-  `""`). A freshly-init'd workflow that omits or passes an empty
-  `quarto-version` installs the latest stable Quarto instead of 404ing
-  on `…/releases/download/v/quarto--linux-amd64.deb`. The
-  `setup-quartobot` composite action also normalizes empty input to
-  `release` defensively so any consumer still pinned to a pre-fix tag
-  recovers. (#60)
-- `quartobot validate` no longer fails on a key cited several times in the
-  same file — only cross-file duplicates count, and the failure message
-  now reports the actual file count per key. `quartobot scan` exits 0 in
-  every case; duplicates are reported, not gated. ([#63](https://github.com/quartobot/quartobot/issues/63))
-- `scan` and `resolve` now strip a trailing `/` from `@url:` cite keys
-  to match pandoc's cite-key parser, which treats it as terminator
-  punctuation. Without this, the resolver wrote `id: url:.../path/`
-  into `references.json` while pandoc-citeproc looked up
-  `url:.../path` and silently degraded the citation to `[?]`. Closes
-  #61.
-
 ### Architecture
 
 - Settled on the `quartobot resolve` pre-render hook as the citation
