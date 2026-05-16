@@ -33,6 +33,7 @@ export default defineConfig({
           ],
         },
         { label: "CLI", link: "/cli/" },
+        { label: "MCP server", link: "/mcp/" },
         {
           label: "From manubot",
           items: [

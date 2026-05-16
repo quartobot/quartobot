@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Added
+
+- `quartobot mcp` — an MCP (Model Context Protocol) server exposing
+  citation-resolution tools for agentic authoring workflows (Claude
+  Desktop, Codex, Gemini Code Assist, Cursor). Three read-only tools
+  register: `resolve_citation` wraps `manubot.cite.citekey_to_csl_item`,
+  `scan_project` and `validate_project` wrap their CLI counterparts.
+  Stdio transport only; no write tools. Ships as an opt-in extra so
+  the base install is unchanged: `uv tool install 'quartobot[mcp]'`.
+  Closes #71.
+
 ### Fixed
 
 - `render-reusable.yml`: `quarto-version` default is now `release` (was

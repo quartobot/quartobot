@@ -203,6 +203,31 @@ def validate(project: Path) -> None:
         raise SystemExit(1)
 
 
+@main.command("mcp")
+def mcp_serve() -> None:
+    """Start an MCP server exposing read-only citation tools over stdio.
+
+    Connect an MCP-capable client (Claude Desktop, Codex, Gemini Code
+    Assist, Cursor) and the agent can call `resolve_citation`,
+    `scan_project`, and `validate_project` as part of a drafting
+    workflow — same manubot resolver the CLI's `resolve` uses, no
+    parallel implementation.
+
+    Requires the `mcp` extra:
+
+        uv tool install 'quartobot[mcp]'
+
+    See https://quartobot.github.io/quartobot/mcp/ for client setup.
+    """
+    try:
+        from quartobot.mcp import run as run_mcp_server
+    except ImportError as e:
+        raise click.ClickException(
+            "MCP support requires the 'mcp' extra. Install with: uv tool install 'quartobot[mcp]'"
+        ) from e
+    run_mcp_server()
+
+
 @main.group()
 def snapshots() -> None:
     """Inspect and apply the gh-pages snapshot retention policy.
