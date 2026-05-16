@@ -11,6 +11,7 @@
   render`, `gh repo create`, and the PR-preview round trip. Closes
   #82.
 - Docs: "MCP + Claude Desktop" tutorial — agent grounds citations against quartobot's resolver via the MCP server. Closes #83.
+- Docs: "Shell-tool agents grounding citations" tutorial — the non-MCP companion to the Claude Desktop tutorial. Closes #84.
 
 ### Changed
 
