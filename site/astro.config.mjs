@@ -40,6 +40,7 @@ export default defineConfig({
             { label: "Resolve a single citation", link: "/resolve-single-citation/" },
             { label: "MCP server", link: "/mcp/" },
             { label: "Migrate from manubot", link: "/migrating-from-manubot/" },
+            { label: "Validate a manuscript", link: "/validate-manuscript/" },
           ],
         },
         {
