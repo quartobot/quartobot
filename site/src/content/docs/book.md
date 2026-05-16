@@ -4,13 +4,13 @@ description: Quarto book + pre-render hook + CI for chapter-shaped works.
 ---
 
 A GitHub template combining Quarto **books**, the
-[`quartobot resolve` pre-render hook](/cli/#quartobot-resolve), and a CI
+[`quartobot resolve` pre-render hook](../cli/#quartobot-resolve), and a CI
 workflow that gives every commit an immutable permalink, embeds that
 permalink in every chapter's HTML, posts PR previews via sticky
 comment, and deploys the book site to GitHub Pages.
 
 If you're writing a single document (paper, preprint, technical
-report), see [the manuscript template](/template/) — same pattern,
+report), see [the manuscript template](../template/) — same pattern,
 single-document shape.
 
 :::caution
@@ -101,5 +101,5 @@ Same pattern, broader artifact.
 
 - Template source: [`template-book/`](https://github.com/quartobot/quartobot/tree/main/template-book)
 - [Minimal book example](https://github.com/quartobot/quartobot/tree/main/examples/book-minimal) — the smallest book exercising the pre-render hook without the template's CI/banner machinery
-- [The manuscript template](/template/) — same pattern, single-document shape
+- [The manuscript template](../template/) — same pattern, single-document shape
 - Roadmap: [v0.1 books support](https://github.com/quartobot/quartobot/issues/18)

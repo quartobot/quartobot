@@ -13,7 +13,7 @@ uv tool install git+https://github.com/quartobot/quartobot
 ```
 
 `quartobot` depends on `manubot` as a Python library. See
-[Install](/install/) for `uvx`, editable, and post-v0.1-tag
+[Install](../install/) for `uvx`, editable, and post-v0.1-tag
 `pip install` paths.
 
 ## Pre-render commands
