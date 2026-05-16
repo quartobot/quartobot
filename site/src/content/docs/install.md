@@ -6,12 +6,18 @@ description: Every install method for the quartobot CLI, when to use which.
 A few ways to get `quartobot` on your machine, in roughly descending
 order of how often you'll want each.
 
-## Recommended: `uv tool install` from GitHub
+## Recommended: `uv tool install` from PyPI
 
 :::note
 Don't have `uv` yet? See the
 [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 :::
+
+```bash
+uv tool install quartobot
+```
+
+For unreleased main, install from git instead:
 
 ```bash
 uv tool install git+https://github.com/quartobot/quartobot
@@ -74,9 +80,9 @@ The `--from` flag is required because the package name and the command
 name are the same. Without it, `uvx` would look for a PyPI package
 literally named `quartobot`.
 
-## `pip install` (post-v0.1 tag)
+## `pip install` from PyPI
 
-Once `v0.1.0` ships to PyPI, the registry path works too:
+`quartobot` is on PyPI since v0.2.0, so the registry path works too:
 
 ```bash
 pip install quartobot
@@ -85,8 +91,9 @@ pip install quartobot
 The trade-off: `pip install` into a system Python isn't recommended
 on modern Linux distros (you'll likely hit
 [PEP 668](https://peps.python.org/pep-0668/) "externally-managed-environment"
-errors). Use `uv tool install` instead, or `pipx install quartobot`,
-or install into a project venv with `uv pip install quartobot`.
+errors). Use `uv tool install quartobot` instead, or
+`pipx install quartobot`, or install into a project venv with
+`uv pip install quartobot`.
 
 ## For repo development
 

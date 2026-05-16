@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Added
+
+- Docs: "First manuscript in 15 minutes" end-to-end tutorial under
+  Tutorials in the sidebar. Walks an author from `quarto create
+  project manuscript` through `init`, `use github-ci`, `quarto
+  render`, `gh repo create`, and the PR-preview round trip. Closes
+  #82.
+
 ### Changed
 
 - `quartobot init` now scaffolds only the citation-pipeline pieces
