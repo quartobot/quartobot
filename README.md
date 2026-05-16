@@ -97,3 +97,7 @@ working reference the template is being lifted from.
 ## License
 
 [MIT](https://github.com/quartobot/quartobot/blob/main/LICENSE).
+
+---
+
+*quartobot is an independent community project. It builds on Quarto but is not affiliated with or endorsed by Posit, PBC, the makers of Quarto.*
