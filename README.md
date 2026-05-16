@@ -1,87 +1,99 @@
 # quartobot
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-v0.1%20in%20flight-orange.svg)](DESIGN.md)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/quartobot/quartobot/blob/main/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/quartobot.svg)](https://pypi.org/project/quartobot/)
+[![Docs](https://img.shields.io/badge/docs-quartobot.github.io-blue.svg)](https://quartobot.github.io/quartobot/)
 
-The manubot manuscript-as-software pattern, on Quarto.
+Citation resolution and manuscript-as-software CI for Quarto.
+
+```bash
+uv tool install quartobot
+```
+
+Or from git for the unreleased main:
 
 ```bash
 uv tool install git+https://github.com/quartobot/quartobot
 ```
 
-> **Status:** v0.1 in flight. The CLI ships and is on PATH today via
-> `uv tool install`. PyPI publishing follows the v0.1 tag. Watch the
-> [v0.1 milestone](https://github.com/quartobot/quartobot/milestone/1).
-> Architecture: pre-render hook calling the CLI directly, settled
-> 2026-05-14 — see [`docs/citation-pipeline.md`](docs/citation-pipeline.md).
+Documentation: [quartobot.github.io/quartobot](https://quartobot.github.io/quartobot/).
 
-## What this is
+## What it does
 
-Manubot has, for eight years, run scholarly manuscripts as a git repository
-that builds itself on every commit, resolves citations from DOIs and
-PubMed IDs automatically, hands out an immutable permalink per commit, and
-collaborates through pull requests. The pattern is published
-([Himmelstein et al. 2019](https://doi.org/10.1371/journal.pcbi.1007128))
-and has been used for hundreds of preprints.
+Authors write persistent-identifier cite keys directly in prose:
 
-Quarto now covers more of scholarly publishing than manubot ever did —
-manuscripts, books, websites, slides, dashboards, courseware — but the
-manubot pattern does not yet exist there natively. That's the gap this
-repo closes.
+```markdown
+We follow @doi:10.1371/journal.pcbi.1007128, with the dataset described
+in @pmid:31479462 and methods inspired by @arxiv:2104.10729.
+```
 
-The shipping surface is a Python CLI and (optionally) a GitHub template:
+A Quarto `project.pre-render:` hook resolves each key to canonical
+metadata before pandoc-citeproc runs, writes the result to a
+`references.json` you can commit, and the manuscript renders the same
+way on every machine — no `quartobot` install needed at render time,
+no live Crossref / PubMed / arXiv hit per render. CI gets the same
+behavior the author saw locally, and a network blip mid-render is no
+longer a build failure.
 
-1. **`quartobot`** — a Python CLI. `quartobot resolve` pre-fetches
-   citations through manubot's resolver library, so CI never sees a
-   Crossref hiccup mid-render. `quartobot scan` summarizes cite keys
-   grouped by prefix with duplicate detection. `quartobot validate`
-   is the CI-lint surface (static checks against `_quarto.yml`).
-   `quartobot init` scaffolds the pattern into an existing Quarto
-   project. Authors write `@doi:10.1371/journal.pcbi.1007128`,
-   `@pmid:31479462`, `@arxiv:2104.10729`, `@isbn:…`, or bare DOIs in
-   their prose, and citations resolve.
+Around that resolution step, the project ships:
 
-2. **`quartobot-manuscript`** — a GitHub template that combines Quarto
-   Manuscripts, the CLI's pre-render hook, and a CI workflow that
-   gives every commit an immutable permalink at `/v/<sha>/`, embeds
-   that permalink in the rendered HTML, posts PR previews via sticky
-   comment, and deploys HTML + PDF + DOCX to GitHub Pages.
+1. **The Python CLI** — `scan`, `validate`, `resolve`, `init`, and
+   `mcp`. `resolve` is the pre-render hook itself; `scan` and
+   `validate` are CI-lint surfaces (cite-key inventory, static
+   `_quarto.yml` checks); `init` scaffolds the pattern into an
+   existing project; `mcp` starts a stdio MCP server so an agent in
+   Claude Desktop, Codex, or Gemini Code Assist can call the same
+   resolver as part of a drafting workflow.
+
+2. **A GitHub template, `quartobot-manuscript`** — Quarto Manuscripts
+   plus the pre-render hook plus a CI workflow that gives every
+   commit an immutable permalink at `/v/<sha>/`, embeds it in the
+   rendered HTML, posts PR previews via sticky comment, and deploys
+   HTML + PDF + DOCX to GitHub Pages.
 
    ```bash
    gh repo create my-paper --template quartobot/quartobot-manuscript
    ```
 
-PyPI publishing and the standalone template repo are part of the v0.1
-tag. See [`docs/citation-pipeline.md`](docs/citation-pipeline.md) for
-why the pre-render hook over a pandoc filter, and what the seam opens
-up for citation-resolver plugins.
+The book variant (`quartobot-book`) covers longer works on Quarto's
+book project type.
+
+## Supported cite-key prefixes
+
+`@doi:`, `@pmid:`, `@arxiv:`, `@isbn:`, `@url:`, `@wikidata:`,
+`@pmc:`, plus hand-curated keys from a project `.bib`. Resolution
+goes through [manubot](https://github.com/manubot/manubot)'s
+`citekey_to_csl_item` — eight years of accumulated source-API quirks
+behind a single function call. quartobot itself doesn't reimplement
+resolution; it provides the Quarto integration, CI scaffolding, and
+the agent-facing MCP surface.
 
 ## Why this exists
 
 [manubot/manubot#332](https://github.com/manubot/manubot/issues/332)
-("Quarto integration") was opened by Anthony Gitter in April 2022 after a
-conversation with Sean Davis. Four years later, no PR, no assignee — but
-`pandoc-manubot-cite` shipped inside the `manubot` package and Quarto
-Manuscripts shipped as a first-party project type. The integration is
-small once you stop trying to rebuild the resolver. This repo is the work
-to resolve that issue.
+("Quarto integration") was opened by Anthony Gitter in April 2022 after
+a conversation with Sean Davis. Four years on, no PR, no assignee — but
+Quarto Manuscripts shipped as a first-party project type, and the
+integration turned out to be small once the resolver question was
+settled. This repo is the work to close that issue.
 
 ## Working example
 
 [seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)
-runs the CI / permalink / banner half of the pattern on a live 25-author
-preprint from the Bioconductor Spatial Hackathon. That's the working
-reference the template is being lifted from.
+runs the CI / permalink / banner half of the pattern on a live
+25-author preprint from the Bioconductor Spatial Hackathon. That's the
+working reference the template is being lifted from.
 
 ## See also
 
-- Design — [`DESIGN.md`](DESIGN.md)
-- Prior art — [`docs/prior-art.md`](docs/prior-art.md)
-- Publication plan — [`docs/publication-plan.md`](docs/publication-plan.md)
-- Conversation notes — [`docs/conversation-notes.md`](docs/conversation-notes.md)
-- Contributing — [`CONTRIBUTING.md`](CONTRIBUTING.md)
-- Code of conduct — [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- [Documentation site](https://quartobot.github.io/quartobot/) — install, CLI reference, MCP setup, templates, migration guides
+- [Design](https://github.com/quartobot/quartobot/blob/main/DESIGN.md)
+- [Citation pipeline](https://github.com/quartobot/quartobot/blob/main/docs/citation-pipeline.md) — why a pre-render hook, not a pandoc filter
+- [Prior art](https://github.com/quartobot/quartobot/blob/main/docs/prior-art.md)
+- [Contributing](https://github.com/quartobot/quartobot/blob/main/CONTRIBUTING.md)
+- [Code of conduct](https://github.com/quartobot/quartobot/blob/main/CODE_OF_CONDUCT.md)
+- [Changelog](https://github.com/quartobot/quartobot/blob/main/CHANGELOG.md)
 
 ## License
 
-[MIT](LICENSE).
+[MIT](https://github.com/quartobot/quartobot/blob/main/LICENSE).
