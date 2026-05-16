@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Fixed
+
+- `render-reusable.yml`: `quarto-version` default is now `release` (was
+  `""`). A freshly-init'd workflow that omits or passes an empty
+  `quarto-version` installs the latest stable Quarto instead of 404ing
+  on `…/releases/download/v/quarto--linux-amd64.deb`. The
+  `setup-quartobot` composite action also normalizes empty input to
+  `release` defensively so any consumer still pinned to a pre-fix tag
+  recovers. (#60)
+
 ### Architecture
 
 - Settled on the `quartobot resolve` pre-render hook as the citation
