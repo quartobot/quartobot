@@ -5,6 +5,7 @@
 ### Added
 
 - Docs: "How to resolve a single citation" how-to (CLI stdout mode + MCP tool). Closes #80.
+- Docs: "How to use quartobot in a Jupyter notebook manuscript" how-to. Closes #77.
 - Docs: "First manuscript in 15 minutes" end-to-end tutorial under
   Tutorials in the sidebar. Walks an author from `quarto create
   project manuscript` through `init`, `use github-ci`, `quarto
