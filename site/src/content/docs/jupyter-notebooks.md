@@ -60,12 +60,15 @@ jupyter lab paper.ipynb        # author your notebook
 quartobot init
 ```
 
-`init` writes `_quarto.yml` with the `quartobot resolve` pre-render
-hook and a `bibliography:` list. The hook reads `.ipynb` markdown
-cells the same way it reads `.qmd` body text — same scanner, same
-cite-key extraction, same resolver underneath. The
-[first-manuscript tutorial](../first-manuscript/) covers the full
-sequence end-to-end; it works identically with notebook source.
+Because `quarto create project` already wrote `_quarto.yml`, `init`
+won't touch it — it prints a YAML snippet to paste in. Copy that
+snippet (the `pre-render:` line plus the `bibliography:` list) into
+the existing `_quarto.yml` under the existing `project:` block. The
+hook then reads `.ipynb` markdown cells the same way it reads `.qmd`
+body text — same scanner, same cite-key extraction, same resolver
+underneath. The [first-manuscript tutorial](../first-manuscript/)
+covers the full sequence end-to-end; it works identically with
+notebook source.
 
 The relevant `_quarto.yml` lines after `init`:
 
