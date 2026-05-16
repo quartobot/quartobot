@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Changed
+
+- `quartobot init` now scaffolds only the citation-pipeline pieces
+  (`_quarto.yml` pre-render line + `bibliography:` list,
+  `references.bib` seed, `.gitignore` augment). The GitHub Actions
+  render workflow, version banner, and PR-preview cleanup moved to a
+  new `quartobot use github-ci` command. `use` is the parking lot for
+  opt-in capabilities, R `usethis`-style. If you ran `init` before
+  v0.3, run `quartobot use github-ci` after to get what it used to do.
+  Closes #87.
+
 ## v0.2.0 — 2026-05-16
 
 The accumulated work since v0.1.0: a real docs site under

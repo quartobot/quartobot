@@ -41,10 +41,13 @@ Around that resolution step, quartobot ships a Python CLI:
   `_quarto.yml`'s `project.pre-render:` line.
 - **`scan`** and **`validate`** are CI-lint surfaces: cite-key inventory
   and static `_quarto.yml` checks.
-- **`init`** scaffolds the pattern into an existing Quarto project —
-  the pre-render hook wiring, the version-banner Quarto include, and
-  a ten-line render workflow. Pairs with `quarto create project
+- **`init`** scaffolds the citation pipeline into an existing Quarto
+  project — the pre-render hook wiring, a seed `references.bib`, and
+  a `.gitignore` augment. Pairs with `quarto create project
   manuscript|book|website` for new projects.
+- **`use github-ci`** layers the manuscript-as-software CI on top
+  (`.github/workflows/render.yml`, the version-banner Quarto include,
+  PR-preview cleanup). Opt-in.
 - **`mcp`** starts a stdio MCP server so an agent in Claude Desktop,
   Codex, or Gemini Code Assist can call the same resolver as part of
   a drafting workflow.
@@ -55,13 +58,16 @@ Starting a new manuscript looks like:
 uv tool install quartobot
 quarto create project manuscript my-paper
 cd my-paper && quartobot init
+# Optional: scaffold the render workflow + version banner + permalink CI.
+quartobot use github-ci
 ```
 
 quartobot deliberately does not ship its own GitHub template repo —
 Quarto's own `quarto create project` scaffolders cover the project
-shape, and `quartobot init` layers the citation-resolution + CI on
-top. The `template/` and `template-book/` directories in this repo
-are worked-example references, not GitHub templates.
+shape, and `quartobot init` (plus `use github-ci` when wanted) layers
+the citation resolution and CI on top. The `template/` and
+`template-book/` directories in this repo are worked-example
+references, not GitHub templates.
 
 ## Supported cite-key prefixes
 
