@@ -36,6 +36,7 @@ export default defineConfig({
         {
           label: "How-to guides",
           items: [
+            { label: "Resolve a single citation", link: "/resolve-single-citation/" },
             { label: "MCP server", link: "/mcp/" },
             { label: "Migrate from manubot", link: "/migrating-from-manubot/" },
           ],

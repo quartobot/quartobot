@@ -1,0 +1,114 @@
+---
+title: "How to resolve a single citation"
+description: One-shot CSL JSON lookup for a single doi/pmid/arxiv/url key — CLI and MCP both reach the same resolver.
+---
+
+You have a single persistent-identifier key and want the metadata for
+it. Two ways to ask — pick by where your agent or shell tool lives.
+
+## CLI: `quartobot resolve --output -`
+
+The stdout mode of `resolve` writes CSL JSON straight to the pipe.
+Hand it one or more keys as arguments:
+
+```bash
+quartobot resolve --output - doi:10.1371/journal.pcbi.1007128 | jq '.[0].title'
+```
+
+```
+"Open collaborative writing with Manubot"
+```
+
+The JSON shape is CSL JSON — manubot's output, the same structure
+`pandoc-citeproc` reads. `--output -` skips the cache write, the
+human-readable summary line goes to stderr, and exit is non-zero if
+any key fails to resolve.
+
+A slightly fuller pipeline pulling title and authors:
+
+```bash
+quartobot resolve --output - doi:10.1371/journal.pcbi.1007128 \
+  | jq '.[0] | {title, authors: [.author[] | "\(.given) \(.family)"]}'
+```
+
+```json
+{
+  "title": "Open collaborative writing with Manubot",
+  "authors": [
+    "Daniel S. Himmelstein",
+    "Vincent Rubinetti",
+    "..."
+  ]
+}
+```
+
+Any cite-key prefix manubot supports works here — `doi:`, `pmid:`,
+`arxiv:`, `isbn:`, `url:`, `wikidata:`, `pmc:`. Bare DOIs work too.
+See [CLI reference: `resolve`](../cli/#quartobot-resolve) for the full
+flag surface (`--from-scan`, `--id-mode`, `--cache`, `--dry-run`).
+
+## MCP: `resolve_citation` tool
+
+The same lookup, exposed to an agent that speaks MCP. After the
+server is wired into your authoring client (Claude Desktop, Codex,
+Gemini Code Assist, Cursor), the agent calls one tool:
+
+```
+resolve_citation(cite_key="doi:10.1371/journal.pcbi.1007128")
+```
+
+What comes back is the CSL JSON object for that key — same payload as
+one element of the CLI's array. The agent can read the title, author
+list, year, container, DOI, and drop a grounded citation into the
+draft instead of guessing.
+
+A leading `@` or trailing pandoc-terminator punctuation (`/`, `.`,
+`,`) is normalized away, so the tool is forgiving about the exact
+shape the agent extracts from prose.
+
+See [MCP server](../mcp/) for the full per-client config (Claude
+Desktop, Codex, Gemini Code Assist, Cursor).
+
+## Errors
+
+What an unresolvable key looks like on each surface:
+
+**CLI** — non-zero exit, stderr message:
+
+```
+$ quartobot resolve --output - doi:not.a.real.doi/x
+  ✗ doi:not.a.real.doi/x — could not resolve
+0 resolved, 1 failed.
+$ echo $?
+1
+```
+
+Stdout stays empty (or carries `[]` if other keys in the same call
+resolved). A pipeline downstream sees the non-zero exit; a shell `set
+-e` catches it.
+
+**MCP** — the tool returns a dict rather than raising:
+
+```json
+{
+  "error": "could not resolve cite key: doi:not.a.real.doi/x",
+  "cite_key": "doi:not.a.real.doi/x"
+}
+```
+
+The MCP server stays up. The agent sees a usable response and can
+explain the failure to the author or try a different key.
+
+## Pick by context
+
+MCP when your authoring client speaks it natively (Claude Desktop,
+Codex, Gemini Code Assist, Cursor). CLI stdout when your agent shells
+out, or when you're in a terminal piping through `jq`. Both reach the
+same `manubot.cite.citekey_to_csl_item` underneath — eight years of
+source-API quirks behind one call.
+
+## See also
+
+- [CLI reference: `resolve`](../cli/#quartobot-resolve) — the full flag surface.
+- [MCP server](../mcp/) — full setup for each client.
+- [Migrating from manubot](../migrating-from-manubot/) — translation table if you're already comfortable with manubot's resolver.
