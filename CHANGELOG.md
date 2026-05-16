@@ -9,6 +9,7 @@
   project manuscript` through `init`, `use github-ci`, `quarto
   render`, `gh repo create`, and the PR-preview round trip. Closes
   #82.
+- Docs: "MCP + Claude Desktop" tutorial — agent grounds citations against quartobot's resolver via the MCP server. Closes #83.
 
 ### Changed
 

@@ -1,0 +1,218 @@
+---
+title: "Tutorial: drafting with Claude Desktop"
+description: Wire quartobot's MCP server into Claude Desktop so the agent grounds every citation against the same resolver your manuscript renders with.
+---
+
+By the end of this tutorial, Claude Desktop will be able to resolve
+any cite key you ask about against quartobot's resolver — and
+proactively ground citations as it drafts. The eight years of
+source-API handling manubot has accumulated land in the agent's
+toolkit as one MCP tool call.
+
+If you have never used MCP before, that's fine. MCP (the Model
+Context Protocol) is just a way for desktop AI clients to call
+out to small local programs. You wire one config snippet, restart
+Claude Desktop, and the tools show up. No accounts, no servers,
+no ports.
+
+## Before you start
+
+You need:
+
+- **`quartobot[mcp]` installed** — `uv tool install 'quartobot[mcp]'`.
+  The `[mcp]` extra ships the MCP SDK alongside the CLI; a plain
+  `uv tool install quartobot` doesn't pull it. Available from PyPI
+  as of v0.2.0.
+- **Claude Desktop** — [download here](https://claude.ai/download)
+  if you don't have it. Free tier is fine.
+- **Optional but recommended:** an existing quartobot manuscript,
+  scaffolded per the [first-manuscript tutorial](../first-manuscript/).
+  The tutorial works fine without one if you just want to see the
+  resolver in action — the last two steps assume one.
+
+That's it. No separate Python install, no API keys to wire, no
+filter to register with Quarto.
+
+## 1. Verify the MCP server runs
+
+The server itself starts on stdio. There's nothing to launch
+manually — Claude Desktop will spawn the process for you the
+moment you wire the config. But before that, confirm the
+subcommand exists:
+
+```bash
+quartobot mcp --help
+```
+
+You should see a short help text describing the `mcp` subcommand.
+If you get `Error: No such command 'mcp'`, your install was the
+base `quartobot` rather than `quartobot[mcp]`. Re-run the install
+with the extra:
+
+```bash
+uv tool install --force 'quartobot[mcp]'
+```
+
+## 2. Wire Claude Desktop
+
+Claude Desktop reads its MCP server list from a single JSON file.
+The path depends on your OS:
+
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+The rest of this tutorial assumes macOS paths. The Windows path
+behaves identically.
+
+If the file doesn't exist yet, create it. If it exists with other
+MCP servers already configured, merge the `quartobot` entry into
+the existing `mcpServers` block — don't replace the whole file.
+
+The snippet to add:
+
+```json
+{
+  "mcpServers": {
+    "quartobot": {
+      "command": "quartobot",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+`command` is the binary name; `uv tool install` puts `quartobot`
+on your user `PATH`, so Claude Desktop will find it. `args` is the
+subcommand list passed to that binary.
+
+Quit Claude Desktop fully (Cmd-Q on macOS — closing the window
+isn't enough) and reopen it.
+
+Look for the MCP tool indicator near the chat input — a small
+wrench/tool icon at the bottom of the message box. Click it.
+You should see `quartobot` listed with three tools:
+
+- `resolve_citation`
+- `scan_project`
+- `validate_project`
+
+If you don't see the icon at all, your config file has a JSON
+parse error. The most common cause is a missing comma when
+merging into an existing `mcpServers` block. Fix the JSON,
+restart Claude Desktop, try again.
+
+## 3. Ask Claude to resolve one citation
+
+Start a new conversation. Paste this prompt:
+
+> Use the quartobot tools to resolve `doi:10.1371/journal.pcbi.1007128`.
+> What's the paper's title and first author?
+
+What you'll see, in order:
+
+1. Claude announces it's calling the `resolve_citation` tool. The
+   Claude Desktop UI shows a tool-call card; click it to expand
+   and you'll see the arguments (`cite_key: "doi:10.1371/journal.pcbi.1007128"`).
+2. The tool returns CSL JSON — a structured record with `title`,
+   `author`, `issued`, `container-title`, and so on.
+3. Claude reads the CSL JSON and replies with the title and first
+   author extracted from it.
+
+The answer should be: **"Open collaborative writing with Manubot"**,
+first author **Daniel S. Himmelstein**. That's the metadata your
+manuscript renderer would have produced for the same key — the
+agent is reading from the same `manubot.cite.citekey_to_csl_item`
+call the pre-render hook makes. No guessing, no training-data
+recall, no hallucinated DOIs.
+
+If you've never seen an MCP tool call before, this is the whole
+trick: the agent isn't answering from its head. It's calling out
+to a local function, reading the structured response, and
+summarizing it.
+
+## 4. Draft a paragraph with grounded citations
+
+Now the headline use case. New conversation:
+
+> Draft a one-paragraph introduction for a paper on collaborative
+> scientific writing. Cite the manubot paper
+> (doi:10.1371/journal.pcbi.1007128) and one other relevant paper
+> of your choice. Use the quartobot `resolve_citation` tool to
+> verify each DOI before including it.
+
+Watch the trace. Claude will:
+
+1. Propose two candidate citations — the manubot paper plus one
+   it picks (often a paper on git-based collaboration, the GTEx
+   consortium, or open-science workflow tooling).
+2. Call `resolve_citation` on each proposed DOI. The tool either
+   returns CSL JSON or an error dict.
+3. Drop any citation that errored out. Commit only to the keys
+   that resolved.
+4. Write the paragraph, using `@doi:...` cite-key syntax.
+
+The output is a paragraph you can paste verbatim into your
+manuscript. Something like:
+
+```markdown
+Open collaborative writing tools have shifted how scientific
+manuscripts are drafted, reviewed, and versioned
+[@doi:10.1371/journal.pcbi.1007128]. Treating a paper as software
+— a git repository that builds itself, tracks contributor
+authorship through commits, and exposes every version at an
+immutable URL — turns the manuscript into a first-class artifact
+of the same engineering practice that produced the underlying
+research [@doi:10.7717/peerj.4375].
+```
+
+The exact wording will vary; the cite keys are what matter.
+Both DOIs in the example above resolve cleanly through quartobot.
+
+If Claude proposes a DOI and `resolve_citation` returns an error,
+ask it to try a different paper. The point is that you see the
+verification happen — the agent can't slip an unverified key into
+the final paragraph without you watching it bypass the tool.
+
+## 5. Paste into your manuscript and render
+
+Copy the paragraph Claude produced. Open `index.qmd` in the
+manuscript you scaffolded earlier (or any quartobot project) and
+paste it in. Save.
+
+```bash
+quarto render
+```
+
+The pre-render hook fires, scans `index.qmd`, sees the two
+`@doi:...` keys, resolves them, and writes `references.json`.
+Pandoc-citeproc reads `references.json` and formats the
+citations in the rendered HTML and PDF.
+
+Open `_output/index.html`. The cite keys you pasted now show as
+formatted references, author names and all. The references list
+at the bottom of the document has both entries.
+
+The metadata in the rendered manuscript matches the metadata
+Claude showed you in the tool-call trace, because it's the same
+`manubot.cite.citekey_to_csl_item` call underneath both. No
+drift between what the agent saw and what the renderer wrote.
+
+## What you have
+
+- Citation grounding for any DOI, PMID, arXiv, ISBN, URL,
+  Wikidata, or PMC key the agent encounters. The same seven
+  prefixes manubot has supported for years.
+- An agent that uses the same resolver the manuscript renderer
+  does. No metadata drift between draft and render.
+- No filter, no `quarto add`, no separate manubot install —
+  just `quartobot[mcp]` and a four-line Claude Desktop config
+  snippet.
+
+## See also
+
+- [MCP server reference](../mcp/) — the `scan_project` and
+  `validate_project` tools you didn't use here, setup snippets
+  for Codex and Gemini Code Assist, and the explicit scope-out
+  list (no write tools, no HTTP transport).
+- [First manuscript tutorial](../first-manuscript/) — if you
+  want the rendering and CI half too.

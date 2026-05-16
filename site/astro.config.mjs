@@ -31,6 +31,7 @@ export default defineConfig({
           items: [
             { label: "First manuscript (15 min)", link: "/first-manuscript/" },
             { label: "Getting started", link: "/getting-started/" },
+            { label: "MCP + Claude Desktop", link: "/mcp-claude-desktop/" },
           ],
         },
         {
