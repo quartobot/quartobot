@@ -84,6 +84,30 @@ _INLINE_CODE_RE = re.compile(r"(`+).+?\1")
 # match. Do not include `-` or `_` — those can legitimately end a key.
 _TRAILING_PUNCT = ".,;:!?)"
 
+# Trailing `/` is legitimate *inside* a URL cite key (`https://host/path/`)
+# but pandoc's cite-key parser treats it as terminator punctuation and
+# drops it during parse. If we keep the slash and pandoc strips it, the
+# resolved id in `references.json` won't match the key pandoc-citeproc
+# looks up, and the citation silently degrades to `[?]`. Strip trailing
+# `/` from `@url:` keys at the scan boundary so the resolver-side and
+# the consumer-side agree. Manubot's resolver doesn't care — both forms
+# resolve to the same metadata. See issue #61.
+_URL_PREFIX_RE = re.compile(r"^@?url:", re.IGNORECASE)
+
+
+def strip_pandoc_trailing(key: str) -> str:
+    """Strip trailing punctuation that pandoc's cite-key parser drops.
+
+    Pandoc strips trailing `.,;:!?` (and `/`) from cite keys during
+    parse. Our scan regex greedily includes those characters because
+    they can also appear inside a key (URL paths, DOIs with trailing
+    punctuation in prose). This brings the two parses into agreement.
+    """
+    stripped = key.rstrip(_TRAILING_PUNCT)
+    if _URL_PREFIX_RE.match(stripped):
+        stripped = stripped.rstrip("/")
+    return stripped
+
 
 @dataclass(frozen=True)
 class CiteOccurrence:
@@ -223,7 +247,7 @@ def find_cite_keys(text: str) -> Iterator[tuple[str, int]]:
         cleaned = _INLINE_CODE_RE.sub("", line)
 
         for match in _CITE_KEY_RE.finditer(cleaned):
-            key = match.group(0).rstrip(_TRAILING_PUNCT)
+            key = strip_pandoc_trailing(match.group(0))
             # Defensive: if stripping somehow ate the whole key, skip.
             if len(key) > 1:
                 yield key, lineno
@@ -409,4 +433,5 @@ __all__: Sequence[str] = (
     "find_cite_keys_in_notebook",
     "format_scan_result",
     "scan_path",
+    "strip_pandoc_trailing",
 )

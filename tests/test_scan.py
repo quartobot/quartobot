@@ -70,6 +70,68 @@ def test_trailing_punctuation_stripped(raw_line, expected_key):
         assert expected_key + punct not in found
 
 
+# Pandoc's cite-key parser treats trailing `/` as terminator punctuation
+# and drops it during parse. Without matching that here, the resolver
+# writes `id: url:.../path/` into references.json while pandoc-citeproc
+# looks up `url:.../path` — the citation silently degrades. See #61.
+@pytest.mark.parametrize(
+    ("raw_line", "expected_key"),
+    [
+        (
+            "See [@url:https://www.ga4gh.org/about-us/strategic-road-map/].\n",
+            "@url:https://www.ga4gh.org/about-us/strategic-road-map",
+        ),
+        (
+            "Also [@url:https://www.ncbi.nlm.nih.gov/books/NBK562708/].\n",
+            "@url:https://www.ncbi.nlm.nih.gov/books/NBK562708",
+        ),
+        (
+            "Many slashes: @url:https://example.com/a/b/c/.\n",
+            "@url:https://example.com/a/b/c",
+        ),
+        # Trailing slash followed by a sentence-ending period: both go.
+        (
+            "Period after: @url:https://example.com/path/.\n",
+            "@url:https://example.com/path",
+        ),
+        # Trailing slash followed by other terminator punct.
+        (
+            "Comma: @url:https://example.com/path/, next.\n",
+            "@url:https://example.com/path",
+        ),
+    ],
+)
+def test_url_trailing_slash_stripped(raw_line, expected_key):
+    found = [key for key, _ in find_cite_keys(raw_line)]
+    assert expected_key in found
+    # The slash-bearing form should NOT appear.
+    assert expected_key + "/" not in found
+
+
+def test_url_without_trailing_slash_unchanged():
+    # No-op case: a url: key with no trailing punctuation passes through.
+    text = "Source: @url:https://example.com.\n"
+    keys = [key for key, _ in find_cite_keys(text)]
+    assert "@url:https://example.com" in keys
+
+
+def test_url_internal_slashes_preserved():
+    # Only *trailing* slashes are stripped; internal slashes are part
+    # of the URL path and stay.
+    text = "Source: @url:https://example.com/a/b/c.\n"
+    keys = [key for key, _ in find_cite_keys(text)]
+    assert "@url:https://example.com/a/b/c" in keys
+
+
+def test_doi_trailing_slash_not_stripped():
+    # The slash-stripping is scoped to `url:` keys. DOIs and other
+    # prefixes keep any trailing slash the regex captured — those
+    # aren't normal in prose, and we don't want to surprise users.
+    text = "Cite @doi:10.1/x/ here.\n"
+    keys = [key for key, _ in find_cite_keys(text)]
+    assert "@doi:10.1/x/" in keys
+
+
 # ----------------------------------------------------------- find_cite_keys
 
 
@@ -596,3 +658,16 @@ def test_scan_path_non_recursive_skips_subdirs(tmp_path):
     keys = result.unique_keys
     assert "@doi:10.1/top" in keys
     assert "@doi:10.1/deeper" not in keys
+
+
+def test_strip_pandoc_trailing_handles_bare_url_form():
+    # cli.py's explicit-key path strips the leading `@` before
+    # normalization, so the helper has to recognize `url:` (no @) as
+    # a URL key and strip its trailing slash.
+    from quartobot.scan import strip_pandoc_trailing
+
+    assert strip_pandoc_trailing("url:https://example.com/path/") == "url:https://example.com/path"
+    # Sentence-ending punctuation still strips too.
+    assert strip_pandoc_trailing("url:https://example.com/path/.") == "url:https://example.com/path"
+    # No-op stays no-op.
+    assert strip_pandoc_trailing("url:https://example.com/path") == "url:https://example.com/path"

@@ -15,6 +15,12 @@
   same file — only cross-file duplicates count, and the failure message
   now reports the actual file count per key. `quartobot scan` exits 0 in
   every case; duplicates are reported, not gated. ([#63](https://github.com/quartobot/quartobot/issues/63))
+- `scan` and `resolve` now strip a trailing `/` from `@url:` cite keys
+  to match pandoc's cite-key parser, which treats it as terminator
+  punctuation. Without this, the resolver wrote `id: url:.../path/`
+  into `references.json` while pandoc-citeproc looked up
+  `url:.../path` and silently degraded the citation to `[?]`. Closes
+  #61.
 
 ### Architecture
 

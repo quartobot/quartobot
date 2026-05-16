@@ -16,6 +16,11 @@ is the publishing substrate underneath.
   (`@10.1371/journal.pcbi.1007128`). Same prefixes, same normalization
   rules, same handlers — `quartobot resolve` calls `manubot.cite`
   directly, so you're getting manubot's resolver behavior unchanged.
+  One small canonicalization layered on top: a trailing `/` in a
+  `@url:` key (and trailing `.,;:!?`) is stripped at scan time, because
+  pandoc's cite-key parser strips it during parse and the resolver-side
+  and consumer-side keys would otherwise disagree. The stripped form is
+  what lands in `references.json`.
 - **CSL JSON for auto-resolved entries, `.bib` for hand-curated.**
   Both declared in the project config, merged at render by pandoc
   citeproc.

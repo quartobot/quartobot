@@ -82,3 +82,43 @@ def test_subcommands_listed_in_help():
     result = runner.invoke(main, ["--help"])
     for sub in ("scan", "resolve", "validate"):
         assert sub in result.output
+
+
+def test_resolve_normalizes_url_trailing_slash_on_explicit_keys(monkeypatch):
+    """The explicit-key resolve path strips pandoc-trailing slashes
+    on `url:` keys before they reach resolve_keys."""
+    captured: dict = {}
+
+    def fake_resolve_keys(keys, **kwargs):
+        captured["keys"] = list(keys)
+        captured["kwargs"] = kwargs
+
+        from typing import ClassVar
+
+        class _Outcome:
+            ok_count = len(keys)
+            err_count = 0
+            failures: ClassVar[list] = []
+
+        return _Outcome()
+
+    def fake_format_outcome(outcome):
+        return ""
+
+    import quartobot.resolve as r
+
+    monkeypatch.setattr(r, "resolve_keys", fake_resolve_keys)
+    monkeypatch.setattr(r, "format_outcome", fake_format_outcome)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "resolve",
+            "--id-mode",
+            "citation-key",
+            "@url:https://example.com/path/",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert captured["keys"] == ["url:https://example.com/path"]
