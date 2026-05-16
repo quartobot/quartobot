@@ -10,7 +10,7 @@ that uses the `quartobot resolve` pre-render hook.
     project: "."          # where _quarto.yml lives (default: .)
     python-version: "3.12"
     quartobot-spec: "git+https://github.com/quartobot/quartobot"
-    quarto-version: ""    # empty = latest stable
+    quarto-version: "release"  # default; latest stable
     tinytex: "true"       # set "false" to skip TeX install
 ```
 

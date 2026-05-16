@@ -3,10 +3,15 @@ title: Install
 description: Every install method for the quartobot CLI, when to use which.
 ---
 
-Five ways to get `quartobot` on your machine, in roughly descending
+A few ways to get `quartobot` on your machine, in roughly descending
 order of how often you'll want each.
 
 ## Recommended: `uv tool install` from GitHub
+
+:::note
+Don't have `uv` yet? See the
+[uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+:::
 
 ```bash
 uv tool install git+https://github.com/quartobot/quartobot
@@ -38,6 +43,21 @@ Uninstall:
 ```bash
 uv tool uninstall quartobot
 ```
+
+## If you have `pipx` instead of `uv`
+
+If `pipx` is already part of your Python workflow and you'd rather not
+take on the uv toolchain, `pipx` installs `quartobot` as a CLI on your
+user `PATH` the same way:
+
+```bash
+pipx install git+https://github.com/quartobot/quartobot
+```
+
+The trade-off: `pipx` doesn't manage the underlying Python install, so
+Python ≥ 3.10 needs to be on the system already. `quartobot init`,
+`scan`, `validate`, and `resolve` then work the same as the `uv tool
+install` path.
 
 ## One-shot: `uvx`
 
@@ -94,14 +114,24 @@ uv run mypy
 - **No system manubot install needed.** `quartobot` declares manubot
   as a dependency; `uv tool install` brings it along.
 
-## Verify
+## Verify Quarto can find it
+
+The `quartobot resolve` pre-render hook in `_quarto.yml` runs as a
+subprocess of `quarto render`, which means `quartobot` has to be on
+the shell `PATH` Quarto sees — not just on the venv-activated PATH in
+your terminal. `uv tool install` puts it there; an editable install
+into a project venv does not.
 
 ```bash
 quartobot --version
 quartobot --help
+quarto check
+which quartobot
 ```
 
-If `quartobot --version` works but the freshly-installed command
-isn't picked up by a new shell, the install directory (typically
-`~/.local/bin`) isn't on your `PATH`. `uv tool update-shell` adds
-it; a login reload then picks it up.
+If `quartobot --version` works in your shell but `quarto render`
+fails with "command not found: quartobot", the install directory
+(typically `~/.local/bin`) isn't on the shell PATH for the user
+Quarto runs as. For `uv tool install`, `uv tool update-shell` adds
+it; for `pipx`, `pipx ensurepath` does the same. A login reload then
+picks it up.
