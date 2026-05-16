@@ -6,7 +6,7 @@
 The manubot manuscript-as-software pattern, on Quarto.
 
 ```bash
-uv tool install git+https://github.com/seandavi/quartobot
+uv tool install git+https://github.com/quartobot/quartobot
 ```
 
 > **Status:** v0.1 in flight. The CLI ships and is on PATH today via
@@ -40,10 +40,6 @@ The shipping surface is a Python CLI and (optionally) a GitHub template:
    project. Authors write `@doi:10.1371/journal.pcbi.1007128`,
    `@pmid:31479462`, `@arxiv:2104.10729`, `@isbn:…`, or bare DOIs in
    their prose, and citations resolve.
-
-   ```bash
-   uv tool install git+https://github.com/seandavi/quartobot
-   ```
 
 2. **`quartobot-manuscript`** — a GitHub template that combines Quarto
    Manuscripts, the CLI's pre-render hook, and a CI workflow that

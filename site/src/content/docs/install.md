@@ -51,7 +51,7 @@ take on the uv toolchain, `pipx` installs `quartobot` as a CLI on your
 user `PATH` the same way:
 
 ```bash
-pipx install git+https://github.com/seandavi/quartobot
+pipx install git+https://github.com/quartobot/quartobot
 ```
 
 The trade-off: `pipx` doesn't manage the underlying Python install, so
@@ -132,5 +132,6 @@ which quartobot
 If `quartobot --version` works in your shell but `quarto render`
 fails with "command not found: quartobot", the install directory
 (typically `~/.local/bin`) isn't on the shell PATH for the user
-Quarto runs as. `uv tool update-shell` adds it; a login reload then
+Quarto runs as. For `uv tool install`, `uv tool update-shell` adds
+it; for `pipx`, `pipx ensurepath` does the same. A login reload then
 picks it up.
