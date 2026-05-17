@@ -47,11 +47,11 @@ output goes to stdout for the agent to read back.
 Resolves one cite key to stdout. The simplest building block:
 
 ```bash
-quartobot resolve --output - doi:10.1371/journal.pcbi.1007128 | jq '.[0].title'
+quartobot resolve --output - doi:10.21105/joss.01686 | jq '.[0].title'
 ```
 
 ```
-"Open collaborative writing with Manubot"
+"Welcome to the Tidyverse"
 ```
 
 Output is CSL JSON — an array with one element per resolved key. The
@@ -62,14 +62,14 @@ or shell-tool error path picks the failure up automatically.
 A slightly fuller pipeline pulling title and first author:
 
 ```bash
-quartobot resolve --output - doi:10.1371/journal.pcbi.1007128 \
+quartobot resolve --output - doi:10.21105/joss.01686 \
   | jq '.[0] | {title, author: .author[0].family}'
 ```
 
 ```json
 {
-  "title": "Open collaborative writing with Manubot",
-  "author": "Himmelstein"
+  "title": "Welcome to the Tidyverse",
+  "author": "Wickham"
 }
 ```
 
@@ -130,25 +130,25 @@ reads back, what it tells the user:
 
 ```
 user → "Verify the citations in this paragraph:
-Open collaborative writing of scholarly manuscripts
-[@doi:10.1371/journal.pcbi.1007128] has parallels in
-large-scale collaborative data projects: the Genotype-Tissue
-Expression Consortium's pilot analysis [@pmid:23685459] was
-authored by 168 contributors and gave us our first systematic look
-at tissue-specific gene expression."
+The tidyverse [@doi:10.21105/joss.01686] gave R users a coherent
+grammar for data manipulation. The Genotype-Tissue Expression
+Consortium's pilot analysis [@pmid:23685459] catalogued
+tissue-specific gene expression across hundreds of donors — two
+modern methods citations the agent should verify against the
+source registrars before letting them into the draft."
 
 agent thinking → "I'll grep cite keys, resolve each, report findings."
 
 agent shells →
   $ echo "<paragraph>" | grep -oE '@(doi|pmid|arxiv|isbn|url|wikidata|pmc):[^][:space:],]+' | sort -u
-  @doi:10.1371/journal.pcbi.1007128
+  @doi:10.21105/joss.01686
   @pmid:23685459
 
-  $ quartobot resolve --output - doi:10.1371/journal.pcbi.1007128 \
+  $ quartobot resolve --output - doi:10.21105/joss.01686 \
       | jq '.[0] | {title, author: .author[0].family, year: .issued."date-parts"[0][0]}'
   {
-    "title": "Open collaborative writing with Manubot",
-    "author": "Himmelstein",
+    "title": "Welcome to the Tidyverse",
+    "author": "Wickham",
     "year": 2019
   }
 
@@ -160,9 +160,9 @@ agent shells →
     "year": 2013
   }
 
-agent → "Both citations resolve. doi:10.1371/journal.pcbi.1007128 is
-Himmelstein et al., 'Open collaborative writing with Manubot' (PLOS
-Comp Bio, 2019). pmid:23685459 is Lonsdale et al., 'The
+agent → "Both citations resolve. doi:10.21105/joss.01686 is
+Wickham et al., 'Welcome to the Tidyverse' (Journal of Open
+Source Software, 2019). pmid:23685459 is Lonsdale et al., 'The
 Genotype-Tissue Expression (GTEx) project' (Nature Genetics, 2013).
 Both check out — the paragraph is ready to drop into your
 manuscript."
@@ -190,7 +190,7 @@ agent shells →
   ✓ bibliography declared — 2 file(s): references.bib, references.json
   ✓ pre-render hook — `quartobot resolve` invoked with --id-mode citation-key
   ✓ references.json in bibliography
-  ✗ no duplicate cite keys — @doi:10.1371/journal.pcbi.1007128 appears in 2 file(s):
+  ✗ no duplicate cite keys — @doi:10.21105/joss.01686 appears in 2 file(s):
       intro.qmd:14
       methods.qmd:42
 
@@ -198,10 +198,12 @@ agent shells →
   $ echo $?
   1
 
-agent → "validate failed: doi:10.1371/journal.pcbi.1007128 now appears
-in both intro.qmd and methods.qmd. Cross-file duplicates surface as a
-warning in CI. Want me to reuse the existing intro.qmd citation by
-referring back to that section, or to factor the shared claim out?"
+agent → "validate failed: doi:10.21105/joss.01686 now appears
+in both intro.qmd and methods.qmd. Cross-file duplicates fail the
+no-duplicate-cite-keys check and block the CI render — `validate`
+exited non-zero. Want me to reuse the existing intro.qmd citation
+by referring back to that section, or to factor the shared claim
+out?"
 ```
 
 The point is structural. The agent doesn't decide whether the edit is

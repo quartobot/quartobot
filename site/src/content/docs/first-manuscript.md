@@ -27,8 +27,9 @@ You need:
 - **`gh`** (the GitHub CLI) — `gh --version`. [Install gh](https://cli.github.com/) if needed.
 - **A GitHub account** authenticated with `gh auth login`.
 
-That's it. No separate Python install, no manubot install, no
-Quarto extensions to add.
+That's it. No separate Python install, no `quarto add` step, no
+Quarto extension to install — `uv tool install quartobot` brings
+everything along, including the resolver library.
 
 ## 1. Install quartobot
 
@@ -85,16 +86,21 @@ That's the minimum. If all you want is citations resolved from
 Open `index.qmd` and replace the body with:
 
 ```markdown
-The manubot pattern [@doi:10.1371/journal.pcbi.1007128] runs scholarly
-manuscripts as git repositories that build themselves on every commit,
-resolve citations from persistent identifiers, and hand out
-immutable permalinks per commit. The GTEx Consortium's pilot analysis
-[@pmid:23685459] shipped a 168-author preprint using a similar
-collaborative-PR pattern; both are early examples of treating a
-paper as software rather than a Word document.
+The tooling stack for a modern computational manuscript spans
+several sources. The tidyverse [@doi:10.21105/joss.01686] gives R
+users a coherent grammar for data manipulation. Single-cell
+integration approaches like Seurat [@doi:10.1101/460147], still on
+bioRxiv as a preprint, sit alongside transformer architectures
+[@arxiv:1706.03762] for the LLM-driven tooling now common in
+analysis pipelines. Reference datasets like the Genotype-Tissue
+Expression Consortium's pilot analysis [@pmid:23685459] anchor the
+biological claims.
 ```
 
-Two cite keys, two registrars. Nothing else to configure.
+Four cite keys, four registrars (Crossref, bioRxiv via Crossref,
+arXiv, PubMed). The pre-render hook resolves each one and writes
+the resulting CSL JSON to `references.json` before pandoc runs.
+Nothing else to configure.
 
 ## 5. Render locally
 
