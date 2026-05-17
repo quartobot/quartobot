@@ -34,7 +34,7 @@ registrar:
 quartobot resolve --output - doi:10.21105/joss.01686 | jq '.[0].title'
 
 # PubMed ID (PubMed) — GTEx Consortium pilot analysis
-quartobot resolve --output - pmid:23685459 | jq '.[0].title'
+quartobot resolve --output - pmid:23715323 | jq '.[0].title'
 
 # arXiv preprint (arXiv) — "Attention Is All You Need"
 quartobot resolve --output - arxiv:1706.03762 | jq '.[0].title'

@@ -123,8 +123,8 @@ bibliography:
 ```markdown
 # Methods
 
-We adopted the manubot pattern [@doi:10.1371/journal.pcbi.1007128]
-for collaborative versioned authoring.
+We processed transcripts with the tidyverse
+[@doi:10.21105/joss.01686] for data wrangling and visualization.
 ```
 
 `chapters/results.qmd` cites the GTEx pilot and re-cites the same
@@ -133,9 +133,9 @@ DOI:
 ```markdown
 # Results
 
-The GTEx pilot [@pmid:23685459] shipped under a similar
-multi-author preprint pattern; this approach inherits from manubot
-[@doi:10.1371/journal.pcbi.1007128].
+Comparing against the GTEx pilot's tissue panel
+[@pmid:23715323], we re-ran the tidyverse pipeline
+[@doi:10.21105/joss.01686] across the same donors.
 ```
 
 Scan from the project root:
@@ -143,9 +143,9 @@ Scan from the project root:
 ```
 $ quartobot scan .
 doi:
-  10.1371/journal.pcbi.1007128 (2x)
+  10.21105/joss.01686 (2x)
 pmid:
-  23685459
+  23715323
 
 2 unique key(s), 3 total occurrence(s) across 3 file(s).
 ```

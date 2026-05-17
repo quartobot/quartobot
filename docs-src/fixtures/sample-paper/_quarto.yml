@@ -1,0 +1,7 @@
+project:
+  type: manuscript
+  pre-render: quartobot resolve --from-scan . --output references.json --id-mode citation-key
+
+bibliography:
+  - references.bib
+  - references.json

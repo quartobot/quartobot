@@ -6,20 +6,26 @@ name: Link check (docs)
 # prepend `base` to absolute paths in markdown content, so a link
 # written as `[X](/cli/)` ships broken without anything yelling.
 #
-# Strategy: build the site, serve it via `astro preview` so the base
-# path resolves the same way it does on Pages, and crawl with
-# linkinator. External URLs are skipped — CI rate-limit flakiness on
-# DOI / GitHub / registrar links is not worth chasing here.
+# Strategy: render any docs-src/*.qmd through Quarto + quartobot first
+# (the dogfood pipeline), then build the site, serve it via
+# `astro preview` so the base path resolves the same way it does on
+# Pages, and crawl with linkinator. External URLs are skipped — CI
+# rate-limit flakiness on DOI / GitHub / registrar links is not
+# worth chasing here.
 
 on:
   pull_request:
     paths:
       - "site/**"
+      - "docs-src/**"
+      - "justfile"
       - ".github/workflows/docs-link-check.yml"
   push:
     branches: [main]
     paths:
       - "site/**"
+      - "docs-src/**"
+      - "justfile"
       - ".github/workflows/docs-link-check.yml"
   workflow_dispatch:
 
@@ -30,12 +36,36 @@ jobs:
   link-check:
     name: Crawl built site for broken internal links
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: site
     steps:
       - name: Check out source
         uses: actions/checkout@v6
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Set up uv (Python + quartobot)
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install quartobot
+        run: uv tool install quartobot
+
+      - name: Install jupyter + bash_kernel in a venv
+        # Ubuntu's system Python is externally-managed (PEP 668), so
+        # install into a venv and point Quarto at it via QUARTO_PYTHON.
+        run: |
+          uv venv .venv-quarto --python 3.12
+          uv pip install --python .venv-quarto/bin/python jupyter bash_kernel pyyaml
+          .venv-quarto/bin/python -m bash_kernel.install --user
+
+      - name: Render Quarto docs (docs-src/*.qmd → site/src/content/docs/)
+        env:
+          QUARTO_PYTHON: ${{ github.workspace }}/.venv-quarto/bin/python
+        run: |
+          cd docs-src && quarto render
+          cd ..
+          python3 docs-src/scripts/post-render.py site/src/content/docs/first-manuscript.md
 
       - name: Set up Node
         uses: actions/setup-node@v6
@@ -44,17 +74,20 @@ jobs:
           cache: "npm"
           cache-dependency-path: site/package-lock.json
 
-      - name: Install dependencies
+      - name: Install Astro dependencies
         run: npm ci
+        working-directory: site
 
       - name: Build
         run: npm run build
+        working-directory: site
 
       - name: Start preview server
         # `astro preview` serves dist/ at the configured `base`
         # (/quartobot/), which is what Pages does. Crawling at the
         # right base is what makes this test catch the #69 bug class.
         run: npm run preview -- --host 127.0.0.1 --port 4321 &
+        working-directory: site
 
       - name: Wait for preview server
         run: |
@@ -76,3 +109,4 @@ jobs:
             --recurse \
             --skip "^https?://(?!127\\.0\\.0\\.1)" \
             --verbosity error
+        working-directory: site

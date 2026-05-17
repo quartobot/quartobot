@@ -29,3 +29,9 @@ _freeze/
 
 # graphify knowledge-graph output cache
 graphify-out/
+
+# Generated docs (rendered by Quarto from docs-src/*.qmd into Starlight)
+site/src/content/docs/first-manuscript.md
+docs-src/references.json
+docs-src/_freeze/
+docs-src/.quarto/
