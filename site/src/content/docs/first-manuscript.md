@@ -86,16 +86,21 @@ That's the minimum. If all you want is citations resolved from
 Open `index.qmd` and replace the body with:
 
 ```markdown
-The tidyverse [@doi:10.21105/joss.01686] gave R users a coherent
-grammar for data manipulation and graphics across a family of
-packages. Around the same time, the Genotype-Tissue Expression
-(GTEx) Consortium's pilot analysis [@pmid:23685459] catalogued
-tissue-specific gene expression across hundreds of donors. Two
-papers, two registrars (Crossref for the DOI, PubMed for the PMID),
-both resolved without leaving the manuscript.
+The tooling stack for a modern computational manuscript spans
+several sources. The tidyverse [@doi:10.21105/joss.01686] gives R
+users a coherent grammar for data manipulation. Single-cell
+integration approaches like Seurat [@doi:10.1101/460147], still on
+bioRxiv as a preprint, sit alongside transformer architectures
+[@arxiv:1706.03762] for the LLM-driven tooling now common in
+analysis pipelines. Reference datasets like the Genotype-Tissue
+Expression Consortium's pilot analysis [@pmid:23685459] anchor the
+biological claims.
 ```
 
-Two cite keys, two registrars. Nothing else to configure.
+Four cite keys, four registrars (Crossref, bioRxiv via Crossref,
+arXiv, PubMed). The pre-render hook resolves each one and writes
+the resulting CSL JSON to `references.json` before pandoc runs.
+Nothing else to configure.
 
 ## 5. Render locally
 

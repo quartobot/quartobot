@@ -19,32 +19,33 @@ quartobot resolve --output - doi:10.21105/joss.01686 | jq '.[0].title'
 "Welcome to the Tidyverse"
 ```
 
-The JSON shape is CSL JSON — manubot's output, the same structure
-`pandoc-citeproc` reads. `--output -` skips the cache write, the
-human-readable summary line goes to stderr, and exit is non-zero if
-any key fails to resolve.
+The JSON shape is CSL JSON — the same structure `pandoc-citeproc`
+reads. `--output -` skips the cache write, the human-readable summary
+line goes to stderr, and exit is non-zero if any key fails to resolve.
 
-A slightly fuller pipeline pulling title and authors:
+### One example per prefix
+
+The resolver handles every persistent-identifier prefix manubot
+supports. Each call below resolves a single key against its source
+registrar:
 
 ```bash
-quartobot resolve --output - doi:10.21105/joss.01686 \
-  | jq '.[0] | {title, authors: [.author[] | "\(.given) \(.family)"]}'
+# Journal DOI (Crossref) — "Welcome to the Tidyverse"
+quartobot resolve --output - doi:10.21105/joss.01686 | jq '.[0].title'
+
+# PubMed ID (PubMed) — GTEx Consortium pilot analysis
+quartobot resolve --output - pmid:23685459 | jq '.[0].title'
+
+# arXiv preprint (arXiv) — "Attention Is All You Need"
+quartobot resolve --output - arxiv:1706.03762 | jq '.[0].title'
+
+# bioRxiv preprint via DOI (Crossref-routed to bioRxiv) — Seurat v3
+quartobot resolve --output - doi:10.1101/460147 | jq '.[0].title'
 ```
 
-```json
-{
-  "title": "Welcome to the Tidyverse",
-  "authors": [
-    "Hadley Wickham",
-    "Vincent Rubinetti",
-    "..."
-  ]
-}
-```
-
-Any cite-key prefix manubot supports works here — `doi:`, `pmid:`,
-`arxiv:`, `isbn:`, `url:`, `wikidata:`, `pmc:`. Bare DOIs work too.
-See [CLI reference: `resolve`](../cli/#quartobot-resolve) for the full
+Bare DOIs (no `doi:` prefix) work too. `url:`, `wikidata:`, `isbn:`,
+and `pmc:` are also valid. See
+[CLI reference: `resolve`](../cli/#quartobot-resolve) for the full
 flag surface (`--from-scan`, `--id-mode`, `--cache`, `--dry-run`).
 
 ## MCP: `resolve_citation` tool
