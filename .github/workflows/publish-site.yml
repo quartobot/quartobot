@@ -54,20 +54,23 @@ jobs:
       - name: Install quartobot
         run: uv tool install quartobot
 
-      - name: Install jupyter + bash_kernel
+      - name: Install jupyter + bash_kernel in a venv
         # Quarto runs `{bash}` chunks via Jupyter; bash_kernel is the
-        # required IPython kernel for that. Installing globally so
-        # Quarto's `python3` lookup finds it without extra env-var wiring.
+        # required IPython kernel for that. Ubuntu's system Python is
+        # externally-managed (PEP 668), so install into a venv and
+        # point Quarto at it via QUARTO_PYTHON.
         run: |
-          uv tool install --with bash_kernel jupyter-core
-          uv pip install --system jupyter bash_kernel pyyaml
-          python3 -m bash_kernel.install
+          uv venv .venv-quarto --python 3.12
+          uv pip install --python .venv-quarto/bin/python jupyter bash_kernel pyyaml
+          .venv-quarto/bin/python -m bash_kernel.install --user
 
       - name: Render Quarto docs (docs-src/*.qmd → site/src/content/docs/)
         # The dogfood loop: quartobot's docs site is rendered by
         # quartobot's own pre-render hook. docs-src/_quarto.yml runs
         # `quartobot resolve --from-scan .` before Quarto formats the
         # citations into the markdown Astro picks up.
+        env:
+          QUARTO_PYTHON: ${{ github.workspace }}/.venv-quarto/bin/python
         run: |
           cd docs-src && quarto render
           cd ..
