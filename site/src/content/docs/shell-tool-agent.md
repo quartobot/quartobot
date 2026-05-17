@@ -132,7 +132,7 @@ reads back, what it tells the user:
 user → "Verify the citations in this paragraph:
 The tidyverse [@doi:10.21105/joss.01686] gave R users a coherent
 grammar for data manipulation. The Genotype-Tissue Expression
-Consortium's pilot analysis [@pmid:23685459] catalogued
+Consortium's pilot analysis [@pmid:23715323] catalogued
 tissue-specific gene expression across hundreds of donors — two
 modern methods citations the agent should verify against the
 source registrars before letting them into the draft."
@@ -142,7 +142,7 @@ agent thinking → "I'll grep cite keys, resolve each, report findings."
 agent shells →
   $ echo "<paragraph>" | grep -oE '@(doi|pmid|arxiv|isbn|url|wikidata|pmc):[^][:space:],]+' | sort -u
   @doi:10.21105/joss.01686
-  @pmid:23685459
+  @pmid:23715323
 
   $ quartobot resolve --output - doi:10.21105/joss.01686 \
       | jq '.[0] | {title, author: .author[0].family, year: .issued."date-parts"[0][0]}'
@@ -152,7 +152,7 @@ agent shells →
     "year": 2019
   }
 
-  $ quartobot resolve --output - pmid:23685459 \
+  $ quartobot resolve --output - pmid:23715323 \
       | jq '.[0] | {title, author: .author[0].family, year: .issued."date-parts"[0][0]}'
   {
     "title": "The Genotype-Tissue Expression (GTEx) project",
@@ -162,7 +162,7 @@ agent shells →
 
 agent → "Both citations resolve. doi:10.21105/joss.01686 is
 Wickham et al., 'Welcome to the Tidyverse' (Journal of Open
-Source Software, 2019). pmid:23685459 is Lonsdale et al., 'The
+Source Software, 2019). pmid:23715323 is Lonsdale et al., 'The
 Genotype-Tissue Expression (GTEx) project' (Nature Genetics, 2013).
 Both check out — the paragraph is ready to drop into your
 manuscript."

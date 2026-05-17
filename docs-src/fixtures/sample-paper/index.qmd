@@ -1,0 +1,9 @@
+---
+title: Sample paper
+---
+
+The tidyverse [@doi:10.21105/joss.01686] is a coherent grammar for data
+manipulation in R. Single-cell integration approaches like Seurat
+[@doi:10.1101/460147] handle the bioRxiv preprint side. Transformer
+architectures [@arxiv:1706.03762] underlie current AI tooling, and
+reference datasets [@pmid:23715323] anchor the biological claims.

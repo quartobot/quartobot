@@ -157,7 +157,7 @@ writing as software.
 title: "Methods"
 ---
 
-GTEx Consortium pilot data [@pmid:23685459] is the worked example.
+GTEx Consortium pilot data [@pmid:23715323] is the worked example.
 ```
 
 Render:

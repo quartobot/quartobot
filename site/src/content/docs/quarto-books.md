@@ -123,7 +123,7 @@ bibliography:
 ```markdown
 # Methods
 
-We adopted the manubot pattern [@doi:10.1371/journal.pcbi.1007128]
+We adopted the manubot pattern [@doi:10.21105/joss.01686]
 for collaborative versioned authoring.
 ```
 
@@ -133,9 +133,9 @@ DOI:
 ```markdown
 # Results
 
-The GTEx pilot [@pmid:23685459] shipped under a similar
+The GTEx pilot [@pmid:23715323] shipped under a similar
 multi-author preprint pattern; this approach inherits from manubot
-[@doi:10.1371/journal.pcbi.1007128].
+[@doi:10.21105/joss.01686].
 ```
 
 Scan from the project root:
@@ -143,9 +143,9 @@ Scan from the project root:
 ```
 $ quartobot scan .
 doi:
-  10.1371/journal.pcbi.1007128 (2x)
+  10.21105/joss.01686 (2x)
 pmid:
-  23685459
+  23715323
 
 2 unique key(s), 3 total occurrence(s) across 3 file(s).
 ```

@@ -1,0 +1,31 @@
+# Quarto source for select Starlight pages where the dogfood story
+# earns its keep: pages with academic citations or live `quartobot`
+# CLI output. Quarto runs the quartobot pre-render hook here too —
+# this project resolves its own citations through the same pipeline
+# the documented manuscripts use.
+#
+# Rendered output lands in Starlight's content collection at
+# ../site/src/content/docs/; Astro picks it up as plain markdown
+# (citations already formatted by pandoc-citeproc).
+#
+# Keep this scope narrow. The whole docs site stays markdown-first.
+# Only pages where live execution or formatted citations earn the
+# build-cost should move here.
+
+project:
+  type: default
+  output-dir: ../site/src/content/docs/
+  pre-render: quartobot resolve --from-scan . --output references.json --id-mode citation-key
+  render:
+    - first-manuscript.qmd
+
+format:
+  gfm:
+    # Starlight reads `title:` and `description:` from frontmatter.
+    # Quarto strips its own metadata by default; keep-yaml puts the
+    # qmd frontmatter through to the rendered md as-is.
+    keep-yaml: true
+
+bibliography:
+  - references.bib
+  - references.json

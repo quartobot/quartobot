@@ -18,6 +18,28 @@ the [Design](../design/) and
 [Citation pipeline](https://github.com/quartobot/quartobot/blob/main/docs/citation-pipeline.md)
 pages' job. This tutorial is doing, not understanding.
 
+::: {.callout-note}
+This page is itself rendered through the quartobot pre-render hook
+plus Quarto. The citation you see in the next paragraph —
+[@doi:10.21105/joss.01686] — was resolved by `quartobot resolve` at
+render time, the same way it would be in your manuscript. Every
+example output block on the page was captured from a real
+`quartobot` invocation while this page was being built.
+:::
+
+To set the example: the tooling that makes a Quarto manuscript
+self-rendering, citation-resolving, and version-banner-aware draws
+on the broader Quarto + pandoc-citeproc ecosystem; for the data side
+of a typical manuscript, the tidyverse [@doi:10.21105/joss.01686]
+is the most-cited starting point in R, single-cell methods like
+Seurat [@doi:10.1101/460147] anchor a lot of methods-paper
+bibliographies, and transformer architectures [@arxiv:1706.03762] for LLM-driven
+analysis tooling, and reference datasets [@pmid:23715323] anchor the
+biological claims a paper makes. Those four citations live in this
+paragraph, were resolved by `quartobot resolve` against their
+registrars (Crossref, bioRxiv via Crossref, PubMed), and pandoc-citeproc
+formatted the inline citations and bibliography section below.
+
 ## Before you start
 
 You need:
@@ -40,11 +62,12 @@ uv tool install quartobot
 This puts `quartobot` on your user `PATH` so Quarto's pre-render
 subprocess can find it without venv activation. Confirm:
 
-```bash
+```{bash}
+#| echo: true
 quartobot --version
 ```
 
-You should see `quartobot, version 0.2.0` (or later).
+You should see `quartobot, version 0.2.0` or later.
 
 ## 2. Create the project
 
@@ -74,16 +97,19 @@ into, plus `.gitignore` lines for `_book/`, `_freeze/`, `.quarto/`,
 `quarto create project` already wrote a `_quarto.yml`, `init`
 won't touch it; instead it prints a YAML snippet to paste in
 yourself. Copy the snippet and merge it into your `_quarto.yml`
-under the existing `project:` block — it adds the
-`pre-render:` line plus a `bibliography:` list with both
-`references.bib` and `references.json`.
+under the existing `project:` block — it adds the `pre-render:`
+line plus a `bibliography:` list with both `references.bib` and
+`references.json`.
 
 That's the minimum. If all you want is citations resolved from
 `@doi:` and friends, stop here.
 
-## 4. Write a paragraph
+## 4. Write a paragraph with real citations
 
-Open `index.qmd` and replace the body with:
+Open `index.qmd` and replace the body with a paragraph that uses
+the cite keys quartobot supports. Authors who write the prose
+below get the rendered references below it for free — no
+hand-curating a `.bib` per source.
 
 ```markdown
 The tooling stack for a modern computational manuscript spans
@@ -93,16 +119,28 @@ integration approaches like Seurat [@doi:10.1101/460147], still on
 bioRxiv as a preprint, sit alongside transformer architectures
 [@arxiv:1706.03762] for the LLM-driven tooling now common in
 analysis pipelines. Reference datasets like the Genotype-Tissue
-Expression Consortium's pilot analysis [@pmid:23685459] anchor the
+Expression Consortium's pilot analysis [@pmid:23715323] anchor the
 biological claims.
 ```
 
 Four cite keys, four registrars (Crossref, bioRxiv via Crossref,
-arXiv, PubMed). The pre-render hook resolves each one and writes
-the resulting CSL JSON to `references.json` before pandoc runs.
-Nothing else to configure.
+arXiv, PubMed). Save the file.
 
-## 5. Render locally
+## 5. See what `quartobot scan` reports
+
+Before rendering, ask quartobot what citations it sees. The same
+prose you just wrote, scanned by `quartobot scan`:
+
+```{bash}
+#| echo: true
+quartobot scan fixtures/sample-paper/
+```
+
+That's the inventory the pre-render hook will resolve when
+`quarto render` runs. Each prefix groups its keys; the summary
+line reports the total.
+
+## 6. Render locally
 
 ```bash
 quarto render
@@ -114,8 +152,8 @@ minutes). On the second render and after, it's seconds.
 The pre-render hook fires before pandoc runs. It:
 
 1. Scans `index.qmd` for cite keys.
-2. Calls each registrar (Crossref for the DOI, PubMed for the PMID)
-   to resolve canonical metadata.
+2. Calls each registrar (Crossref for the DOI, PubMed for the PMID,
+   arXiv for the arXiv preprint) to resolve canonical metadata.
 3. Writes the resulting CSL JSON to `references.json`.
 4. Hands control back to pandoc, which reads `references.json` and
    formats the citations.
@@ -125,10 +163,10 @@ formatted references with author names, journal, year. No empty
 `[?]` placeholders.
 
 Re-run `quarto render`. Now it's near-instant — the pre-render hook
-sees `references.json` already exists with both keys cached, skips
+sees `references.json` already exists with all keys cached, skips
 the network round-trip, and pandoc renders straight through.
 
-## 6. Add the publish-on-every-commit CI
+## 7. Add the publish-on-every-commit CI
 
 If you want every push to your GitHub repo to render the manuscript,
 deploy it to GitHub Pages, embed a "this version: `<sha>`" banner in
@@ -154,11 +192,11 @@ Add the snippet that `quartobot use github-ci` printed to your
 ```yaml
 format:
   html:
-    include-in-header:
+    include-before-body:
       - _version-banner.html
 ```
 
-## 7. Push to GitHub
+## 8. Push to GitHub
 
 ```bash
 gh repo create my-paper --source=. --public --push
@@ -174,10 +212,11 @@ gh run watch
 
 When the workflow finishes, GitHub Pages serves your manuscript at
 `https://<your-handle>.github.io/my-paper/`. Every commit also
-deploys to a versioned subdirectory: `https://<your-handle>.github.io/my-paper/v/<sha>/index.html`.
-The version banner in the rendered HTML links you between them.
+deploys to a versioned subdirectory:
+`https://<your-handle>.github.io/my-paper/v/<sha>/index.html`. The
+version banner in the rendered HTML links you between them.
 
-## 8. Open a pull request
+## 9. Open a pull request
 
 Make a change. Push to a branch. Open a PR.
 
@@ -217,3 +256,5 @@ its own `/v/<sha>/` permalink alongside the latest.
 - [Migrating from manubot](../migrating-from-manubot/) — if you have
   a manubot manuscript and want to translate the layout.
 - [Design](../design/) — the architecture decisions and prior art.
+
+## References

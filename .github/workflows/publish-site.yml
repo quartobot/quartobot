@@ -18,6 +18,8 @@ on:
     branches: [main]
     paths:
       - "site/**"
+      - "docs-src/**"
+      - "justfile"
       - ".github/workflows/publish-site.yml"
   workflow_dispatch:
 
@@ -37,12 +39,39 @@ jobs:
   build:
     name: Build site
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: site
     steps:
       - name: Check out source
         uses: actions/checkout@v6
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Set up uv (Python + quartobot)
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Install quartobot
+        run: uv tool install quartobot
+
+      - name: Install jupyter + bash_kernel
+        # Quarto runs `{bash}` chunks via Jupyter; bash_kernel is the
+        # required IPython kernel for that. Installing globally so
+        # Quarto's `python3` lookup finds it without extra env-var wiring.
+        run: |
+          uv tool install --with bash_kernel jupyter-core
+          uv pip install --system jupyter bash_kernel pyyaml
+          python3 -m bash_kernel.install
+
+      - name: Render Quarto docs (docs-src/*.qmd → site/src/content/docs/)
+        # The dogfood loop: quartobot's docs site is rendered by
+        # quartobot's own pre-render hook. docs-src/_quarto.yml runs
+        # `quartobot resolve --from-scan .` before Quarto formats the
+        # citations into the markdown Astro picks up.
+        run: |
+          cd docs-src && quarto render
+          cd ..
+          python3 docs-src/scripts/post-render.py site/src/content/docs/first-manuscript.md
 
       - name: Set up Node
         uses: actions/setup-node@v6
@@ -51,11 +80,13 @@ jobs:
           cache: "npm"
           cache-dependency-path: site/package-lock.json
 
-      - name: Install dependencies
+      - name: Install Astro dependencies
         run: npm ci
+        working-directory: site
 
       - name: Build
         run: npm run build
+        working-directory: site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
