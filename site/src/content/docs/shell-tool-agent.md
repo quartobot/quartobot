@@ -51,7 +51,7 @@ quartobot resolve --output - doi:10.21105/joss.01686 | jq '.[0].title'
 ```
 
 ```
-"Open collaborative writing with Manubot"
+"Welcome to the Tidyverse"
 ```
 
 Output is CSL JSON — an array with one element per resolved key. The
@@ -68,7 +68,7 @@ quartobot resolve --output - doi:10.21105/joss.01686 \
 
 ```json
 {
-  "title": "Open collaborative writing with Manubot",
+  "title": "Welcome to the Tidyverse",
   "author": "Wickham"
 }
 ```
@@ -147,7 +147,7 @@ agent shells →
   $ quartobot resolve --output - doi:10.21105/joss.01686 \
       | jq '.[0] | {title, author: .author[0].family, year: .issued."date-parts"[0][0]}'
   {
-    "title": "Open collaborative writing with Manubot",
+    "title": "Welcome to the Tidyverse",
     "author": "Wickham",
     "year": 2019
   }
@@ -199,9 +199,11 @@ agent shells →
   1
 
 agent → "validate failed: doi:10.21105/joss.01686 now appears
-in both intro.qmd and methods.qmd. Cross-file duplicates surface as a
-warning in CI. Want me to reuse the existing intro.qmd citation by
-referring back to that section, or to factor the shared claim out?"
+in both intro.qmd and methods.qmd. Cross-file duplicates fail the
+no-duplicate-cite-keys check and block the CI render — `validate`
+exited non-zero. Want me to reuse the existing intro.qmd citation
+by referring back to that section, or to factor the shared claim
+out?"
 ```
 
 The point is structural. The agent doesn't decide whether the edit is
