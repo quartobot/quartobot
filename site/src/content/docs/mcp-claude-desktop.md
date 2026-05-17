@@ -105,21 +105,21 @@ restart Claude Desktop, try again.
 
 Start a new conversation. Paste this prompt:
 
-> Use the quartobot tools to resolve `doi:10.1371/journal.pcbi.1007128`.
+> Use the quartobot tools to resolve `doi:10.21105/joss.01686`.
 > What's the paper's title and first author?
 
 What you'll see, in order:
 
 1. Claude announces it's calling the `resolve_citation` tool. The
    Claude Desktop UI shows a tool-call card; click it to expand
-   and you'll see the arguments (`cite_key: "doi:10.1371/journal.pcbi.1007128"`).
+   and you'll see the arguments (`cite_key: "doi:10.21105/joss.01686"`).
 2. The tool returns CSL JSON — a structured record with `title`,
    `author`, `issued`, `container-title`, and so on.
 3. Claude reads the CSL JSON and replies with the title and first
    author extracted from it.
 
-The answer should be: **"Open collaborative writing with Manubot"**,
-first author **Daniel S. Himmelstein**. That's the metadata your
+The answer should be: **"Welcome to the Tidyverse"**,
+first author **Hadley Wickham**. That's the metadata your
 manuscript renderer would have produced for the same key — the
 agent is reading from the same `manubot.cite.citekey_to_csl_item`
 call the pre-render hook makes. No guessing, no training-data
@@ -135,14 +135,14 @@ summarizing it.
 Now the headline use case. New conversation:
 
 > Draft a one-paragraph introduction for a paper on collaborative
-> scientific writing. Cite the manubot paper
-> (doi:10.1371/journal.pcbi.1007128) and one other relevant paper
+> scientific writing. Cite Wickham et al.'s 'Welcome to the Tidyverse'
+> (doi:10.21105/joss.01686) and one other relevant paper
 > of your choice. Use the quartobot `resolve_citation` tool to
 > verify each DOI before including it.
 
 Watch the trace. Claude will:
 
-1. Propose two candidate citations — the manubot paper plus one
+1. Propose two candidate citations — the tidyverse paper plus one
    it picks (often a paper on git-based collaboration, the GTEx
    consortium, or open-science workflow tooling).
 2. Call `resolve_citation` on each proposed DOI. The tool either
@@ -157,7 +157,7 @@ manuscript. Something like:
 ```markdown
 Open collaborative writing tools have shifted how scientific
 manuscripts are drafted, reviewed, and versioned
-[@doi:10.1371/journal.pcbi.1007128]. Treating a paper as software
+[@doi:10.21105/joss.01686]. Treating a paper as software
 — a git repository that builds itself, tracks contributor
 authorship through commits, and exposes every version at an
 immutable URL — turns the manuscript into a first-class artifact
@@ -204,7 +204,7 @@ drift between what the agent saw and what the renderer wrote.
   prefixes manubot has supported for years.
 - An agent that uses the same resolver the manuscript renderer
   does. No metadata drift between draft and render.
-- No filter, no `quarto add`, no separate manubot install —
+- No filter, no `quarto add`, no Quarto extension to install —
   just `quartobot[mcp]` and a four-line Claude Desktop config
   snippet.
 

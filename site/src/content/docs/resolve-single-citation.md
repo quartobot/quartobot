@@ -12,11 +12,11 @@ The stdout mode of `resolve` writes CSL JSON straight to the pipe.
 Hand it one or more keys as arguments:
 
 ```bash
-quartobot resolve --output - doi:10.1371/journal.pcbi.1007128 | jq '.[0].title'
+quartobot resolve --output - doi:10.21105/joss.01686 | jq '.[0].title'
 ```
 
 ```
-"Open collaborative writing with Manubot"
+"Welcome to the Tidyverse"
 ```
 
 The JSON shape is CSL JSON — manubot's output, the same structure
@@ -27,15 +27,15 @@ any key fails to resolve.
 A slightly fuller pipeline pulling title and authors:
 
 ```bash
-quartobot resolve --output - doi:10.1371/journal.pcbi.1007128 \
+quartobot resolve --output - doi:10.21105/joss.01686 \
   | jq '.[0] | {title, authors: [.author[] | "\(.given) \(.family)"]}'
 ```
 
 ```json
 {
-  "title": "Open collaborative writing with Manubot",
+  "title": "Welcome to the Tidyverse",
   "authors": [
-    "Daniel S. Himmelstein",
+    "Hadley Wickham",
     "Vincent Rubinetti",
     "..."
   ]
@@ -54,7 +54,7 @@ server is wired into your authoring client (Claude Desktop, Codex,
 Gemini Code Assist, Cursor), the agent calls one tool:
 
 ```
-resolve_citation(cite_key="doi:10.1371/journal.pcbi.1007128")
+resolve_citation(cite_key="doi:10.21105/joss.01686")
 ```
 
 What comes back is the CSL JSON object for that key — same payload as

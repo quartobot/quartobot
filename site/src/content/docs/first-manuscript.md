@@ -27,8 +27,9 @@ You need:
 - **`gh`** (the GitHub CLI) — `gh --version`. [Install gh](https://cli.github.com/) if needed.
 - **A GitHub account** authenticated with `gh auth login`.
 
-That's it. No separate Python install, no manubot install, no
-Quarto extensions to add.
+That's it. No separate Python install, no `quarto add` step, no
+Quarto extension to install — `uv tool install quartobot` brings
+everything along, including the resolver library.
 
 ## 1. Install quartobot
 
@@ -85,13 +86,13 @@ That's the minimum. If all you want is citations resolved from
 Open `index.qmd` and replace the body with:
 
 ```markdown
-The manubot pattern [@doi:10.1371/journal.pcbi.1007128] runs scholarly
-manuscripts as git repositories that build themselves on every commit,
-resolve citations from persistent identifiers, and hand out
-immutable permalinks per commit. The GTEx Consortium's pilot analysis
-[@pmid:23685459] shipped a 168-author preprint using a similar
-collaborative-PR pattern; both are early examples of treating a
-paper as software rather than a Word document.
+The tidyverse [@doi:10.21105/joss.01686] gave R users a coherent
+grammar for data manipulation and graphics across a family of
+packages. Around the same time, the Genotype-Tissue Expression
+(GTEx) Consortium's pilot analysis [@pmid:23685459] catalogued
+tissue-specific gene expression across hundreds of donors. Two
+papers, two registrars (Crossref for the DOI, PubMed for the PMID),
+both resolved without leaving the manuscript.
 ```
 
 Two cite keys, two registrars. Nothing else to configure.

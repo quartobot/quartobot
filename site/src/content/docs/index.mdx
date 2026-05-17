@@ -1,9 +1,9 @@
 ---
 title: quartobot
-description: The manubot manuscript-as-software pattern, on Quarto.
+description: Citation resolution and manuscript-as-software CI for Quarto.
 template: splash
 hero:
-  tagline: The manubot manuscript-as-software pattern, on Quarto.
+  tagline: Citation resolution and manuscript-as-software CI for Quarto.
   image:
     file: ../../assets/logo.svg
   actions:
@@ -19,73 +19,85 @@ hero:
 import { Card, CardGrid, Aside, LinkButton } from '@astrojs/starlight/components';
 
 <Aside type="note">
-**Status:** v0.1 scaffold in flight. The CLI installs today from git
-(`uv tool install git+https://github.com/quartobot/quartobot`); PyPI
-publication follows the v0.1 tag. Track
-[v0.1 on the milestone board](https://github.com/quartobot/quartobot/milestone/1).
+**Status:** v0.2.0 on PyPI. Install with `uv tool install quartobot`;
+docs cover the citation pipeline, the agentic surfaces, and the
+manuscript-as-software CI.
 </Aside>
 
-Manubot has, for eight years, run scholarly manuscripts as a git
-repository that builds itself on every commit, resolves citations from
-DOIs and PubMed IDs automatically, hands out an immutable permalink per
-commit, and collaborates through pull requests. The pattern is
-[published](https://doi.org/10.1371/journal.pcbi.1007128) and used in
-hundreds of preprints.
+quartobot wires citation grounding into Quarto. Authors write
+`@doi:10.21105/joss.01686` or `@pmid:23685459` (or `@arxiv:`, `@isbn:`,
+`@url:`, `@wikidata:`, `@pmc:`) directly in their prose; a pre-render
+hook resolves each key to canonical metadata before pandoc runs, the
+manuscript builds itself on every commit, and every commit gets an
+immutable permalink at `/v/<sha>/` on GitHub Pages.
 
-Quarto now covers more of scholarly publishing than manubot ever did —
-manuscripts, books, websites, slides, dashboards, courseware — but the
-manubot pattern does not exist there natively. quartobot closes that
-gap.
+The same resolver works the other direction too: an agent in Claude
+Desktop, Codex, or Gemini Code Assist (over MCP) or a shell-tool
+agent (over `quartobot resolve --output -`) can ground citations as
+it drafts, against the same call the renderer uses. The agent's
+references and the rendered manuscript's references can't drift.
 
 ## What ships
 
 <CardGrid>
   <Card title="Python CLI" icon="seti:python">
     `quartobot resolve` — invoked from Quarto's `project.pre-render:`
-    hook — plus `scan`, `validate`, `init`, and `mcp`. Authors write
-    `@doi:10.1371/journal.pcbi.1007128` in their prose; citations
-    resolve before pandoc runs.
+    hook — plus `scan`, `validate`, `init`, `use`, and `mcp`. Authors
+    write `@doi:10.21105/joss.01686` in their prose; citations resolve
+    before pandoc runs.
 
     [CLI reference →](./cli/)
   </Card>
-  <Card title="`quartobot init`" icon="rocket">
-    Scaffolds the pre-render hook, the version-banner Quarto
-    includes, and the GitHub Actions render workflow into an existing
-    Quarto project — manuscript, book, or website. Pairs with
-    `quarto create project <type>` for new projects.
+  <Card title="`quartobot init` + `use`" icon="rocket">
+    `init` scaffolds the citation pipeline into any Quarto project
+    (manuscript, book, or website) — pairs with `quarto create
+    project`. `use github-ci` layers a per-commit-permalink CI on
+    top, opt-in. Composable; pick the layers you want.
 
     [CLI reference →](./cli/#quartobot-init)
   </Card>
   <Card title="MCP server" icon="puzzle">
-    `quartobot mcp` exposes citation resolution as MCP tools so an
-    agent in Claude Desktop, Codex, or Gemini Code Assist can ground
-    citations against the same resolver the pre-render hook uses.
-    Opt-in via the `[mcp]` extra.
+    `quartobot mcp` exposes `resolve_citation`, `scan_project`, and
+    `validate_project` as MCP tools so an agent in Claude Desktop,
+    Codex, or Gemini Code Assist can call the same resolver your
+    manuscript renders with. Opt-in via the `[mcp]` extra.
 
     [MCP server →](./mcp/)
   </Card>
-  <Card title="Composite Actions" icon="github">
-    Reusable GitHub Actions + workflow so consumer-side CI is ten
-    lines, with upstream improvements flowing through version pins.
+  <Card title="Stdout CLI for shell agents" icon="terminal">
+    `quartobot resolve --output - <key>` pipes the resolved CSL JSON
+    straight to stdout — agents without MCP support (Codex CLI, custom
+    Anthropic-SDK harnesses, in-house automation) pipe through `jq`
+    and ground citations the same way.
+
+    [Shell-tool agent tutorial →](./shell-tool-agent/)
   </Card>
 </CardGrid>
+
+## Modular by design
+
+Three reach-points into one resolver. The pre-render hook is for
+render-time citation resolution; the MCP server is for agent-native
+clients; the stdout CLI is for everything else with a shell. Same
+underlying call, no parallel implementations, no fork. You pick the
+surface that fits where you already live.
 
 ## Origin
 
 [manubot/manubot#332](https://github.com/manubot/manubot/issues/332)
 ("Quarto integration") was opened by Anthony Gitter in April 2022 after
-a conversation with Sean Davis. Four years later, no PR, no assignee —
-but `pandoc-manubot-cite` shipped inside the `manubot` package and Quarto
-Manuscripts shipped as a first-party project type. The integration is
-small once you stop trying to rebuild the resolver. This site documents
-the work to resolve that issue.
+a conversation with Sean Davis. quartobot resolves that issue. The
+project depends on [manubot](https://github.com/manubot/manubot) for
+the citation resolver (`manubot.cite.citekey_to_csl_item` — eight years
+of accumulated source-API quirks) and has diverged since on
+architecture, ergonomics, and the agent-facing surfaces.
 
 ## Working example
 
 [seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)
-runs the CI / permalink / banner half of the pattern on a live 25-author
-preprint from the Bioconductor Spatial Hackathon. The CI machinery
-`quartobot init` scaffolds is being lifted from there.
+runs the CI / permalink / banner half on a live 25-author preprint
+from the Bioconductor Spatial Hackathon. The CI machinery `quartobot
+use github-ci` scaffolds is being lifted from there.
 
 ## Where to go next
 
@@ -96,16 +108,17 @@ preprint from the Bioconductor Spatial Hackathon. The CI machinery
     deploy. [Getting started](./getting-started/) is the same flow
     distilled into three install paths if you prefer to skim.
   </Card>
-  <Card title="Coming from manubot?" icon="random">
-    [Differences from manubot](./differences-from-manubot/) explains
-    what carries over and what changes;
-    [Migrating from manubot](./migrating-from-manubot/) is the
-    step-by-step translation.
+  <Card title="Agent-driven drafting" icon="random">
+    [MCP + Claude Desktop](./mcp-claude-desktop/) wires the resolver
+    into Claude. [Shell-tool agent](./shell-tool-agent/) covers
+    harnesses that don't speak MCP. [Resolve a single
+    citation](./resolve-single-citation/) is the one-shot lookup that
+    underpins both.
   </Card>
   <Card title="Design rationale" icon="puzzle">
     [Design](./design/) collects the architecture decisions and the
-    prior art — why pre-render hook, why CSL JSON, why the sticky PR
-    comment.
+    prior art — why a pre-render hook, why CSL JSON, why the sticky
+    PR comment.
   </Card>
   <Card title="Contribute" icon="add-document">
     See [CONTRIBUTING.md](https://github.com/quartobot/quartobot/blob/main/CONTRIBUTING.md)
