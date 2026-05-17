@@ -20,11 +20,10 @@ project:
     - first-manuscript.qmd
 
 format:
-  gfm:
-    # Starlight reads `title:` and `description:` from frontmatter.
-    # Quarto strips its own metadata by default; keep-yaml puts the
-    # qmd frontmatter through to the rendered md as-is.
-    keep-yaml: true
+  # Quarto's gfm output strips YAML frontmatter regardless of keep-yaml
+  # (which the format doesn't honor). docs-src/scripts/post-render.py
+  # owns frontmatter injection — single source of truth.
+  gfm: default
 
 bibliography:
   - references.bib

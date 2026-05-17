@@ -92,8 +92,15 @@ def rewrite_callouts(md: str) -> str:
     return pattern.sub(replace, md)
 
 
-def has_frontmatter(md: str) -> bool:
-    return md.startswith("---\n") and "\n---\n" in md[4:]
+# A sentinel comment this script writes, used as the
+# "already post-processed" marker. A Quarto-emitted frontmatter alone
+# is not enough to skip the rewrites — they're still needed.
+_POST_RENDER_SENTINEL = "<!-- post-render -->"
+
+
+def already_post_processed(md: str) -> bool:
+    head = "\n".join(md.splitlines()[:5])
+    return _POST_RENDER_SENTINEL in head
 
 
 def main(md_path: Path) -> int:
@@ -111,7 +118,7 @@ def main(md_path: Path) -> int:
 
     text = md_path.read_text(encoding="utf-8")
 
-    if has_frontmatter(text):
+    if already_post_processed(text):
         # Already post-processed; idempotent no-op.
         return 0
 
@@ -121,7 +128,8 @@ def main(md_path: Path) -> int:
     frontmatter = f'---\ntitle: "{title}"\n'
     if description:
         frontmatter += f'description: "{description}"\n'
-    frontmatter += "---\n\n"
+    frontmatter += "---\n"
+    frontmatter += f"{_POST_RENDER_SENTINEL}\n\n"
 
     md_path.write_text(frontmatter + text, encoding="utf-8")
     print(f"post-processed {md_path}")
