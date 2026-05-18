@@ -13,6 +13,16 @@
  * markdown rendering.
  */
 
+/* ──────────────────────────────────────────── hero audience tag */
+
+.hero-audience {
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+  font-size: 0.95rem;
+  font-style: italic;
+  color: var(--sl-color-gray-3);
+}
+
 /* ──────────────────────────────────────────── transform strip */
 
 .transform-strip {
