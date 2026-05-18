@@ -18,10 +18,10 @@
 .transform-strip {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1rem;
+  gap: 1.25rem;
   align-items: stretch;
   margin: 2.5rem 0 3rem 0;
-  padding: 1.5rem;
+  padding: 2rem;
   background: var(--sl-color-gray-6);
   border-radius: 0.5rem;
 }

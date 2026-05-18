@@ -18,10 +18,6 @@ hero:
 
 import { Card, CardGrid, Aside, LinkButton } from '@astrojs/starlight/components';
 
-<Aside type="note">
-v0.2.0 on PyPI. `uv tool install quartobot`.
-</Aside>
-
 <div class="transform-strip">
   <div>
     <p class="transform-strip__label">What you write</p>
@@ -132,19 +128,25 @@ bibliography:
   <div class="feature-band__body">
     <p class="feature-band__layer">Layer 3 · the agent</p>
     <h2 class="feature-band__title">Ground AI-assisted drafting</h2>
-    <p class="feature-band__audience">If you draft with Claude Desktop, Codex, Gemini, Cursor, or a custom shell-tool harness.</p>
+    <p class="feature-band__audience">If you draft with Claude Desktop, Codex, Gemini, Cursor, or any agent harness with a shell.</p>
     <p>
-      Two surfaces, same resolver. `quartobot mcp` exposes
+      Two surfaces for agentic citation work — MCP and a stdout CLI —
+      both reaching the same resolver. Agents use either to look up
+      the citations they propose against the source registrars
+      before those cites reach your draft. `quartobot mcp` exposes
       `resolve_citation`, `scan_project`, and `validate_project` as
-      MCP tools for native MCP clients. Agents without MCP shell
-      out to `quartobot resolve --output -` and pipe through `jq`.
+      MCP tools for native MCP clients. For agents that already live
+      in a shell, `quartobot resolve --output -` is the same call
+      piped through stdout — equally good, sometimes preferred for
+      portability and composition with `jq`.
     </p>
     <div class="feature-band__callout">
-      <strong>Stops the hallucinated-DOI problem.</strong> Every
-      citation the agent proposes is resolved against the source
-      registrar — Crossref, PubMed, arXiv — before it lands in your
-      draft. Agent metadata can't drift from render metadata; same
-      call, same answer.
+      <strong>Same call, same answer.</strong> An agent that routes
+      its proposed cite keys through quartobot gets back
+      source-registrar metadata — Crossref for DOIs, PubMed for
+      PMIDs, arXiv for preprints — using the same resolver your
+      manuscript renders with. Agent metadata and rendered metadata
+      can't drift apart.
     </div>
     <p class="feature-band__cta">
       <a href="./mcp-claude-desktop/">MCP + Claude Desktop →</a>
@@ -177,19 +179,23 @@ bibliography:
 <div class="feature-band feature-band--reverse">
   <div class="feature-band__body">
     <p class="feature-band__layer">Layer 4 · the publication</p>
-    <h2 class="feature-band__title">Automate the publication loop</h2>
+    <h2 class="feature-band__title">Every commit, a reviewable manuscript artifact</h2>
     <p class="feature-band__audience">If you want per-commit permalinks, PR previews, and "manuscript-as-software" CI.</p>
     <p>
-      `quartobot use github-ci` scaffolds a render workflow that
-      calls the upstream reusable workflow, drops in a version-banner
-      Quarto include, and writes a PR-preview cleanup workflow. Every
-      commit gets an immutable `/v/<sha>/` permalink on GitHub Pages.
+      `quartobot use github-ci` scaffolds the render-and-deploy
+      workflow. Each push to your repo renders the manuscript and
+      lands it on GitHub Pages; each commit gets an immutable
+      `/v/<sha>/` permalink alongside the latest; each PR gets a
+      sticky preview-render comment. Reviewers see what merges
+      before it merges.
     </p>
     <div class="feature-band__callout">
       <strong>Reviewers see exactly what your branch renders to.</strong>
-      Every PR gets a sticky comment with a preview-render link — no
-      local checkout, no "but it works on my machine," no version
-      drift between what reviewers read and what merges.
+      The sticky PR comment links to a live preview of the
+      manuscript — no local checkout, no "but it works on my
+      machine," no version drift between what reviewers read and
+      what merges. The `/v/<sha>/` permalink survives forever, so
+      anyone can cite a specific version of the paper.
     </div>
     <p class="feature-band__cta">
       <a href="./first-manuscript/#7-add-the-publish-on-every-commit-ci">First manuscript, step 7 →</a>
