@@ -11,6 +11,7 @@ export default defineConfig({
       title: "quartobot",
       description: "Citation resolution and manuscript-as-software CI for Quarto.",
       logo: { src: "./src/assets/logo.svg", replacesTitle: false },
+      customCss: ["./src/styles/feature-bands.css"],
       social: [
         {
           icon: "github",

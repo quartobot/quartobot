@@ -1,0 +1,77 @@
+/* Alternating feature bands for the landing page.
+ *
+ * Each `.feature-band` is a two-column grid on wide viewports: prose
+ * on one side, code snippet on the other. The `--reverse` modifier
+ * flips the order so successive bands zigzag. On narrow viewports
+ * the columns stack, prose first.
+ *
+ * Scoped to .feature-band so we don't leak into Starlight's built-in
+ * markdown rendering.
+ */
+
+.feature-band {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: center;
+  margin: 2.5rem 0;
+  padding-top: 2rem;
+  border-top: 1px solid var(--sl-color-hairline);
+}
+
+.feature-band:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.feature-band__title {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.feature-band__audience {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  color: var(--sl-color-text-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+.feature-band__body p {
+  margin: 0 0 0.75rem 0;
+}
+
+.feature-band__cta {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.feature-band__code pre {
+  margin: 0;
+}
+
+@media (min-width: 800px) {
+  .feature-band {
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    margin: 4rem 0;
+    padding-top: 3rem;
+  }
+
+  .feature-band--reverse .feature-band__code {
+    order: -1;
+  }
+}
+
+/* asciinema slot — placeholder until the recording lands */
+.asciinema-slot {
+  margin: 3rem 0;
+  padding: 1.5rem;
+  border: 1px dashed var(--sl-color-hairline);
+  border-radius: 0.5rem;
+  text-align: center;
+  color: var(--sl-color-gray-3);
+  font-size: 0.95rem;
+}

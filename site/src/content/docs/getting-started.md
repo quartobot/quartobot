@@ -71,6 +71,34 @@ That's the minimum. No filter, no `quarto add`, no extension. The hook
 runs before pandoc on every render; pandoc-citeproc reads
 `references.json` and `references.bib` together.
 
+## What you get
+
+The CLI ships with a small set of subcommands; the rest is what they
+scaffold.
+
+- **`quartobot resolve`** — the citation resolver. Reads
+  persistent-identifier cite keys (`@doi:`, `@pmid:`, `@arxiv:`,
+  `@isbn:`, `@url:`, `@wikidata:`, `@pmc:`) and writes CSL JSON.
+  Runs as a Quarto `pre-render:` hook on every render, or via
+  `--output -` for one-shot stdout lookups. See
+  [resolve a single citation](../resolve-single-citation/).
+- **`quartobot init`** — scaffolds the citation pipeline into an
+  existing Quarto project. Three files only: the `_quarto.yml`
+  snippet (manual-merge if the file exists), `references.bib` seed,
+  `.gitignore` lines for Quarto outputs and `references.json`.
+- **`quartobot use github-ci`** — opt-in layer. Adds
+  `.github/workflows/render.yml` (calls the upstream reusable
+  workflow), a PR-preview cleanup workflow, and the version-banner
+  Quarto include. Skip if you have CI or use `quarto publish`.
+- **`quartobot mcp`** — opt-in extra. Starts an MCP stdio server
+  exposing `resolve_citation`, `scan_project`, `validate_project` as
+  read-only tools for Claude Desktop, Codex, Gemini Code Assist.
+  Install with `quartobot[mcp]`. See [the MCP server page](../mcp/).
+- **`quartobot scan`** / **`quartobot validate`** — pre-flight
+  utilities. `scan` lists every cite key the project mentions;
+  `validate` runs static checks against `_quarto.yml`. See
+  [validate a manuscript](../validate-manuscript/).
+
 ## Prerequisites
 
 - **Quarto ≥ 1.4** — `quarto --version`. [Install](https://quarto.org/docs/get-started/).

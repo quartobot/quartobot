@@ -19,110 +19,176 @@ hero:
 import { Card, CardGrid, Aside, LinkButton } from '@astrojs/starlight/components';
 
 <Aside type="note">
-**Status:** v0.2.0 on PyPI. Install with `uv tool install quartobot`;
-docs cover the citation pipeline, the agentic surfaces, and the
-manuscript-as-software CI.
+**Status:** v0.2.0 on PyPI. Install with `uv tool install quartobot`.
+This page is itself rendered through `quartobot resolve` — see
+[first-manuscript](./first-manuscript/) for the dogfood loop.
 </Aside>
 
-quartobot wires citation grounding into Quarto. Authors write
-`@doi:10.21105/joss.01686` or `@pmid:23715323` (or `@arxiv:`, `@isbn:`,
-`@url:`, `@wikidata:`, `@pmc:`) directly in their prose; a pre-render
-hook resolves each key to canonical metadata before pandoc runs, the
-manuscript builds itself on every commit, and every commit gets an
-immutable permalink at `/v/<sha>/` on GitHub Pages.
+quartobot is a small set of composable pieces. Pick the layer that
+matches what you're trying to do — they work alone or stacked.
 
-The same resolver works the other direction too: an agent in Claude
-Desktop, Codex, or Gemini Code Assist (over MCP) or a shell-tool
-agent (over `quartobot resolve --output -`) can ground citations as
-it drafts, against the same call the renderer uses. The agent's
-references and the rendered manuscript's references can't drift.
+<div class="asciinema-slot">
+  <strong>Demo recording slot.</strong> A 60–90s asciinema walking
+  one path through the layers below lands here (see <a
+  href="https://github.com/quartobot/quartobot/issues/108">#108</a>).
+</div>
 
-## What ships
+<div class="feature-band">
+  <div class="feature-band__body">
+    <p class="feature-band__audience">For: shell-tool agents · jq users · one-shot lookups</p>
+    <h2 class="feature-band__title">1. Citation resolution</h2>
+    <p>
+      Atomic capability. Hand quartobot a persistent-identifier key —
+      `doi:`, `pmid:`, `arxiv:`, `isbn:`, `url:`, `wikidata:`, `pmc:`
+      — and get back CSL JSON. The resolver is
+      `manubot.cite.citekey_to_csl_item` underneath, wrapped with a
+      stdout mode so it pipes cleanly through `jq` or any agent's
+      shell tool.
+    </p>
+    <p class="feature-band__cta">
+      <a href="./resolve-single-citation/">How to resolve a single citation →</a>
+    </p>
+  </div>
+  <div class="feature-band__code">
 
-<CardGrid>
-  <Card title="Python CLI" icon="seti:python">
-    `quartobot resolve` — invoked from Quarto's `project.pre-render:`
-    hook — plus `scan`, `validate`, `init`, `use`, and `mcp`. Authors
-    write `@doi:10.21105/joss.01686` in their prose; citations resolve
-    before pandoc runs.
+```bash
+quartobot resolve --output - doi:10.21105/joss.01686 \
+  | jq '.[0].title'
+# → "Welcome to the Tidyverse"
+```
 
-    [CLI reference →](./cli/)
-  </Card>
-  <Card title="`quartobot init` + `use`" icon="rocket">
-    `init` scaffolds the citation pipeline into any Quarto project
-    (manuscript, book, or website) — pairs with `quarto create
-    project`. `use github-ci` layers a per-commit-permalink CI on
-    top, opt-in. Composable; pick the layers you want.
+  </div>
+</div>
 
-    [CLI reference →](./cli/#quartobot-init)
-  </Card>
-  <Card title="MCP server" icon="puzzle">
-    `quartobot mcp` exposes `resolve_citation`, `scan_project`, and
-    `validate_project` as MCP tools so an agent in Claude Desktop,
-    Codex, or Gemini Code Assist can call the same resolver your
-    manuscript renders with. Opt-in via the `[mcp]` extra.
+<div class="feature-band feature-band--reverse">
+  <div class="feature-band__body">
+    <p class="feature-band__audience">For: Quarto authors · manuscript, book, or website projects</p>
+    <h2 class="feature-band__title">2. Pre-render hook for Quarto</h2>
+    <p>
+      One line in `_quarto.yml` makes `quartobot resolve` run before
+      pandoc on every render. Authors write `@doi:…` in their prose;
+      the hook fetches each key, writes a CSL JSON bibliography to
+      `references.json`, and pandoc-citeproc formats the rendered
+      output. Network only on first render; cached after.
+    </p>
+    <p class="feature-band__cta">
+      <a href="./first-manuscript/">First manuscript in 15 minutes →</a>
+    </p>
+  </div>
+  <div class="feature-band__code">
 
-    [MCP server →](./mcp/)
-  </Card>
-  <Card title="Stdout CLI for shell agents" icon="terminal">
-    `quartobot resolve --output - <key>` pipes the resolved CSL JSON
-    straight to stdout — agents without MCP support (Codex CLI, custom
-    Anthropic-SDK harnesses, in-house automation) pipe through `jq`
-    and ground citations the same way.
+```yaml
+# _quarto.yml
+project:
+  pre-render: >-
+    quartobot resolve --from-scan .
+    --output references.json
+    --id-mode citation-key
 
-    [Shell-tool agent tutorial →](./shell-tool-agent/)
-  </Card>
-</CardGrid>
+bibliography:
+  - references.bib
+  - references.json
+```
+
+  </div>
+</div>
+
+<div class="feature-band">
+  <div class="feature-band__body">
+    <p class="feature-band__audience">For: drafting in Claude Desktop · Codex · Gemini · custom agent harnesses</p>
+    <h2 class="feature-band__title">3. Citation grounding for agents</h2>
+    <p>
+      The same resolver, reached two ways. `quartobot mcp` starts a
+      stdio MCP server with three read-only tools (`resolve_citation`,
+      `scan_project`, `validate_project`) for native MCP clients.
+      Agents without MCP shell out to `quartobot resolve --output -`
+      and pipe through `jq`. Either way, every cite the agent
+      proposes can be grounded against the registrar before it lands
+      in the draft.
+    </p>
+    <p class="feature-band__cta">
+      <a href="./mcp-claude-desktop/">MCP + Claude Desktop →</a>
+      &nbsp;·&nbsp;
+      <a href="./shell-tool-agent/">Shell-tool agents →</a>
+    </p>
+  </div>
+  <div class="feature-band__code">
+
+```json
+// ~/Library/Application Support/Claude/
+//   claude_desktop_config.json
+{
+  "mcpServers": {
+    "quartobot": {
+      "command": "quartobot",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+  </div>
+</div>
+
+<div class="feature-band feature-band--reverse">
+  <div class="feature-band__body">
+    <p class="feature-band__audience">For: the full manuscript-as-software pattern · per-commit permalinks · PR previews</p>
+    <h2 class="feature-band__title">4. GitHub automation</h2>
+    <p>
+      `quartobot use github-ci` scaffolds an opt-in render workflow:
+      `.github/workflows/render.yml` (calls the upstream reusable
+      workflow), the version-banner Quarto include, and a PR-preview
+      cleanup workflow. Every commit gets an immutable `/v/<sha>/`
+      permalink on GitHub Pages; every PR gets a sticky preview
+      comment. Skip this layer if you already have CI or use
+      `quarto publish`.
+    </p>
+    <p class="feature-band__cta">
+      <a href="./first-manuscript/#7-add-the-publish-on-every-commit-ci">First manuscript, step 7 →</a>
+    </p>
+  </div>
+  <div class="feature-band__code">
+
+```bash
+quartobot use github-ci
+# scaffolds:
+#   .github/workflows/render.yml
+#   .github/workflows/pr-closed.yml
+#   _version-banner.html
+# then prints a YAML snippet to paste
+# into _quarto.yml for the banner include
+```
+
+  </div>
+</div>
 
 ## Modular by design
 
-Three reach-points into one resolver. The pre-render hook is for
-render-time citation resolution; the MCP server is for agent-native
-clients; the stdout CLI is for everything else with a shell. Same
-underlying call, no parallel implementations, no fork. You pick the
-surface that fits where you already live.
-
-## Origin
-
-[manubot/manubot#332](https://github.com/manubot/manubot/issues/332)
-("Quarto integration") was opened by Anthony Gitter in April 2022 after
-a conversation with Sean Davis. quartobot resolves that issue. The
-project depends on [manubot](https://github.com/manubot/manubot) for
-the citation resolver (`manubot.cite.citekey_to_csl_item` — eight years
-of accumulated source-API quirks) and has diverged since on
-architecture, ergonomics, and the agent-facing surfaces.
-
-## Working example
-
-[seandavi/2026-venice-spatial-hackathon-manuscript](https://github.com/seandavi/2026-venice-spatial-hackathon-manuscript)
-runs the CI / permalink / banner half on a live 25-author preprint
-from the Bioconductor Spatial Hackathon. The CI machinery `quartobot
-use github-ci` scaffolds is being lifted from there.
+Same `manubot.cite.citekey_to_csl_item` call underneath all four
+layers. No parallel implementations, no fork. Adopt one, two, three,
+or all four — they compose, they don't require each other.
 
 ## Where to go next
 
 <CardGrid>
-  <Card title="New here?" icon="rocket">
+  <Card title="I just need a citation" icon="seti:plan">
+    [Resolve a single citation](./resolve-single-citation/) — one
+    persistent-identifier key in, CSL JSON out. CLI or MCP.
+  </Card>
+  <Card title="I'm writing a Quarto manuscript" icon="rocket">
     [First manuscript in 15 min](./first-manuscript/) walks the
-    canonical path end-to-end: install, scaffold, write, render, push,
-    deploy. [Getting started](./getting-started/) is the same flow
-    distilled into three install paths if you prefer to skim.
+    canonical path end-to-end: install, scaffold, write, render,
+    push, deploy.
   </Card>
-  <Card title="Agent-driven drafting" icon="random">
-    [MCP + Claude Desktop](./mcp-claude-desktop/) wires the resolver
-    into Claude. [Shell-tool agent](./shell-tool-agent/) covers
-    harnesses that don't speak MCP. [Resolve a single
-    citation](./resolve-single-citation/) is the one-shot lookup that
-    underpins both.
+  <Card title="I'm building agent-assisted authoring" icon="random">
+    [MCP + Claude Desktop](./mcp-claude-desktop/) and
+    [Shell-tool agent](./shell-tool-agent/) cover both surfaces
+    quartobot exposes.
   </Card>
-  <Card title="Design rationale" icon="puzzle">
+  <Card title="I want the design rationale" icon="puzzle">
     [Design](./design/) collects the architecture decisions and the
     prior art — why a pre-render hook, why CSL JSON, why the sticky
     PR comment.
-  </Card>
-  <Card title="Contribute" icon="add-document">
-    See [CONTRIBUTING.md](https://github.com/quartobot/quartobot/blob/main/CONTRIBUTING.md)
-    and the [open issues](https://github.com/quartobot/quartobot/issues).
   </Card>
 </CardGrid>
 

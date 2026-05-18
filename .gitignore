@@ -35,3 +35,6 @@ site/src/content/docs/first-manuscript.md
 docs-src/references.json
 docs-src/_freeze/
 docs-src/.quarto/
+
+# Playwright MCP screenshot artifacts
+.playwright-mcp/
