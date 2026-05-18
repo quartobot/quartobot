@@ -1,14 +1,14 @@
 ---
 title: quartobot
-description: Citation resolution and manuscript-as-software CI for Quarto.
+description: Write @doi:... directly in Quarto prose. quartobot resolves citations, grounds AI-assisted drafting, and automates publication.
 template: splash
 hero:
-  tagline: Citation resolution and manuscript-as-software CI for Quarto.
+  tagline: Write @doi:... directly in your Quarto prose. quartobot resolves the citations, grounds AI-assisted drafting, and automates publication.
   image:
     file: ../../assets/logo.svg
   actions:
-    - text: Get started
-      link: ./getting-started/
+    - text: First manuscript in 15 min
+      link: ./first-manuscript/
       icon: right-arrow
     - text: View on GitHub
       link: https://github.com/quartobot/quartobot
@@ -19,34 +19,58 @@ hero:
 import { Card, CardGrid, Aside, LinkButton } from '@astrojs/starlight/components';
 
 <Aside type="note">
-**Status:** v0.2.0 on PyPI. Install with `uv tool install quartobot`.
-This page is itself rendered through `quartobot resolve` — see
-[first-manuscript](./first-manuscript/) for the dogfood loop.
+v0.2.0 on PyPI. `uv tool install quartobot`.
 </Aside>
 
-quartobot is a small set of composable pieces. Pick the layer that
-matches what you're trying to do — they work alone or stacked.
+<div class="transform-strip">
+  <div>
+    <p class="transform-strip__label">What you write</p>
 
-<div class="asciinema-slot">
-  <strong>Demo recording slot.</strong> A 60–90s asciinema walking
-  one path through the layers below lands here (see <a
-  href="https://github.com/quartobot/quartobot/issues/108">#108</a>).
+```markdown
+The tidyverse [@doi:10.21105/joss.01686] is a
+coherent grammar for data manipulation across
+a family of R packages.
+```
+
+  </div>
+  <div class="transform-strip__arrow" aria-hidden="true">→</div>
+  <div>
+    <p class="transform-strip__label">What renders</p>
+
+> The tidyverse (Wickham et al. 2019) is a coherent
+> grammar for data manipulation across a family of
+> R packages.
+>
+> **References**
+>
+> Wickham, H., et al. (2019). Welcome to the
+> Tidyverse. *Journal of Open Source Software*,
+> 4(43), 1686.
+
+  </div>
 </div>
+
+Four composable layers. Adopt one, stack any subset — they don't
+require each other.
 
 <div class="feature-band">
   <div class="feature-band__body">
-    <p class="feature-band__audience">For: shell-tool agents · jq users · one-shot lookups</p>
-    <h2 class="feature-band__title">1. Citation resolution</h2>
+    <p class="feature-band__layer">Layer 1 · the atom</p>
+    <h2 class="feature-band__title">Resolve a citation</h2>
+    <p class="feature-band__audience">If you just need DOI / PMID / arXiv metadata at the shell.</p>
     <p>
-      Atomic capability. Hand quartobot a persistent-identifier key —
-      `doi:`, `pmid:`, `arxiv:`, `isbn:`, `url:`, `wikidata:`, `pmc:`
-      — and get back CSL JSON. The resolver is
-      `manubot.cite.citekey_to_csl_item` underneath, wrapped with a
-      stdout mode so it pipes cleanly through `jq` or any agent's
-      shell tool.
+      Hand quartobot a persistent-identifier key — `doi:`, `pmid:`,
+      `arxiv:`, `isbn:`, `url:`, `wikidata:`, `pmc:` — and get back
+      CSL JSON on stdout. Pipes cleanly through `jq` or any agent's
+      shell tool. The resolver is `manubot.cite.citekey_to_csl_item`
+      underneath; eight years of source-API quirks behind one call.
     </p>
     <p class="feature-band__cta">
       <a href="./resolve-single-citation/">How to resolve a single citation →</a>
+    </p>
+    <p class="feature-band__stop">
+      Done — you have a single-key metadata lookup tool. Stop here
+      or stack on Layer 2.
     </p>
   </div>
   <div class="feature-band__code">
@@ -62,17 +86,22 @@ quartobot resolve --output - doi:10.21105/joss.01686 \
 
 <div class="feature-band feature-band--reverse">
   <div class="feature-band__body">
-    <p class="feature-band__audience">For: Quarto authors · manuscript, book, or website projects</p>
-    <h2 class="feature-band__title">2. Pre-render hook for Quarto</h2>
+    <p class="feature-band__layer">Layer 2 · the manuscript</p>
+    <h2 class="feature-band__title">Resolve in the render loop</h2>
+    <p class="feature-band__audience">If you author Quarto manuscripts, books, or websites.</p>
     <p>
       One line in `_quarto.yml` makes `quartobot resolve` run before
-      pandoc on every render. Authors write `@doi:…` in their prose;
-      the hook fetches each key, writes a CSL JSON bibliography to
+      pandoc on every render. Authors write `@doi:…` directly in
+      prose; the hook fetches each key, writes the CSL JSON to
       `references.json`, and pandoc-citeproc formats the rendered
       output. Network only on first render; cached after.
     </p>
     <p class="feature-band__cta">
       <a href="./first-manuscript/">First manuscript in 15 minutes →</a>
+    </p>
+    <p class="feature-band__stop">
+      Done — your manuscript builds itself with resolved citations.
+      Stop here or stack on Layer 3.
     </p>
   </div>
   <div class="feature-band__code">
@@ -93,23 +122,38 @@ bibliography:
   </div>
 </div>
 
+<div class="asciinema-slot">
+  Demo recording slot — a 60–90s asciinema walking from
+  <code>quartobot init</code> to a rendered citation lands here.
+  Tracked in <a href="https://github.com/quartobot/quartobot/issues/108">#108</a>.
+</div>
+
 <div class="feature-band">
   <div class="feature-band__body">
-    <p class="feature-band__audience">For: drafting in Claude Desktop · Codex · Gemini · custom agent harnesses</p>
-    <h2 class="feature-band__title">3. Citation grounding for agents</h2>
+    <p class="feature-band__layer">Layer 3 · the agent</p>
+    <h2 class="feature-band__title">Ground AI-assisted drafting</h2>
+    <p class="feature-band__audience">If you draft with Claude Desktop, Codex, Gemini, Cursor, or a custom shell-tool harness.</p>
     <p>
-      The same resolver, reached two ways. `quartobot mcp` starts a
-      stdio MCP server with three read-only tools (`resolve_citation`,
-      `scan_project`, `validate_project`) for native MCP clients.
-      Agents without MCP shell out to `quartobot resolve --output -`
-      and pipe through `jq`. Either way, every cite the agent
-      proposes can be grounded against the registrar before it lands
-      in the draft.
+      Two surfaces, same resolver. `quartobot mcp` exposes
+      `resolve_citation`, `scan_project`, and `validate_project` as
+      MCP tools for native MCP clients. Agents without MCP shell
+      out to `quartobot resolve --output -` and pipe through `jq`.
     </p>
+    <div class="feature-band__callout">
+      <strong>Stops the hallucinated-DOI problem.</strong> Every
+      citation the agent proposes is resolved against the source
+      registrar — Crossref, PubMed, arXiv — before it lands in your
+      draft. Agent metadata can't drift from render metadata; same
+      call, same answer.
+    </div>
     <p class="feature-band__cta">
       <a href="./mcp-claude-desktop/">MCP + Claude Desktop →</a>
       &nbsp;·&nbsp;
       <a href="./shell-tool-agent/">Shell-tool agents →</a>
+    </p>
+    <p class="feature-band__stop">
+      Done — your AI tools cite from the same registrar your
+      manuscript does. Stop here or stack on Layer 4.
     </p>
   </div>
   <div class="feature-band__code">
@@ -132,19 +176,28 @@ bibliography:
 
 <div class="feature-band feature-band--reverse">
   <div class="feature-band__body">
-    <p class="feature-band__audience">For: the full manuscript-as-software pattern · per-commit permalinks · PR previews</p>
-    <h2 class="feature-band__title">4. GitHub automation</h2>
+    <p class="feature-band__layer">Layer 4 · the publication</p>
+    <h2 class="feature-band__title">Automate the publication loop</h2>
+    <p class="feature-band__audience">If you want per-commit permalinks, PR previews, and "manuscript-as-software" CI.</p>
     <p>
-      `quartobot use github-ci` scaffolds an opt-in render workflow:
-      `.github/workflows/render.yml` (calls the upstream reusable
-      workflow), the version-banner Quarto include, and a PR-preview
-      cleanup workflow. Every commit gets an immutable `/v/<sha>/`
-      permalink on GitHub Pages; every PR gets a sticky preview
-      comment. Skip this layer if you already have CI or use
-      `quarto publish`.
+      `quartobot use github-ci` scaffolds a render workflow that
+      calls the upstream reusable workflow, drops in a version-banner
+      Quarto include, and writes a PR-preview cleanup workflow. Every
+      commit gets an immutable `/v/<sha>/` permalink on GitHub Pages.
     </p>
+    <div class="feature-band__callout">
+      <strong>Reviewers see exactly what your branch renders to.</strong>
+      Every PR gets a sticky comment with a preview-render link — no
+      local checkout, no "but it works on my machine," no version
+      drift between what reviewers read and what merges.
+    </div>
     <p class="feature-band__cta">
       <a href="./first-manuscript/#7-add-the-publish-on-every-commit-ci">First manuscript, step 7 →</a>
+    </p>
+    <p class="feature-band__stop">
+      Done — every commit gets a permanent URL, every PR gets a
+      preview. Skip this layer entirely if you already have CI or
+      use `quarto publish`.
     </p>
   </div>
   <div class="feature-band__code">
@@ -161,12 +214,6 @@ quartobot use github-ci
 
   </div>
 </div>
-
-## Modular by design
-
-Same `manubot.cite.citekey_to_csl_item` call underneath all four
-layers. No parallel implementations, no fork. Adopt one, two, three,
-or all four — they compose, they don't require each other.
 
 ## Where to go next
 
