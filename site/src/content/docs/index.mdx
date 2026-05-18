@@ -1,9 +1,9 @@
 ---
 title: quartobot
-description: Write @doi:... directly in Quarto prose. quartobot resolves citations, grounds AI-assisted drafting, and automates publication.
+description: Write @doi:... directly in Quarto prose. quartobot resolves each citation from Crossref, PubMed, arXiv, and other identifier sources at render time.
 template: splash
 hero:
-  tagline: Write @doi:... directly in your Quarto prose. quartobot resolves the citations, grounds AI-assisted drafting, and automates publication.
+  tagline: Write @doi:... directly in your Quarto prose. quartobot resolves each citation from Crossref, PubMed, arXiv, and other identifier sources at render time — no separate BibTeX file to maintain.
   image:
     file: ../../assets/logo.svg
   actions:
@@ -18,7 +18,7 @@ hero:
 
 import { Card, CardGrid, Aside, LinkButton } from '@astrojs/starlight/components';
 
-<p class="hero-audience">For Quarto authors, computational researchers, and AI-assisted scholarly workflows.</p>
+<p class="hero-audience">For Quarto authors who'd rather write <code>@doi:...</code> than hand-maintain a BibTeX file.</p>
 
 <div class="transform-strip">
   <div>
@@ -47,6 +47,19 @@ a family of R packages.
 
   </div>
 </div>
+
+Slots into any Quarto project — manuscripts, books, websites, and
+Quarto's native `project: type: manuscript`. One line in `_quarto.yml`;
+no Lua filter, no `quarto add`, no `_extensions/`.
+
+```bash
+uv tool install quartobot
+```
+
+Then [first manuscript in 15 minutes →](./first-manuscript/) walks
+the whole flow: scaffold, write, render, push, deploy.
+
+---
 
 Four composable layers. Adopt one, stack any subset — they don't
 require each other.
@@ -92,7 +105,9 @@ quartobot resolve --output - doi:10.21105/joss.01686 \
       pandoc on every render. Authors write `@doi:…` directly in
       prose; the hook fetches each key, writes the CSL JSON to
       `references.json`, and pandoc-citeproc formats the rendered
-      output. Network only on first render; cached after.
+      output. Network only on first render; cached after. Hand-curated
+      entries in `references.bib` work alongside, for the keys the
+      resolver can't reach.
     </p>
     <p class="feature-band__cta">
       <a href="./first-manuscript/">First manuscript in 15 minutes →</a>
@@ -120,29 +135,22 @@ bibliography:
   </div>
 </div>
 
-<div class="asciinema-slot">
-  Demo recording slot — a 60–90s asciinema walking from
-  <code>quartobot init</code> to a rendered citation lands here.
-  Tracked in <a href="https://github.com/quartobot/quartobot/issues/108">#108</a>.
-</div>
-
 <div class="feature-band">
   <div class="feature-band__body">
     <p class="feature-band__layer">Layer 3 · the agent</p>
     <h2 class="feature-band__title">Ground AI-assisted drafting</h2>
     <p class="feature-band__audience">If you draft with Claude Desktop, Codex, Gemini, Cursor, or any agent harness with a shell.</p>
     <p>
-      Once citations resolve reliably during rendering, the same
-      registry-backed workflow can ground AI-assisted authoring.
-      Two surfaces for agentic citation work — MCP and a stdout CLI —
-      both reaching the same resolver. Agents use either to look up
-      the citations they propose against the source registrars
-      before those cites reach your draft. `quartobot mcp` exposes
+      If your manuscript renders citations from persistent identifiers,
+      your AI drafting tools should look them up the same way. Two
+      surfaces, same resolver: `quartobot mcp` exposes
       `resolve_citation`, `scan_project`, and `validate_project` as
       MCP tools for native MCP clients. For agents that already live
       in a shell, `quartobot resolve --output -` is the same call
       piped through stdout — equally good, sometimes preferred for
-      portability and composition with `jq`.
+      portability and composition with `jq`. Either way, an agent
+      checks every cite key it proposes against the source registrar
+      before that cite reaches your draft.
     </p>
     <div class="feature-band__callout">
       <strong>Same call, same answer.</strong> An agent that routes

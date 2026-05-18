@@ -1,13 +1,12 @@
 /* Landing-page custom styles.
  *
- * Three components on the home page need bespoke styling:
+ * Two components on the home page need bespoke styling:
  *
  * 1. `.transform-strip` — the "what you write / what renders"
  *    before/after demo between the hero and the layer bands.
  * 2. `.feature-band` — each of the four composable-layer sections,
  *    with prose on one side and a code snippet on the other,
  *    alternating via `.feature-band--reverse`.
- * 3. `.asciinema-slot` — placeholder for the demo recording.
  *
  * Scoped class names so we don't leak into Starlight's built-in
  * markdown rendering.
@@ -157,14 +156,3 @@
   }
 }
 
-/* ──────────────────────────────────────────── asciinema slot */
-
-.asciinema-slot {
-  margin: 3rem 0;
-  padding: 1rem 1.25rem;
-  border: 1px dashed var(--sl-color-hairline);
-  border-radius: 0.5rem;
-  color: var(--sl-color-gray-3);
-  font-size: 0.9rem;
-  text-align: center;
-}
