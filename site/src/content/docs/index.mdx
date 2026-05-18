@@ -1,9 +1,9 @@
 ---
 title: quartobot
-description: Write @doi:... directly in Quarto prose. quartobot resolves citations, grounds AI-assisted drafting, and automates publication.
+description: Write @doi:... directly in Quarto prose. quartobot resolves each citation from Crossref, PubMed, arXiv, and other identifier sources at render time.
 template: splash
 hero:
-  tagline: Write @doi:... directly in your Quarto prose. quartobot resolves the citations, grounds AI-assisted drafting, and automates publication.
+  tagline: Write @doi:... directly in your Quarto prose. quartobot resolves each citation from Crossref, PubMed, arXiv, and other identifier sources at render time — no separate BibTeX file to maintain.
   image:
     file: ../../assets/logo.svg
   actions:
@@ -47,6 +47,19 @@ a family of R packages.
 
   </div>
 </div>
+
+Slots into any Quarto project — manuscripts, books, websites, and
+Quarto's native `project: type: manuscript`. One line in `_quarto.yml`;
+no Lua filter, no `quarto add`, no `_extensions/`.
+
+```bash
+uv tool install quartobot
+```
+
+Then [first manuscript in 15 minutes →](./first-manuscript/) walks
+the canonical path end-to-end: scaffold, write, render, push, deploy.
+
+---
 
 Four composable layers. Adopt one, stack any subset — they don't
 require each other.
@@ -118,12 +131,6 @@ bibliography:
 ```
 
   </div>
-</div>
-
-<div class="asciinema-slot">
-  Demo recording slot — a 60–90s asciinema walking from
-  <code>quartobot init</code> to a rendered citation lands here.
-  Tracked in <a href="https://github.com/quartobot/quartobot/issues/108">#108</a>.
 </div>
 
 <div class="feature-band">

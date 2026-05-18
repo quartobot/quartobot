@@ -22,16 +22,17 @@ export default defineConfig({
       editLink: {
         baseUrl: "https://github.com/quartobot/quartobot/edit/main/site/",
       },
-      // Sidebar grouped by Diataxis quadrant — Tutorials (learning),
-      // How-to guides (doing), Reference (information), Explanation
-      // (understanding). Reader intent up front; topic comes second.
+      // Sidebar: Install is the first thing a new user needs, so it
+      // sits at the top alongside Home. Everything below is grouped by
+      // Diataxis quadrant — Tutorials (learning), How-to guides
+      // (doing), Reference (information), Explanation (understanding).
       sidebar: [
         { label: "Home", link: "/" },
+        { label: "Install", link: "/install/" },
         {
           label: "Tutorials",
           items: [
             { label: "First manuscript (15 min)", link: "/first-manuscript/" },
-            { label: "Getting started", link: "/getting-started/" },
             { label: "MCP + Claude Desktop", link: "/mcp-claude-desktop/" },
             { label: "Shell-tool agent", link: "/shell-tool-agent/" },
           ],
@@ -39,6 +40,7 @@ export default defineConfig({
         {
           label: "How-to guides",
           items: [
+            { label: "Choose a path in", link: "/getting-started/" },
             { label: "Resolve a single citation", link: "/resolve-single-citation/" },
             { label: "Use a Quarto website", link: "/quarto-websites/" },
             { label: "Use a Quarto book", link: "/quarto-books/" },
@@ -51,7 +53,6 @@ export default defineConfig({
         {
           label: "Reference",
           items: [
-            { label: "Install", link: "/install/" },
             { label: "CLI", link: "/cli/" },
           ],
         },
